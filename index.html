@@ -4,54 +4,220 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cult of the Lamb Planner</title>
-<meta name="description" content="Plan your Cult of the Lamb base layout on a grid and share it as a link.">
+<meta name="description" content="Plan your Cult of the Lamb base on the real in-game grid and share it as a link.">
+<meta property="og:title" content="Cult of the Lamb Planner">
+<meta property="og:description" content="Plan your Cult of the Lamb base on the real in-game grid and share it as a link.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3 29 16 16 29 3 16Z' fill='%23c8423b'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/geist@5.3.0/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/geist-mono@5.3.0/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css">
 <style>
-  :root { --bg: #16100f; --panel: #221817; --line: #3a2a27; --text: #efe3cf; --muted: #a8968a; --accent: #d33f3f; }
+  /* Dark only on purpose: it mirrors the game's palette and the map colours are tuned for it. */
+  :root {
+    --bg: #141012; --surface: #1c1719; --raised: #251e21; --line: #33292d; --line-strong: #4a3c41;
+    --text: #ede4d3; --muted: #a39489; --faint: #6f625c;
+    --accent: #c8423b; --accent-soft: rgb(200 66 59 / .16);
+    --ok: #8fb36c;
+    --r-panel: 12px; --r-ctl: 8px; --r-tile: 8px;
+    --shadow: 0 10px 30px rgb(8 4 6 / .55), 0 1px 0 rgb(255 255 255 / .04) inset;
+    --ease: cubic-bezier(.16, 1, .3, 1);
+    color-scheme: dark;
+  }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; display: flex; height: 100vh; }
-  aside { width: 300px; flex: none; background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
-  aside header { padding: 12px; border-bottom: 1px solid var(--line); }
-  h1 { margin: 0 0 8px; font-size: 18px; color: var(--accent); }
-  input, button { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; }
-  button { cursor: pointer; } button:hover { border-color: var(--accent); }
-  #search { width: 100%; }
-  #list { overflow-y: auto; flex: 1; padding: 4px 0; }
-  details > summary { padding: 6px 12px; cursor: pointer; color: var(--muted); font-weight: 600; }
-  details details > summary { padding-left: 24px; font-weight: 400; }
-  .item { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; border-radius: 0; background: none; padding: 3px 12px 3px 36px; text-align: left; }
-  .item img { width: 28px; height: 28px; object-fit: contain; }
-  .item small { margin-left: auto; color: var(--muted); }
-  .item.active { background: var(--accent); }
-  main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); }
-  .bar .hint { color: var(--muted); margin-left: auto; }
-  #wrap { flex: 1; overflow: auto; padding: 16px; }
-  canvas { display: block; touch-action: none; }
-  @media (max-width: 720px) {
-    body { flex-direction: column; height: auto; }
-    aside { width: 100%; height: 45vh; border-right: 0; border-bottom: 1px solid var(--line); }
-    .bar .hint { display: none; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Geist Variable", system-ui, sans-serif; display: grid; grid-template-columns: 340px 1fr; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .num { font-family: "Geist Mono Variable", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .skip { position: absolute; left: -999px; top: 8px; z-index: 30; background: var(--raised); padding: 8px 12px; border-radius: var(--r-ctl); }
+  .skip:focus { left: 8px; }
+
+  /* Sidebar */
+  aside { background: var(--surface); border-right: 1px solid var(--line); display: grid; grid-template-rows: auto auto auto 1fr; min-height: 0; }
+  .brand { padding: 18px 18px 14px; display: flex; align-items: center; gap: 10px; }
+  .brand i { color: var(--accent); font-size: 22px; }
+  .brand h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+  .brand p { margin: 0; color: var(--muted); font-size: 12px; }
+  .search { margin: 0 14px 12px; position: relative; }
+  .search i { position: absolute; left: 11px; top: 50%; translate: 0 -50%; color: var(--faint); pointer-events: none; }
+  .search input { width: 100%; height: 38px; padding: 0 12px 0 34px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-ctl); transition: border-color .2s var(--ease); }
+  .search input::placeholder { color: var(--faint); }
+  .search input:focus { border-color: var(--line-strong); outline: none; }
+  .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 0 14px 10px; padding: 3px; background: var(--bg); border-radius: var(--r-ctl); }
+  .tabs button { height: 30px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 12px; font-weight: 500; transition: background .2s var(--ease), color .2s var(--ease); }
+  .tabs button[aria-selected="true"] { background: var(--raised); color: var(--text); }
+  .palette { overflow-y: auto; padding: 0 14px 24px; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+  .palette h2 { font-size: 12px; font-weight: 500; color: var(--muted); margin: 16px 2px 8px; display: flex; justify-content: space-between; }
+  .palette h2 span { color: var(--faint); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .tile { position: relative; display: grid; justify-items: center; gap: 4px; padding: 10px 4px 8px; background: var(--bg); border: 1px solid transparent; border-radius: var(--r-tile); text-align: center; transition: border-color .15s var(--ease), background .15s var(--ease), transform .15s var(--ease); }
+  .tile:hover { border-color: var(--line-strong); background: var(--raised); }
+  .tile:active { transform: scale(.97); }
+  .tile[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+  .tile img { width: 40px; height: 40px; object-fit: contain; }
+  .tile .ph-image { font-size: 28px; color: var(--faint); height: 40px; display: grid; place-items: center; }
+  .tile span { font-size: 11.5px; line-height: 1.25; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.5em; }
+  .tile small { position: absolute; top: 5px; right: 6px; font-size: 10px; color: var(--faint); }
+  .tile small.guess { color: #d8a24a; }
+  .recent { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .recent .tile { flex: 0 0 64px; padding: 6px 4px; }
+  .recent .tile img { width: 32px; height: 32px; }
+  .recent .tile span, .recent .tile small { display: none; }
+  .empty-search { color: var(--muted); padding: 24px 4px; text-align: center; }
+  .skeleton { height: 82px; border-radius: var(--r-tile); background: linear-gradient(90deg, var(--bg) 0%, var(--raised) 50%, var(--bg) 100%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+
+  /* Map */
+  main { position: relative; min-width: 0; min-height: 0; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+  canvas.pan { cursor: grab; } canvas.panning { cursor: grabbing; } canvas.erase { cursor: not-allowed; }
+  .float { position: absolute; background: rgb(28 23 25 / .92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); }
+  .toolbar { top: 14px; left: 14px; display: flex; align-items: center; gap: 2px; padding: 4px; }
+  .toolbar.right { left: auto; right: 14px; }
+  .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+  .icon-btn { height: 34px; min-width: 34px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: var(--r-ctl); background: none; color: var(--muted); font-size: 13px; transition: background .15s var(--ease), color .15s var(--ease), transform .1s var(--ease); }
+  .icon-btn i { font-size: 18px; }
+  .icon-btn:hover:not(:disabled) { background: var(--raised); color: var(--text); }
+  .icon-btn:active:not(:disabled) { transform: translateY(1px); }
+  .icon-btn:disabled { opacity: .35; cursor: default; }
+  .icon-btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--text); }
+  .icon-btn[aria-pressed="true"] i { color: var(--accent); }
+  .icon-btn.primary { background: var(--accent); color: #fff7f2; padding: 0 12px; }
+  .icon-btn.primary:hover { background: #d6514a; color: #fff7f2; }
+  .zoom { min-width: 48px; text-align: center; font-size: 12px; color: var(--muted); }
+
+  .inspector { left: 14px; bottom: 14px; width: 280px; padding: 12px; display: grid; grid-template-columns: 48px 1fr; gap: 4px 12px; align-items: center; transition: opacity .2s var(--ease), translate .2s var(--ease); }
+  .inspector[hidden] { display: grid; opacity: 0; translate: 0 6px; pointer-events: none; }
+  .inspector img { width: 48px; height: 48px; object-fit: contain; grid-row: span 2; }
+  .inspector b { font-weight: 600; font-size: 14px; }
+  .inspector p { margin: 0; color: var(--muted); font-size: 12px; }
+  .inspector .warn { grid-column: 1 / -1; color: #d8a24a; font-size: 12px; display: flex; gap: 6px; align-items: center; margin-top: 4px; }
+
+  .stats { right: 14px; bottom: 14px; padding: 12px 14px; min-width: 220px; }
+  .stats .big { display: flex; gap: 18px; }
+  .stats .big div { display: grid; }
+  .stats .big b { font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+  .stats .big span { font-size: 11.5px; color: var(--muted); }
+  .bar { height: 4px; border-radius: 4px; background: var(--line); margin: 10px 0 8px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--ok); border-radius: inherit; transition: width .3s var(--ease); }
+  .stats ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 12px; color: var(--muted); }
+  .stats li { display: flex; justify-content: space-between; gap: 12px; }
+  .stats li b { color: var(--text); font-weight: 500; }
+
+  .hint { left: 50%; top: 50%; translate: -50% -50%; padding: 18px 20px; max-width: 320px; text-align: center; pointer-events: none; transition: opacity .3s var(--ease); }
+  .hint[hidden] { display: block; opacity: 0; }
+  .hint i { font-size: 26px; color: var(--accent); }
+  .hint b { display: block; margin: 6px 0 4px; font-weight: 600; }
+  .hint p { margin: 0; color: var(--muted); font-size: 13px; }
+  .toast { left: 50%; bottom: 18px; translate: -50% 0; padding: 9px 14px; font-size: 13px; display: flex; gap: 8px; align-items: center; transition: opacity .2s var(--ease), translate .2s var(--ease); }
+  .toast[hidden] { display: flex; opacity: 0; translate: -50% 8px; pointer-events: none; }
+  .toast i { color: var(--ok); }
+
+  dialog { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); padding: 20px 22px; max-width: 420px; }
+  dialog::backdrop { background: rgb(8 4 6 / .6); }
+  dialog h2 { margin: 0 0 12px; font-size: 16px; font-weight: 600; }
+  dialog dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 0 0 16px; font-size: 13px; }
+  dialog dt { text-align: right; }
+  dialog dd { margin: 0; color: var(--muted); }
+  kbd { font-family: "Geist Mono Variable", monospace; font-size: 11.5px; padding: 2px 6px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 5px; background: var(--bg); }
+
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+  @media (max-width: 767px) {
+    body { grid-template-columns: 1fr; grid-template-rows: 1fr 42dvh; }
+    aside { grid-row: 2; border-right: 0; border-top: 1px solid var(--line); }
+    .brand { display: none; }
+    .search { margin-top: 12px; }
+    main { grid-row: 1; }
+    .toolbar .label, .stats, .inspector { display: none; }
+    .toolbar { top: 10px; left: 10px; } .toolbar.right { right: 10px; }
   }
 </style>
 </head>
 <body>
-<aside>
-  <header>
-    <h1>Cult of the Lamb Planner</h1>
-    <input id="search" type="search" placeholder="Search buildings…" aria-label="Search buildings">
-  </header>
-  <div id="list"></div>
+<a class="skip" href="#palette">Skip to building list</a>
+<aside aria-label="Buildings">
+  <div class="brand">
+    <i class="ph-fill ph-diamond" aria-hidden="true"></i>
+    <div><h1>Cult of the Lamb Planner</h1><p>Plan your base on the real in-game grid</p></div>
+  </div>
+  <label class="search">
+    <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+    <input id="search" type="search" placeholder="Search buildings" aria-label="Search buildings" autocomplete="off">
+  </label>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div class="palette" id="palette" tabindex="-1">
+    <div class="grid"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+  </div>
 </aside>
 <main>
-  <div class="bar">
-    <button id="rotate" title="Rotate (R)">Rotate</button>
-    <button id="share">Copy link</button>
-    <button id="png">Export PNG</button>
-    <button id="clear">Clear</button>
-    <span class="hint">Click to place · click a building to move it · right-click to delete · R rotate · Esc cancel</span>
+  <canvas id="map" aria-label="Base map. Pick a building, then click the ground to place it."></canvas>
+
+  <div class="float toolbar" role="toolbar" aria-label="Tools">
+    <button class="icon-btn" id="tool-select" aria-pressed="true" title="Move (V)" aria-label="Move tool"><i class="ph ph-cursor"></i></button>
+    <button class="icon-btn" id="tool-erase" aria-pressed="false" title="Erase (E)" aria-label="Erase tool"><i class="ph ph-eraser"></i></button>
+    <button class="icon-btn" id="rotate" title="Rotate building (R)" aria-label="Rotate building"><i class="ph ph-arrows-clockwise"></i></button>
+    <span class="sep"></span>
+    <button class="icon-btn" id="undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled><i class="ph ph-arrow-counter-clockwise"></i></button>
+    <button class="icon-btn" id="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled><i class="ph ph-arrow-clockwise"></i></button>
+    <span class="sep"></span>
+    <button class="icon-btn" id="labels" aria-pressed="false" title="Show names (L)" aria-label="Show names"><i class="ph ph-text-aa"></i></button>
+    <button class="icon-btn" id="clear" title="Clear map" aria-label="Clear map"><i class="ph ph-trash"></i></button>
+    <button class="icon-btn" id="help" title="Shortcuts (?)" aria-label="Keyboard shortcuts"><i class="ph ph-keyboard"></i></button>
   </div>
-  <div id="wrap"><canvas id="grid"></canvas></div>
+
+  <div class="float toolbar right" role="toolbar" aria-label="View and share">
+    <button class="icon-btn" id="zoom-out" title="Zoom out (-)" aria-label="Zoom out"><i class="ph ph-minus"></i></button>
+    <span class="zoom num" id="zoom">100%</span>
+    <button class="icon-btn" id="zoom-in" title="Zoom in (+)" aria-label="Zoom in"><i class="ph ph-plus"></i></button>
+    <button class="icon-btn" id="fit" title="Fit base (F)" aria-label="Fit base to screen"><i class="ph ph-corners-out"></i></button>
+    <span class="sep"></span>
+    <button class="icon-btn" id="png" title="Export PNG" aria-label="Export PNG"><i class="ph ph-download-simple"></i></button>
+    <button class="icon-btn primary" id="share" title="Copy share link"><i class="ph ph-link"></i><span class="label">Share</span></button>
+  </div>
+
+  <div class="float hint" id="hint">
+    <i class="ph-fill ph-hand-pointing" aria-hidden="true"></i>
+    <b>Your base is empty</b>
+    <p>Pick a building on the left, then click the ground. Drag to place a row, scroll to zoom.</p>
+  </div>
+
+  <div class="float inspector" id="inspector" hidden aria-live="polite">
+    <img id="ins-icon" alt="" referrerpolicy="no-referrer" crossorigin="anonymous">
+    <b id="ins-name"></b>
+    <p id="ins-meta"></p>
+    <div class="warn" id="ins-warn" hidden><i class="ph ph-warning"></i>Footprint not confirmed, shown as 1×1</div>
+  </div>
+
+  <div class="float stats" aria-label="Layout stats">
+    <div class="big">
+      <div><b class="num" id="st-count">0</b><span>buildings</span></div>
+      <div><b class="num" id="st-cells">0</b><span id="st-cells-of">of 0 cells used</span></div>
+    </div>
+    <div class="bar"><i id="st-bar" style="width:0"></i></div>
+    <ul id="st-groups"></ul>
+  </div>
+
+  <div class="float toast" id="toast" hidden role="status"><i class="ph-fill ph-check-circle"></i><span id="toast-text"></span></div>
 </main>
+
+<dialog id="help-dialog" aria-labelledby="help-title">
+  <h2 id="help-title">Shortcuts</h2>
+  <dl>
+    <dt><kbd>Click</kbd></dt><dd>Place the picked building, or pick up a placed one</dd>
+    <dt><kbd>Drag</kbd></dt><dd>Place a row of the picked building, or pan the map</dd>
+    <dt><kbd>Right-click</kbd></dt><dd>Delete a building</dd>
+    <dt><kbd>R</kbd></dt><dd>Rotate the building you're holding</dd>
+    <dt><kbd>V</kbd> <kbd>E</kbd></dt><dd>Move tool, erase tool</dd>
+    <dt><kbd>Ctrl Z</kbd></dt><dd>Undo (add Shift to redo)</dd>
+    <dt><kbd>Scroll</kbd> <kbd>F</kbd></dt><dd>Zoom, fit the base to the screen</dd>
+    <dt><kbd>Space</kbd></dt><dd>Hold and drag to pan</dd>
+    <dt><kbd>L</kbd></dt><dd>Show building names</dd>
+    <dt><kbd>Esc</kbd></dt><dd>Drop what you're holding</dd>
+  </dl>
+  <form method="dialog"><button class="icon-btn primary" autofocus>Got it</button></form>
+</dialog>
 <script type="module" src="app.js"></script>
 </body>
 </html>
