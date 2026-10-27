@@ -7,8 +7,12 @@ building, drop it on the grid, share the layout as a link.
   game renders it, from the game's camera angle
 - Woolhaven land expansions as an option: south field, then west, then east (the order
   the game sells them), each with its own background; saved in the share link
-- Buildings drawn with their real in-game sprites and exact footprints, standing on the
-  grid back to front like in-game
+- Buildings rendered by the game itself (shaders, Spine art, lighting), with exact
+  footprints, standing on the grid back to front like in-game
+- The game's build rules: one-per-base buildings (moving the existing one if you place
+  another), upgrade levels picked on the map, and the Temple placed by default, movable but
+  not removable
+- Building names in all 15 languages the game ships, from the game's own translations
 - 220+ buildings and decorations, grouped as on the wiki, with their grid footprints
 - Overlap and buildable-ground checks, rotate, move, delete
 - The whole layout lives in the URL — "Copy link" is your save file
@@ -30,9 +34,10 @@ because browsers block `fetch()` of the data file over `file://`.)
 | Action | How |
 |---|---|
 | Place | pick a building in the sidebar, click the grid (keeps painting) |
-| Move | click a placed building, then click its new spot |
+| Change level | click a placed building, pick I, II, III... |
+| Move | drag a placed building, or click it and choose Move |
 | Delete | right-click a placed building |
-| Rotate | `R` or the Rotate button while placing |
+| Flip | `R` or the Flip button (the game mirrors buildings) |
 | Cancel | `Esc` |
 
 ## Building data
@@ -66,7 +71,21 @@ matches the game's dump except for one edge cell.
 
 Rubble, trees and weeds are randomised in each save, so they aren't part of the grid.
 
-## Game data and building sprites
+## Game data, rules and translations
+
+`tools/background/build_sprites.py` also parses the game's build rules from
+`StructuresData`: `GetBuildOnlyOne` (one per base, counting every level of an upgrade
+chain), `GetUpgradePath` (the levels) and `isDeletable` (the Temple can be moved but never
+removed). They land in `data/game.json` as `once`, `chains` and `fixed`. Wiki entries are
+matched to game types by the game's own English names. `data/base.json` `defaults` holds
+the Temple's usual spot.
+
+`data/i18n.json` holds every building name in the game's 15 languages, dumped by the
+capture plugin from the game's I2 Localization data and converted with
+`tools/capture/i18n_to_data.py`. Only building names are translated; the planner's own
+interface text is English.
+
+## Building sprites (older pipeline)
 
 `tools/background/build_sprites.py` reads the game's own build list (the base scene's
 `TypeAndPlacementObjects`): each structure type, its placement prefab (exact footprint)
@@ -77,6 +96,15 @@ draw list that `compose_sprites.html` renders into one atlas, `data/sprites.webp
 cell, which is where the game places the prefab. Spine-animated parts and UI gauges are
 not drawn, and buildings without plain sprites fall back to the wiki icon. In-game
 "rotate" mirrors a building, and so does the planner's Flip.
+
+## Building renders
+
+`data/sprites.webp` holds every buildable structure as the game draws it: the capture
+plugin's Buildings job loads each building prefab through Addressables, strips its gameplay
+scripts (keeping Spine renderers and switching off light sprites, range indicators and
+effects), places it on open ground in the base, and renders it alone over black and over
+white to recover exact transparency. `tools/capture/pack_sprites.html` packs the results
+into the atlas; each sprite keeps its anchor, the centre of the footprint's first cell.
 
 ## Background art
 
@@ -115,6 +143,6 @@ node tools/test.mjs
 
 Code is MIT licensed (see `LICENSE`). Building names and sizes come from the
 fandom wiki (CC BY-SA); the base grid coordinates are derived from the game's scene data.
-`data/background.webp` and `data/sprites.webp` are rendered from the game's own art and
-are included here for this fan tool only. Building icons are loaded from the wiki's CDN and are not included. *Cult of the Lamb* and its art belong to Massive Monster
+`data/background-*.webp` and `data/sprites.webp` are rendered from the game's own art, and
+`data/i18n.json` holds the game's building names; they're included here for this fan tool only. Building icons are loaded from the wiki's CDN and are not included. *Cult of the Lamb* and its art belong to Massive Monster
 and Devolver Digital. This is an unofficial fan project, not affiliated with them.

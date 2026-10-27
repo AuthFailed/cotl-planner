@@ -42,7 +42,7 @@
 "sprite": true
 },
 "DECORATION_TREE": {
-"name": "Twig Wall",
+"name": "Potted Bush",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -54,7 +54,7 @@
 "sprite": true
 },
 "DANCING_FIREPIT": {
-"name": null,
+"name": "Fire Pit",
 "w": 5,
 "h": 5,
 "sprite": true
@@ -63,7 +63,8 @@
 "name": null,
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "GRAVE": {
 "name": "Grave",
@@ -90,13 +91,13 @@
 "sprite": true
 },
 "KITCHEN": {
-"name": null,
+"name": "Kitchen",
 "w": 3,
 "h": 3,
 "sprite": true
 },
 "LUMBERJACK_STATION": {
-"name": null,
+"name": "Lumberyard",
 "w": 3,
 "h": 3,
 "sprite": true
@@ -137,7 +138,8 @@
 "name": "Cooking Fire",
 "w": 4,
 "h": 4,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "ALCHEMY_CAULDRON": {
 "name": null,
@@ -161,7 +163,8 @@
 "name": "Confession Booth",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "ENEMY_TRAP": {
 "name": null,
@@ -196,7 +199,8 @@
 "name": "Knucklebones Arena",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "MEDITATION_MAT": {
 "name": null,
@@ -272,10 +276,12 @@
 "h": 2
 },
 "TEMPLE": {
-"name": null,
+"name": "Temple",
 "w": 5,
 "h": 5,
-"sprite": true
+"sprite": true,
+"once": true,
+"fixed": true
 },
 "DECORATION_FLOWER_BOX_2": {
 "name": null,
@@ -329,13 +335,17 @@
 "name": "Shrine",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true,
+"fixed": true
 },
 "SHRINE_II": {
 "name": "Shrine II",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true,
+"fixed": true
 },
 "TEMPLE_BASE": {
 "name": null,
@@ -343,7 +353,7 @@
 "h": 3
 },
 "HARVEST_TOTEM": {
-"name": null,
+"name": "Harvest Totem",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -354,13 +364,13 @@
 "h": 1
 },
 "FARM_PLOT_SIGN": {
-"name": "Farmer Station",
+"name": "Farm Plot Sign",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_SHRUB": {
-"name": "Small Stone Candle",
+"name": "Simple Shrub",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -369,7 +379,9 @@
 "name": "Cult II",
 "w": 5,
 "h": 5,
-"sprite": true
+"sprite": true,
+"once": true,
+"fixed": true
 },
 "REFINERY": {
 "name": "Refinery",
@@ -378,7 +390,7 @@
 "sprite": true
 },
 "SHRINE_PASSIVE": {
-"name": null,
+"name": "Tabernacle",
 "w": 2,
 "h": 2
 },
@@ -386,13 +398,17 @@
 "name": "Shrine III",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true,
+"fixed": true
 },
 "SHRINE_IV": {
 "name": "Shrine IV",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true,
+"fixed": true
 },
 "OFFERING_STATUE": {
 "name": "Offering Statue",
@@ -401,12 +417,12 @@
 "sprite": true
 },
 "SHRINE_PASSIVE_II": {
-"name": null,
+"name": "Tabernacle II",
 "w": 2,
 "h": 2
 },
 "SHRINE_PASSIVE_III": {
-"name": null,
+"name": "Tabernacle III",
 "w": 2,
 "h": 2
 },
@@ -414,13 +430,17 @@
 "name": "Cult III",
 "w": 5,
 "h": 5,
-"sprite": true
+"sprite": true,
+"once": true,
+"fixed": true
 },
 "TEMPLE_IV": {
 "name": "Cult IV",
 "w": 5,
 "h": 5,
-"sprite": true
+"sprite": true,
+"once": true,
+"fixed": true
 },
 "TILE_PATH": {
 "name": "Dirt Flooring",
@@ -437,22 +457,25 @@
 "name": "Healing Bay",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "HEALING_BAY_2": {
-"name": null,
+"name": "Improved Healing Bay",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "MISSIONARY": {
 "name": "Missionary",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "FEAST_TABLE": {
-"name": null,
+"name": "Feasting Table",
 "w": 5,
 "h": 5,
 "sprite": true
@@ -473,7 +496,8 @@
 "name": "Surveillance Tower",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "FISHING_HUT_2": {
 "name": null,
@@ -506,7 +530,7 @@
 "sprite": true
 },
 "DECORATION_BARROW": {
-"name": "Golden Bell Statue",
+"name": "Flower Barrow",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -530,7 +554,7 @@
 "sprite": true
 },
 "DECORATION_BONE_CANDLE": {
-"name": "Skeleton Crown Flag",
+"name": "Skull Candle",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -584,7 +608,7 @@
 "sprite": true
 },
 "DECORATION_CRYSTAL_STATUE": {
-"name": "Crystal Tree",
+"name": "Crystal Statue",
 "w": 2,
 "h": 2,
 "sprite": true
@@ -619,7 +643,7 @@
 "sprite": true
 },
 "DECORATION_PUMPKIN_PILE": {
-"name": "Carved Pumpkin",
+"name": "Pumpkin Pile",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -649,7 +673,7 @@
 "sprite": true
 },
 "DECORATION_TORCH_BIG": {
-"name": "Wooden Lanterns",
+"name": "Large Torch",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -685,7 +709,7 @@
 "sprite": true
 },
 "DECORATION_STONE_CANDLE": {
-"name": "Stone Flag",
+"name": "Stone Candle",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -694,19 +718,22 @@
 "name": "Chopping Shrine",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "MINING_SHRINE": {
-"name": null,
+"name": "Mining Shrine",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "FORAGING_SHRINE": {
 "name": "Foraging Shrine",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "EDIT_BUILDINGS": {
 "name": null,
@@ -744,19 +771,19 @@
 "sprite": true
 },
 "DECORATION_FLAG_MUSHROOM": {
-"name": null,
+"name": "Mushroom Flag",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_FLOWER_BOTTLE": {
-"name": null,
+"name": "Flower Bottle",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_FLOWER_CART": {
-"name": "Hay Bale",
+"name": "Flower Cart",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -774,13 +801,13 @@
 "sprite": true
 },
 "DECORATION_LEAFY_FLOWER_SCULPTURE": {
-"name": null,
+"name": "Leafy Flower Sculpture",
 "w": 3,
 "h": 3,
 "sprite": true
 },
 "DECORATION_LEAFY_LANTERN": {
-"name": null,
+"name": "Leafy Lantern",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -798,13 +825,13 @@
 "sprite": true
 },
 "DECORATION_MUSHROOM_2": {
-"name": null,
+"name": "Mushroom Cluster",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_MUSHROOM_CANDLE_1": {
-"name": "Large Mushroom Candle",
+"name": "Small Mushroom Candle",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -834,7 +861,7 @@
 "sprite": true
 },
 "DECORATION_SPIDER_PILLAR": {
-"name": "Spider Silk Sculpture",
+"name": "Spider Pillar",
 "w": 2,
 "h": 2,
 "sprite": true
@@ -876,16 +903,17 @@
 "sprite": true
 },
 "DECORATION_POND": {
-"name": "Sleeping Bag",
+"name": "Pond",
 "w": 3,
 "h": 3,
 "sprite": true
 },
 "DEMON_SUMMONER": {
-"name": null,
+"name": "Demonic Summoning Circle",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "COMPOST_BIN_DEAD_BODY": {
 "name": "Natural Burial",
@@ -894,16 +922,18 @@
 "sprite": true
 },
 "DEMON_SUMMONER_2": {
-"name": null,
+"name": "Demonic Summoning Circle II",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "DEMON_SUMMONER_3": {
-"name": null,
+"name": "Demonic Summoning Circle III",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "FARM_STATION_II": {
 "name": "Farmer Station II",
@@ -912,16 +942,18 @@
 "sprite": true
 },
 "MISSIONARY_II": {
-"name": null,
+"name": "Missionary II",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "MISSIONARY_III": {
-"name": null,
+"name": "Missionary III",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "TILE_FLOWERS": {
 "name": "Flower Flooring",
@@ -987,7 +1019,8 @@
 "name": "Massive Monster Shrine",
 "w": 1,
 "h": 1,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "DECORATION_FLOWERPOTWALL": {
 "name": "Wall Flower Pot",
@@ -996,7 +1029,7 @@
 "sprite": true
 },
 "DECORATION_LEAFYLAMPPOST": {
-"name": "Flower Vase",
+"name": "Leafy Lamp Post",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -1020,54 +1053,61 @@
 "sprite": true
 },
 "DECORATION_FLOWER_CART_SMALL": {
-"name": null,
+"name": "Small Flower Cart",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_BOSS_TROPHY_1": {
-"name": null,
+"name": "Leshy Trophy",
 "w": 1,
 "h": 1,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "DECORATION_BOSS_TROPHY_2": {
-"name": null,
+"name": "Heket Trophy",
 "w": 1,
 "h": 1,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "DECORATION_BOSS_TROPHY_3": {
-"name": "A trophy for killing Kallamar.",
+"name": "Kallamar Trophy",
 "w": 1,
 "h": 1,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "DECORATION_BOSS_TROPHY_4": {
-"name": "A trophy for killing Shamura.",
+"name": "Shamura Trophy",
 "w": 1,
 "h": 1,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "DECORATION_BOSS_TROPHY_5": {
-"name": "A trophy for killing The One Who Waits.",
+"name": "The One Who Waits Trophy",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "DECORATION_VIDEO": {
 "name": "Witness's All Seeing Eye",
 "w": 2,
-"h": 2
+"h": 2,
+"once": true
 },
 "DECORATION_PLUSH": {
-"name": null,
+"name": "Lamb Plush Effigy",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "DECORATION_TWITCH_ROSE_BUSH": {
-"name": "Stone Flag",
+"name": "Potted Bush",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -1121,7 +1161,7 @@
 "sprite": true
 },
 "DECORATION_HALLOWEEN_CANDLE": {
-"name": "Blood Moon Skull",
+"name": "Blood Moon Candle",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -1136,13 +1176,15 @@
 "name": "Morgue",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "MORGUE_2": {
 "name": "Morgue II",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "CRYPT_1": {
 "name": "Crypt",
@@ -1186,7 +1228,7 @@
 "sprite": true
 },
 "DECORATION_OLDFAITH_TORCH": {
-"name": "Walls of Ruin",
+"name": "The Eternal Flame",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -1227,13 +1269,13 @@
 "sprite": true
 },
 "DECORATION_DST_ALCHEMY": {
-"name": null,
+"name": "Alchemy Engine",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DST_PIGSTICK": {
-"name": null,
+"name": "Pig Head",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -1272,28 +1314,31 @@
 "name": "Tailor",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "SEED_BUCKET": {
-"name": null,
+"name": "Seed Storage",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "POOP_BUCKET": {
 "name": "Fertiliser Storage",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "JANITOR_STATION_2": {
-"name": null,
+"name": "Janitor Station II",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "SHRINE_DISCIPLE_BOOST": {
-"name": null,
+"name": "Empowered Shrine of Disciples",
 "w": 2,
 "h": 2,
 "sprite": true
@@ -1302,49 +1347,54 @@
 "name": "Sin Totem",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "PUB": {
 "name": "Drinkhouse",
 "w": 4,
 "h": 4,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "DRUM_CIRCLE": {
-"name": null,
+"name": "Drum Circle",
 "w": 4,
 "h": 4,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "MATING_TENT": {
-"name": null,
+"name": "Mating Tent",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "SHRINE_DISCIPLE_COLLECTION": {
-"name": null,
+"name": "Collected Shrine of Disciples",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "HATCHERY": {
-"name": null,
+"name": "Hatchery",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "HATCHERY_2": {
-"name": "Lamb of Gold",
+"name": "Hatchery II",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "PUB_2": {
-"name": null,
+"name": "Drinkhouse II",
 "w": 4,
 "h": 4,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "DECORATION_CNY_TREE": {
 "name": "Fortuitous Tree",
@@ -1365,19 +1415,19 @@
 "sprite": true
 },
 "DECORATION_GNOME1": {
-"name": null,
+"name": "Pea",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_GNOME2": {
-"name": null,
+"name": "Owe",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_GNOME3": {
-"name": null,
+"name": "Geeh",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -1395,13 +1445,13 @@
 "sprite": true
 },
 "DECORATION_SINFUL_INCENSE": {
-"name": "Glommer Statue",
+"name": "Scent of Sin Incense",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_SINFUL_CRUCIFIX": {
-"name": "Flowers of Seduction",
+"name": "Rose Covered Cross",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -1422,7 +1472,8 @@
 "name": "Leader Tent",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "DAYCARE": {
 "name": "Nursery",
@@ -1479,108 +1530,113 @@
 "sprite": true
 },
 "WEATHER_VANE": {
-"name": null,
+"name": "Weather Vane",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true,
+"fixed": true
 },
 "WOOLY_SHACK": {
-"name": null,
+"name": "Wooly Shack",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "VOLCANIC_SPA": {
-"name": null,
+"name": "Baptismal Bath",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "RANCH": {
-"name": null,
+"name": "Ranch",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "RANCH_FENCE": {
-"name": null,
+"name": "Ranch Fence",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "RANCH_TROUGH": {
-"name": null,
+"name": "Trough",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "MEDIC": {
-"name": null,
+"name": "Medic Station",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "RANCH_2": {
-"name": null,
+"name": "Ranch II",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "RANCH_HUTCH": {
-"name": null,
+"name": "Hutch",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "RACING_GATE": {
-"name": null,
+"name": "Racing Gate",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_PALWORLD_LAMB": {
-"name": "Mysterious Fruit Statue",
+"name": "Lamball Statue",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "DECORATION_PALWORLD_TREE": {
-"name": null,
+"name": "Skilled Bonsai Tree",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_PALWORLD_PLANT": {
-"name": null,
+"name": "Houseless Plant",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_PALWORLD_STATUE": {
-"name": null,
+"name": "Great Eagle Statue",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_PALWORLD_LANTERN": {
-"name": null,
+"name": "Palsphere Lantern",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "LOGISTICS": {
-"name": null,
+"name": "Work Tent",
 "w": 3,
 "h": 3,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "WOLF_TRAP": {
-"name": null,
+"name": "Wolf Trap",
 "w": 1,
 "h": 1
 },
 "LIGHTNING_ROD": {
-"name": null,
+"name": "Lightning Rod",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -1589,22 +1645,28 @@
 "name": "Rotburn Furnace",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true,
+"fixed": true
 },
 "FURNACE_2": {
-"name": null,
+"name": "Rotburn Furnace II",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true,
+"fixed": true
 },
 "FURNACE_3": {
-"name": null,
+"name": "Rotburn Furnace III",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true,
+"fixed": true
 },
 "LIGHTNING_ROD_2": {
-"name": null,
+"name": "Lightning Rod II",
 "w": 1,
 "h": 1,
 "sprite": true
@@ -1628,336 +1690,336 @@
 "sprite": true
 },
 "TRAIT_MANIPULATOR_1": {
-"name": null,
+"name": "Exorcism Altar",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "TRAIT_MANIPULATOR_2": {
-"name": null,
+"name": "Exorcism Altar II",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "TRAIT_MANIPULATOR_3": {
-"name": null,
+"name": "Exorcism Altar III",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "DECORATION_DLC_ROT_BOTTLE": {
-"name": null,
+"name": "Bottled Rot",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "DECORATION_DLC_ROT_BUCKET": {
-"name": null,
+"name": "Bucket o' Guts",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "DECORATION_DLC_ROT_CAGE1": {
-"name": null,
+"name": "Tall Cage",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_ROT_CAGE2": {
-"name": null,
+"name": "Small Cage",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_ROT_CAULDRON": {
-"name": null,
+"name": "Flaming Cauldron",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_ROT_DIORAMA": {
-"name": null,
+"name": "Rot Fountain",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "DECORATION_DLC_ROT_FIREMACHINE": {
-"name": null,
+"name": "Strange Machine",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "DECORATION_DLC_ROT_IRONMAIDEN": {
-"name": null,
+"name": "Iron Maiden of Ram Horn",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_ROT_LUMP1": {
-"name": null,
+"name": "Wailing Bush",
 "w": 1,
 "h": 1
 },
 "DECORATION_DLC_ROT_LUMP2": {
-"name": null,
+"name": "Potted Eyeball",
 "w": 1,
 "h": 1
 },
 "DECORATION_DLC_ROT_PILLAR1": {
-"name": null,
+"name": "Groaning Pillar",
 "w": 1,
 "h": 1
 },
 "DECORATION_DLC_ROT_PILLAR2": {
-"name": null,
+"name": "Gawking Post",
 "w": 1,
 "h": 1
 },
 "DECORATION_DLC_ROT_STONE1": {
-"name": null,
+"name": "Rotburn Altar",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_ROT_STONE2": {
-"name": null,
+"name": "Rotburn Candle",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_ROT_TENTACLE": {
-"name": null,
+"name": "Reaching Tentacle",
 "w": 1,
 "h": 1
 },
 "DECORATION_DLC_ROT_WALL": {
-"name": null,
+"name": "Rotburn Wall",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOLF_BULB": {
-"name": null,
+"name": "Spark Bulb",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOLF_CULTIST1": {
-"name": null,
+"name": "Piked Cultist I",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOLF_CULTIST2": {
-"name": null,
+"name": "Piked Cultist II",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOLF_DIORAMA": {
-"name": null,
+"name": "Rendering of the Mountain",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "DECORATION_DLC_WOLF_FIREPIT": {
-"name": null,
+"name": "Firepit",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOLF_LAMPPOST": {
-"name": null,
+"name": "Charged Lamp",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOLF_PILLAR1": {
-"name": null,
+"name": "Sparking Pillar",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOLF_PILLAR2": {
-"name": null,
+"name": "Static Post",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOLF_STATUE1": {
-"name": null,
+"name": "Faithless Altar",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOLF_STATUE2": {
-"name": null,
+"name": "Lupine Statue",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOLF_STATUE3": {
-"name": null,
+"name": "Alchemist's Instrument I",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOLF_STATUE4": {
-"name": null,
+"name": "Alchemist's Instrument II",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOLF_STATUE5": {
-"name": null,
+"name": "Alchemist's Instrument III",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOLF_TESLA": {
-"name": null,
+"name": "Energy Coil",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOLF_TREE1": {
-"name": null,
+"name": "Alpine Tree",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOLF_WIRES": {
-"name": null,
+"name": "Wire Bundle",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_ROT_FLOOR": {
-"name": null,
+"name": "Rotted Flooring",
 "w": 1,
 "h": 1
 },
 "DECORATION_DLC_STEAMPUNK_CHIMNEY_1": {
-"name": null,
+"name": "Tall Chimney",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_STEAMPUNK_CHIMNEY_2": {
-"name": null,
+"name": "Small Chimney",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_STEAMPUNK_LAMPPOST": {
-"name": null,
+"name": "Yewbark Lampost",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_STEAMPUNK_CLOCK": {
-"name": null,
+"name": "Yewbark Clock",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_STEAMPUNK_PLANT": {
-"name": null,
+"name": "Yewbark Plant",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_STEAMPUNK_WALL": {
-"name": null,
+"name": "Yewbark Wall",
 "w": 1,
 "h": 1
 },
 "DECORATION_DLC_YNGYA_CANDLE": {
-"name": null,
+"name": "Summer Candle",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_YNGYA_TREEPOT": {
-"name": null,
+"name": "Summer Sapling",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_YNGYA_TREEBUSH": {
-"name": null,
+"name": "Hedge of Yngya",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_YNGYA_STICKBUNDLE": {
-"name": null,
+"name": "Bundle of Young Branches",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_YNGYA_TALLFLOWERS": {
-"name": null,
+"name": "Potted Daisies",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_YNGYA_FLOWERBUCKET": {
-"name": null,
+"name": "Bucket of First Blooms",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOOLHAVEN_TREE": {
-"name": null,
+"name": "Leafless Tree",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOOLHAVEN_WALL": {
-"name": null,
+"name": "Woolhaven Wall",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOOLHAVEN_BUSH1": {
-"name": null,
+"name": "Shy Bush",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOOLHAVEN_BUSH2": {
-"name": null,
+"name": "Crooked Bush",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "DECORATION_DLC_WOOLHAVEN_FOUNTAIN": {
-"name": null,
+"name": "Bell Fountain",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "DECORATION_DLC_WOOLHAVEN_STREETLAMP": {
-"name": null,
+"name": "Woolhaven Lampost",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOOLHAVEN_SMALLSTATUE1": {
-"name": null,
+"name": "Yngya Idol",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOOLHAVEN_SMALLSTATUE2": {
-"name": null,
+"name": "Bell Plinth",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOOLHAVEN_FLOOR": {
-"name": null,
+"name": "Woolhaven Floor",
 "w": 1,
 "h": 1
 },
@@ -1965,100 +2027,103 @@
 "name": "Marchosias Trophy",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "DECORATION_BOSS_TROPHY_DLC_YNGYA": {
 "name": "Yngya Trophy",
 "w": 1,
 "h": 1,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "DECORATION_BOSS_TROPHY_DLC_EXECUTIONER": {
-"name": "Yngya Trophy",
+"name": "Executioner Trophy",
 "w": 2,
 "h": 2,
-"sprite": true
+"sprite": true,
+"once": true
 },
 "DECORATION_DLC_WOOLHAVEN_JUG": {
-"name": null,
+"name": "Crescent Vase",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOOLHAVEN_RUG": {
-"name": null,
+"name": "Sun Rug",
 "w": 2,
 "h": 2,
 "sprite": true
 },
 "DECORATION_DLC_WOOLHAVEN_BARREL1": {
-"name": null,
+"name": "Barrel of Swords",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOOLHAVEN_BARREL2": {
-"name": null,
+"name": "Barrel of Spears",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOOLHAVEN_CANDLE": {
-"name": null,
+"name": "Tall Candle",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_DLC_WOOLHAVEN_BELLS": {
-"name": null,
+"name": "Large Bell",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "RANCH_CHOPPING_BLOCK": {
-"name": null,
+"name": "Butcher's Block",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "PROXIMITY_FURNACE": {
-"name": null,
+"name": "Heater",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "ROTSTONE_MINE": {
-"name": null,
+"name": "Rotburn Mine",
 "w": 3,
 "h": 3,
 "sprite": true
 },
 "ROTSTONE_MINE_2": {
-"name": null,
+"name": "Rotburn Mine II",
 "w": 3,
 "h": 3,
 "sprite": true
 },
 "DECORATION_EASTEREGG_EGG": {
-"name": null,
+"name": "Large Egg",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_EASTEREGG_TURUA": {
-"name": null,
+"name": "Specimen of Turua",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_EASTEREGG_WARRACKA": {
-"name": null,
+"name": "Warracka's Seed",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_EASTEREGG_HAROSTATUE": {
-"name": null,
+"name": "Effigy of the Owl",
 "w": 2,
 "h": 2,
 "sprite": true
@@ -2070,13 +2135,13 @@
 "sprite": true
 },
 "DECORATION_CHRISTMAS_CANDYCANE": {
-"name": null,
+"name": "Midwinter Lantern",
 "w": 1,
 "h": 1,
 "sprite": true
 },
 "DECORATION_CHRISTMAS_CANDLE": {
-"name": null,
+"name": "Midwinter Candle",
 "w": 2,
 "h": 2,
 "sprite": true
@@ -2107,7 +2172,7 @@
 "Demonic Summoning Circle II": "DEMON_SUMMONER_2",
 "Demonic Summoning Circle III": "DEMON_SUMMONER_3",
 "Healing Bay": "HEALING_BAY",
-"Healing Bay II": "HEALING_BAY",
+"Healing Bay II": "HEALING_BAY_2",
 "Morgue": "MORGUE_1",
 "Morgue II": "MORGUE_2",
 "Crypt": "CRYPT_1",
@@ -2138,11 +2203,17 @@
 "Missionary": "MISSIONARY",
 "Missionary II": "MISSIONARY_II",
 "Missionary III": "MISSIONARY_III",
-"Tabernacle III": "SHRINE_PASSIVE",
+"Tabernacle": "SHRINE_PASSIVE",
+"Tabernacle II": "SHRINE_PASSIVE_II",
+"Tabernacle III": "SHRINE_PASSIVE_III",
 "Offering Statue": "OFFERING_STATUE",
+"Empowered Shrine of Disciples": "SHRINE_DISCIPLE_BOOST",
+"Collected Shrine of Disciples": "SHRINE_DISCIPLE_COLLECTION",
 "Drinkhouse": "PUB",
+"Drinkhouse II": "PUB_2",
 "Mating Tent": "MATING_TENT",
 "Hatchery": "HATCHERY",
+"Hatchery II": "HATCHERY_2",
 "Drum Circle": "DRUM_CIRCLE",
 "Wooden Lanterns": "DECORATION_TWIG_LAMP",
 "Crown Fountain": "DECORATION_FOUNTAIN",
@@ -2185,12 +2256,15 @@
 "Fount of Desolation": "DECORATION_OLDFAITH_FOUNTAIN",
 "Iron Maiden of Old Faith": "DECORATION_OLDFAITH_IRONMAIDEN",
 "Shrine of the Old Faith": "DECORATION_OLDFAITH_SHRINE",
+"The Eternal Flame": "DECORATION_OLDFAITH_TORCH",
 "Walls of Ruin": "DECORATION_OLDFAITH_WALL",
 "Flooring of the Old Faith": "TILE_OLDFAITH",
 "Skull of Impurity": "DECORATION_SINFUL_SKULL",
-"Flowers of Seduction": "DECORATION_SINFUL_CRUCIFIX",
+"Flowers of Seduction": "DECORATION_SINFUL_FLOWERS1",
 "Vase of Vanity": "DECORATION_SINFUL_FLOWERS2",
-"Lamb of Gold": "HATCHERY_2",
+"Scent of Sin Incense": "DECORATION_SINFUL_INCENSE",
+"Lamb of Gold": "DECORATION_SINFUL_STATUE",
+"Rose Covered Cross": "DECORATION_SINFUL_CRUCIFIX",
 "Small Pagoda": "DECORATION_PILGRIM_PAGODA",
 "Vase of Peonies": "DECORATION_PILGRIM_VASE",
 "Bamboo Wall": "DECORATION_PILGRIM_WALL",
@@ -2205,15 +2279,20 @@
 "Flower Bottle": "DECORATION_FLOWER_BOTTLE",
 "Large Mushroom Candle": "DECORATION_MUSHROOM_CANDLE_2",
 "Leafy Sculpture": "DECORATION_LEAFY_SCULPTURE",
+"Pea": "DECORATION_GNOME1",
+"Owe": "DECORATION_GNOME2",
+"Geeh": "DECORATION_GNOME3",
 "The Goat Statue": "DECORATION_GOAT_STATUE",
 "The Goat Vase": "DECORATION_GOAT_PLANT",
-"Mysterious Fruit Statue": "DECORATION_PALWORLD_LAMB",
 "Lamb Plush Effigy": "DECORATION_PLUSH",
+"Blood Moon Candle": "DECORATION_HALLOWEEN_CANDLE",
 "Blood Moon Skull": "DECORATION_HALLOWEEN_SKULL",
 "Blood Moon Tree": "DECORATION_HALLOWEEN_TREE",
 "Blood Moon Pumpkin": "DECORATION_HALLOWEEN_PUMPKIN",
+"Alchemy Engine": "DECORATION_DST_ALCHEMY",
 "Deerclops Figure": "DECORATION_DST_DEERCLOPS",
 "Marble Tree": "DECORATION_DST_MARBLETREE",
+"Pig Head": "DECORATION_DST_PIGSTICK",
 "Science Machine": "DECORATION_DST_SCIENCEMACHINE",
 "Potted Treeguard": "DECORATION_DST_TREE",
 "Hay Wall": "DECORATION_DST_WALL",
@@ -2241,12 +2320,14 @@
 "Hay Bale": "DECORATION_HAY_BALE",
 "Hay Pile": "DECORATION_HAY_PILE",
 "Stone Flag": "DECORATION_STONE_FLAG",
+"Leshy Trophy": "DECORATION_BOSS_TROPHY_1",
 "Little Mushroom": "DECORATION_MUSHROOM_1",
 "Small Mushroom Candle": "DECORATION_MUSHROOM_CANDLE_1",
 "Mushroom Flag": "DECORATION_FLAG_MUSHROOM",
 "Stone Mushroom": "DECORATION_STONE_MUSHROOM",
 "Carved Pumpkin": "DECORATION_PUMPKIN_STOOL",
 "Mushroom Sculpture": "DECORATION_MUSHROOM_SCULPTURE",
+"Heket Trophy": "DECORATION_BOSS_TROPHY_2",
 "Crystal Lamp": "DECORATION_CRYSTAL_LAMP",
 "Crystal Lantern": "DECORATION_CRYSTAL_LIGHT",
 "Crystal Rock": "DECORATION_CRYSTAL_ROCK",
@@ -2254,6 +2335,7 @@
 "Crystal Window": "DECORATION_CRYSTAL_WINDOW",
 "Crystal Flag": "DECORATION_FLAG_CRYSTAL",
 "Crystal Tree": "DECORATION_CRYSTAL_TREE",
+"Kallamar Trophy": "DECORATION_BOSS_TROPHY_3",
 "Spider Silk Wall": "DECORATION_WALL_SPIDER",
 "Giant Skull": "DECORATION_BONE_SKULL_BIG",
 "Skull Pile": "DECORATION_BONE_SKULL_PILE",
@@ -2261,14 +2343,155 @@
 "Spider Pillar": "DECORATION_SPIDER_PILLAR",
 "Spider Torch": "DECORATION_SPIDER_TORCH",
 "Web Crown Sculpture": "DECORATION_SPIDER_WEB_CROWN_SCULPTURE",
+"Shamura Trophy": "DECORATION_BOSS_TROPHY_4",
+"Work Tent": "LOGISTICS",
+"Medic Station": "MEDIC",
 "Carpentry Station": "TOOLSHED",
+"Exorcism Altar": "TRAIT_MANIPULATOR_1",
+"Exorcism Altar II": "TRAIT_MANIPULATOR_2",
+"Exorcism Altar III": "TRAIT_MANIPULATOR_3",
 "Weather Vane": "WEATHER_VANE",
+"Baptismal Bath": "VOLCANIC_SPA",
 "Lightning Rod": "LIGHTNING_ROD",
 "Rotburn Furnace": "FURNACE_1",
+"Rotburn Furnace II": "FURNACE_2",
+"Rotburn Furnace III": "FURNACE_3",
+"Heater": "PROXIMITY_FURNACE",
+"Rotburn Mine": "ROTSTONE_MINE",
+"Rotburn Mine II": "ROTSTONE_MINE_2",
 "Ranch": "RANCH",
+"Ranch II": "RANCH_2",
+"Trough": "RANCH_TROUGH",
+"Hutch": "RANCH_HUTCH",
 "Wolf Trap": "WOLF_TRAP",
+"Butcher's Block": "RANCH_CHOPPING_BLOCK",
 "Yngya Trophy": "DECORATION_BOSS_TROPHY_DLC_YNGYA",
 "Specimen of Turua": "DECORATION_EASTEREGG_TURUA",
-"Warracka's Seed": "DECORATION_EASTEREGG_WARRACKA"
-}
+"Warracka's Seed": "DECORATION_EASTEREGG_WARRACKA",
+"Hedge of Yngya": "DECORATION_DLC_YNGYA_TREEBUSH"
+},
+"chains": [
+[
+"SHRINE",
+"SHRINE_II",
+"SHRINE_III",
+"SHRINE_IV"
+],
+[
+"TEMPLE",
+"TEMPLE_II",
+"TEMPLE_III",
+"TEMPLE_IV"
+],
+[
+"TEMPLE_BASE_EXTENSION1",
+"TEMPLE_BASE_EXTENSION2"
+],
+[
+"MISSIONARY",
+"MISSIONARY_II",
+"MISSIONARY_III"
+],
+[
+"DEMON_SUMMONER",
+"DEMON_SUMMONER_2",
+"DEMON_SUMMONER_3"
+],
+[
+"OUTHOUSE",
+"OUTHOUSE_2"
+],
+[
+"SCARECROW",
+"SCARECROW_2"
+],
+[
+"HARVEST_TOTEM",
+"HARVEST_TOTEM_2"
+],
+[
+"SHRINE_PASSIVE",
+"SHRINE_PASSIVE_II",
+"SHRINE_PASSIVE_III"
+],
+[
+"REFINERY",
+"REFINERY_2"
+],
+[
+"FARM_STATION",
+"FARM_STATION_II"
+],
+[
+"LUMBERJACK_STATION",
+"LUMBERJACK_STATION_2"
+],
+[
+"ROTSTONE_MINE",
+"ROTSTONE_MINE_2"
+],
+[
+"COOKING_FIRE"
+],
+[
+"BED",
+"BED_2",
+"BED_3"
+],
+[
+"GRAVE",
+"BODY_PIT"
+],
+[
+"HEALING_BAY",
+"HEALING_BAY_2"
+],
+[
+"TRAIT_MANIPULATOR_1",
+"TRAIT_MANIPULATOR_2",
+"TRAIT_MANIPULATOR_3"
+],
+[
+"FOOD_STORAGE",
+"FOOD_STORAGE_2"
+],
+[
+"BLOODSTONE_MINE",
+"BLOODSTONE_MINE_2"
+],
+[
+"MORGUE_1",
+"MORGUE_2"
+],
+[
+"FURNACE_1",
+"FURNACE_2",
+"FURNACE_3"
+],
+[
+"LIGHTNING_ROD",
+"LIGHTNING_ROD_2"
+],
+[
+"PUB",
+"PUB_2"
+],
+[
+"RANCH",
+"RANCH_2"
+],
+[
+"HATCHERY",
+"HATCHERY_2"
+],
+[
+"CRYPT_1",
+"CRYPT_2",
+"CRYPT_3"
+],
+[
+"JANITOR_STATION",
+"JANITOR_STATION_2"
+]
+]
 }

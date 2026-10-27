@@ -35,11 +35,15 @@
   .skip:focus { left: 8px; }
 
   /* Sidebar */
-  aside { background: var(--surface); border-right: 1px solid var(--line); display: grid; grid-template-rows: auto auto auto 1fr; min-height: 0; }
+  aside { background: var(--surface); border-right: 1px solid var(--line); display: grid; grid-template-rows: auto auto auto auto 1fr; min-height: 0; }
   .brand { padding: 18px 18px 14px; display: flex; align-items: center; gap: 10px; }
   .brand i { color: var(--accent); font-size: 22px; }
   .brand h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
   .brand p { margin: 0; color: var(--muted); font-size: 12px; }
+  .lang { display: flex; align-items: center; gap: 8px; margin: 0 14px 10px; color: var(--muted); font-size: 12.5px; }
+  .lang i { font-size: 16px; }
+  .lang select { flex: 1; height: 32px; padding: 0 8px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-ctl); font-size: 13px; }
+  .lang select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .search { margin: 0 14px 12px; position: relative; }
   .search i { position: absolute; left: 11px; top: 50%; translate: 0 -50%; color: var(--faint); pointer-events: none; }
   .search input { width: 100%; height: 38px; padding: 0 12px 0 34px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-ctl); transition: border-color .2s var(--ease); }
@@ -61,6 +65,8 @@
   .tile span { font-size: 11.5px; line-height: 1.25; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.5em; }
   .tile small { position: absolute; top: 5px; right: 6px; font-size: 10px; color: var(--faint); }
   .tile small.guess { color: #d8a24a; }
+  .tile .tiers { position: absolute; top: 5px; left: 6px; font-size: 10px; color: var(--faint); display: flex; align-items: center; gap: 2px; }
+  .tile .tiers i { font-size: 11px; }
   .recent { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
   .recent .tile { flex: 0 0 64px; padding: 6px 4px; }
   .recent .tile img { width: 32px; height: 32px; }
@@ -117,6 +123,19 @@
   .hint i { font-size: 26px; color: var(--accent); }
   .hint b { display: block; margin: 6px 0 4px; font-weight: 600; }
   .hint p { margin: 0; color: var(--muted); font-size: 13px; }
+  .selection { width: max-content; max-width: 320px; padding: 10px 12px; display: grid; gap: 8px; translate: -50% -100%; z-index: 5; }
+  .selection[hidden] { display: none; }
+  .selection.below { translate: -50% 0; }
+  .selection b { font-weight: 600; }
+  .selection p { margin: 0; color: var(--muted); font-size: 12px; }
+  .selection .tiers { display: flex; gap: 4px; flex-wrap: wrap; }
+  .selection .tiers button { height: 30px; min-width: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--bg); color: var(--muted); font-size: 12.5px; transition: border-color .15s var(--ease), color .15s var(--ease); }
+  .selection .tiers button:hover { border-color: var(--line-strong); color: var(--text); }
+  .selection .tiers button[aria-pressed="true"] { border-color: var(--accent); color: var(--text); background: var(--accent-soft); }
+  .selection .actions { display: flex; gap: 2px; border-top: 1px solid var(--line); padding-top: 6px; }
+  .confirm p { margin: 0 0 16px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+  .confirm .buttons { display: flex; justify-content: flex-end; gap: 8px; }
+  .icon-btn.secondary { border: 1px solid var(--line); color: var(--text); padding: 0 12px; }
   .toast { left: 50%; bottom: 18px; translate: -50% 0; padding: 9px 14px; font-size: 13px; display: flex; gap: 8px; align-items: center; transition: opacity .2s var(--ease), translate .2s var(--ease); }
   .toast[hidden] { display: flex; opacity: 0; translate: -50% 8px; pointer-events: none; }
   .toast i { color: var(--ok); }
@@ -148,6 +167,10 @@
     <i class="ph-fill ph-diamond" aria-hidden="true"></i>
     <div><h1>Cult of the Lamb Planner</h1><p>Plan your base on the real in-game grid</p></div>
   </div>
+  <label class="lang" title="Language for building names (from the game)">
+    <i class="ph ph-translate" aria-hidden="true"></i>
+    <select id="lang" aria-label="Language for building names"></select>
+  </label>
   <label class="search">
     <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
     <input id="search" type="search" placeholder="Search buildings" aria-label="Search buildings" autocomplete="off">
@@ -215,14 +238,33 @@
     <ul id="st-groups"></ul>
   </div>
 
+  <div class="float selection" id="selection" hidden role="dialog" aria-label="Selected building">
+    <div><b id="sel-name"></b><p id="sel-meta"></p></div>
+    <div class="tiers" id="sel-tiers" role="group" aria-label="Level"></div>
+    <div class="actions">
+      <button class="icon-btn" id="sel-flip" title="Flip (R)"><i class="ph ph-arrows-clockwise"></i><span>Flip</span></button>
+      <button class="icon-btn" id="sel-move" title="Move"><i class="ph ph-arrows-out-cardinal"></i><span>Move</span></button>
+      <button class="icon-btn" id="sel-delete" title="Delete (Del)"><i class="ph ph-trash"></i><span>Delete</span></button>
+    </div>
+  </div>
+
   <div class="float toast" id="toast" hidden role="status"><i class="ph-fill ph-check-circle"></i><span id="toast-text"></span></div>
 </main>
+
+<dialog id="confirm-dialog" class="confirm" aria-labelledby="confirm-title">
+  <h2 id="confirm-title"></h2>
+  <p id="confirm-text"></p>
+  <form method="dialog" class="buttons">
+    <button class="icon-btn secondary" value="cancel">Cancel</button>
+    <button class="icon-btn primary" value="ok" id="confirm-ok" autofocus></button>
+  </form>
+</dialog>
 
 <dialog id="help-dialog" aria-labelledby="help-title">
   <h2 id="help-title">Shortcuts</h2>
   <dl>
-    <dt><kbd>Click</kbd></dt><dd>Place the picked building, or pick up a placed one</dd>
-    <dt><kbd>Drag</kbd></dt><dd>Place a row of the picked building, or pan the map</dd>
+    <dt><kbd>Click</kbd></dt><dd>Place the picked building, or select a placed one to change its level</dd>
+    <dt><kbd>Drag</kbd></dt><dd>Move a placed building, place a row of the picked one, or pan the map</dd>
     <dt><kbd>Right-click</kbd></dt><dd>Delete a building</dd>
     <dt><kbd>R</kbd></dt><dd>Flip the building you're holding</dd>
     <dt><kbd>V</kbd> <kbd>E</kbd></dt><dd>Move tool, erase tool</dd>

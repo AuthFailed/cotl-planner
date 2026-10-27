@@ -37,5 +37,8 @@ const game = JSON.parse(readFileSync(new URL("../data/game.json", import.meta.ur
 const atlas = JSON.parse(readFileSync(new URL("../data/sprites.json", import.meta.url)));
 assert.ok(Object.values(game.types).every(t => t.w > 0 && t.w === t.h), "game footprints are square and positive");
 assert.ok(Object.values(game.wiki).every(t => game.types[t]), "every wiki match points at a known type");
-assert.ok(Object.keys(atlas.items).every(t => game.types[t]?.sprite), "atlas only holds known types");
+assert.ok(Object.keys(atlas.items).every(t => game.types[t]), "atlas only holds known types");
+assert.ok(game.chains.every(c => c.length > 0) && Object.values(game.types).some(t => t.once), "build rules present");
+const i18n = JSON.parse(readFileSync(new URL("../data/i18n.json", import.meta.url)));
+assert.ok(Object.values(i18n.names).every(row => row.length === i18n.languages.length && row[0]), "every name row covers every language");
 console.log("ok");

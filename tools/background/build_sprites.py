@@ -6,6 +6,9 @@ path of the real building prefab, whose SpriteRenderers are the in-game look. Th
 instantiates that prefab unrotated at the centre of the footprint's first cell, so its art
 goes through the same camera projection as the background.
 
+Build rules come from StructuresData: GetBuildOnlyOne (one per base, counting every tier of
+its upgrade chain) and GetUpgradePath (the tiers of each chain), stored as "once" and "chains".
+
 Usage: python3 tools/background/build_sprites.py <ExportedProject> <Game_Data dir>
 Writes data/game.json and tools/background/sprites_drawlist.json; render the sprites with
 compose_sprites.html (see compose.html instructions) and copy sprites.webp/json into data/.
@@ -109,21 +112,63 @@ for t, g in re.findall(r"- Type: (\d+)\s+Category: \d+\s+Addr_PlacementObject:\s
         draw[T] = sorted(items, key=lambda i: i["key"])
         entry["sprite"] = True
 
-# Match the wiki list (data/buildings.json) to game types: wiki id, then game name, then enum/prefab name.
+# Build rules, parsed from the decompiled StructuresData switch statements.
+sd = open(os.path.join(E, "Assets/Scripts/Assembly-CSharp/StructuresData.cs")).read()
+def method(name):
+    start = sd.index(name)
+    end = sd.index("\n\t}\n", start)
+    return sd[start:end]
+once = set(re.findall(r"case StructureBrain\.TYPES\.(\w+):", method("public static bool GetBuildOnlyOne(")))
+chains = [re.findall(r"StructureBrain\.TYPES\.(\w+)", block)
+          for block in re.findall(r"return new List<StructureBrain\.TYPES>\s*\{(.*?)\};", method("public static List<StructureBrain.TYPES> GetUpgradePath("), re.S)]
+# "fixed": the game won't delete these (isDeletable = false in GetInfoByType), e.g. the Temple.
+info = method("public static StructuresData GetInfoByType(")
+fixed = set()
+for cases, props in re.findall(r"((?:\s*case StructureBrain\.TYPES\.\w+:)+)\s*structuresData = new StructuresData\s*\{(.*?)\};", info, re.S):
+    if "isDeletable = false" in props:
+        fixed |= set(re.findall(r"TYPES\.(\w+)", cases))
+for T, v in game.items():
+    if T in once:
+        v["once"] = True
+    if T in fixed:
+        v["fixed"] = True
+
+# English names: the game's own translations (data/i18n.json, from the capture plugin) when present.
+i18n_path = os.path.join(DATA, "i18n.json")
+if os.path.exists(i18n_path):
+    for T, row in json.load(open(i18n_path))["names"].items():
+        if T in game:
+            game[T]["name"] = row[0]
+
+# Match the wiki list (data/buildings.json) to game types: the game's own name first (wiki ids
+# have typos, e.g. "Healing Bay II" carries HEALING_BAY), then the wiki id, then enum-derived names.
 norm = lambda s: re.sub(r"[^a-z0-9]", "", (s or "").lower())
 strip = lambda s: re.sub(r"^(building|decoration|deco|structure)s?", "", norm(s))
-by = {}
+by_name, by_enum = {}, {}
 for T, v in game.items():
-    for k in (norm(v["name"]), strip(T.replace("_", " ")), norm(T)):
-        if k:
-            by.setdefault(k, T)
+    if v["name"]:
+        by_name.setdefault(norm(v["name"]), T)
+    for k in (strip(T.replace("_", " ")), norm(T)):
+        by_enum.setdefault(k, T)
 wiki = {}
 for w in json.load(open(os.path.join(DATA, "buildings.json"))):
-    T = w["id"] if w["id"] in game else by.get(norm(w["name"])) or by.get(strip(w["name"]))
+    T = by_name.get(norm(w["name"])) or (w["id"] if w["id"] in game else None) \
+        or by_enum.get(norm(w["name"])) or by_enum.get(strip(w["name"]))
     if T:
         wiki[w["name"]] = T
 
-json.dump({"types": game, "wiki": wiki}, open(os.path.join(DATA, "game.json"), "w"), indent=0, ensure_ascii=False)
+# "X II" / "X III" on the wiki is that tier of X's upgrade chain, even when the match landed on tier I.
+tier_of = {T: (c, i) for c in chains for i, T in enumerate(c)}
+for name, T in wiki.items():
+    m = re.search(r" (II|III|IV)$", name)
+    if m and T in tier_of:
+        c, _ = tier_of[T]
+        n = {"II": 1, "III": 2, "IV": 3}[m.group(1)]
+        if n < len(c) and c[n] in game:
+            wiki[name] = c[n]
+
+json.dump({"types": game, "wiki": wiki, "chains": chains}, open(os.path.join(DATA, "game.json"), "w"), indent=0, ensure_ascii=False)
 json.dump({"sprites": {g: s for g, s in sprites.cache.items() if s}, "buildings": draw},
           open(os.path.join(HERE, "sprites_drawlist.json"), "w"))
-print(f"{len(game)} types, {len(draw)} with sprites, {len(wiki)} wiki entries matched", file=sys.stderr)
+print(f"{len(game)} types, {len(draw)} with sprites, {len(wiki)} wiki entries matched, "
+      f"{sum('once' in v for v in game.values())} one-per-base, {len(chains)} upgrade chains", file=sys.stderr)

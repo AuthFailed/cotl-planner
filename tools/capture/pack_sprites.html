@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Pack sprites</title>
+<body style="margin:0;background:#333;color:#ddd;font:13px sans-serif">
+<div id="log">loading…</div>
+<canvas id="atlas" style="max-width:100%"></canvas>
+<script type="module">
+// Packs the plugin's building renders (buildings/<TYPE>.png + buildings.json) into the planner's
+// atlas: data/sprites.webp + data/sprites.json, items[type] = [x, y, w, h, anchorX, anchorY].
+// ?scale=0.75 shrinks everything (and the anchors) to keep the atlas small.
+const scale = +(new URLSearchParams(location.search).get("scale") || 1);
+const log = t => (document.getElementById("log").textContent = t);
+const meta = await (await fetch("buildings/buildings.json")).json();
+const crops = [];
+let n = 0;
+await Promise.all(Object.entries(meta.items).map(([type, [ax, ay, w, h]]) => new Promise(res => {
+  const im = new Image();
+  im.onload = () => {
+    const cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+    crops.push({ type, im, w: cw, h: ch, ax: ax * scale, ay: ay * scale });
+    log(`loaded ${++n}`);
+    res();
+  };
+  im.onerror = () => res();
+  im.src = `buildings/${encodeURIComponent(type)}.png`;
+})));
+
+// shelf packing, tallest first
+const ATW = 4096, GAP = 2;
+crops.sort((a, b) => b.h - a.h);
+let x = 0, y = 0, rowH = 0;
+for (const c of crops) {
+  if (x + c.w > ATW) { x = 0; y += rowH + GAP; rowH = 0; }
+  c.x = x; c.y = y; x += c.w + GAP; rowH = Math.max(rowH, c.h);
+}
+const atlas = document.getElementById("atlas");
+atlas.width = ATW; atlas.height = y + rowH;
+const g = atlas.getContext("2d");
+g.imageSmoothingQuality = "high";
+for (const c of crops) g.drawImage(c.im, c.x, c.y, c.w, c.h);
+const out = { ppu: meta.ppu * scale, items: Object.fromEntries(crops.map(c => [c.type, [c.x, c.y, c.w, c.h, +c.ax.toFixed(1), +c.ay.toFixed(1)]])) };
+log(`${crops.length} buildings, atlas ${atlas.width}x${atlas.height} at ${out.ppu} px/unit`);
+window.save = async (q = .85) => {
+  const blob = await new Promise(r => atlas.toBlob(r, "image/webp", q));
+  await fetch("/bg/sprites.webp", { method: "PUT", body: blob });
+  await fetch("/bg/sprites.json", { method: "PUT", body: JSON.stringify(out) });
+  return { bytes: blob.size, count: crops.length, h: atlas.height };
+};
+</script>

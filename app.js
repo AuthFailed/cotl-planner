@@ -6,21 +6,74 @@ import { rect, fits, itemAt, encode, decode, cellsFor } from "./core.js";
 const K = Math.SQRT1_2, V = Math.SQRT1_2;
 const GROUPS = { "Follower buildings": "Followers", Faith: "Faith", Decorations: "Decor", Woolhaven: "Woolhaven" };
 const MIN_S = 6, MAX_S = 90;
+const ROMAN = ["I", "II", "III", "IV", "V"];
 
 const $ = id => document.getElementById(id);
 const canvas = $("map"), ctx = canvas.getContext("2d");
+const load = u => fetch(u).then(r => (r.ok ? r.json() : null)).catch(() => null);
 
-const [buildings, base, game] = await Promise.all(["data/buildings.json", "data/base.json", "data/game.json"].map(async u => (await fetch(u)).json()));
-// Exact footprints from the game files (tools/background/build_sprites.py) replace the wiki's sizes.
+const [buildings, base, game, i18n, bg, atlas] = await Promise.all(
+  ["buildings", "base", "game", "i18n", "background", "sprites"].map(n => load(`data/${n}.json`)));
+
+// ---------- building entries ----------
+// Wiki entries (names, icons, groups) get the game's exact footprint and rules; upgrade tiers the
+// wiki lacks are added from the game's own names and sprites so every level can be chosen.
+const typeToName = {};
 for (const b of buildings) {
-  const t = game.types[game.wiki[b.name]];
-  if (t) Object.assign(b, { type: game.wiki[b.name], w: t.w, h: t.h, guess: false });
+  const T = game.wiki[b.name], t = game.types[T];
+  if (!t) continue;
+  Object.assign(b, { type: T, w: t.w, h: t.h, guess: false });
+  typeToName[T] ??= b.name;
+}
+const chainOf = {};
+for (const chain of game.chains) for (const T of chain) chainOf[T] = chain;
+for (const chain of game.chains) {
+  const head = buildings.find(b => b.type && chain.includes(b.type));
+  if (!head) continue;
+  for (const T of chain) {
+    const t = game.types[T];
+    if (typeToName[T] || !t || !atlas?.items[T]) continue;
+    let name = i18n?.names[T]?.[0] || T;
+    if (buildings.some(b => b.name === name)) name = `${name} (${T})`;
+    buildings.push({ name, type: T, w: t.w, h: t.h, group: head.group, category: head.category, icon: head.icon, extra: true });
+    typeToName[T] = name;
+  }
 }
 const byName = Object.fromEntries(buildings.map(b => [b.name, b]));
+const rules = b => (b.type && game.types[b.type]) || {};
+// the tiers of b's upgrade chain that the planner can show, in order
+const tiersOf = b => (chainOf[b.type] ?? []).map(T => typeToName[T]).filter(Boolean);
+// one building per chain, whatever its level, counts against the limit
+const chainKey = b => chainOf[b.type]?.[0] ?? b.type ?? b.name;
+const limitOf = b => (rules(b).once ? 1 : Infinity);
+const deletable = p => !rules(byName[p.name]).fixed;
+// The Shrine stands in the plaza, off the grid, and can't be built; other tiers above the first
+// are reached from a placed building's level picker.
+const inPalette = b => chainKey(b) !== "SHRINE" && (!chainOf[b.type] || tiersOf(b)[0] === b.name);
 
+// ---------- names in the chosen language (the game's own translations) ----------
+const languages = i18n?.languages ?? [{ code: "en", name: "English" }];
+const native = code => { try { return new Intl.DisplayNames([code], { type: "language" }).of(code); } catch { return code; } };
+const preferred = () => {
+  for (const want of navigator.languages ?? []) {
+    const hit = languages.find(l => l.code.toLowerCase() === want.toLowerCase()) ?? languages.find(l => l.code.split("-")[0] === want.split("-")[0]);
+    if (hit) return hit.code;
+  }
+  return "en";
+};
+
+// Per-viewer conveniences only; the layout itself lives in the URL.
+function store0(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }
+const store = { get: store0, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+let lang = store.get("lang", null) ?? preferred();
+if (!languages.some(l => l.code === lang)) lang = "en";
+const nameOf = b => {
+  const row = b.type && i18n?.names[b.type];
+  return (row && (row[languages.findIndex(l => l.code === lang)] || row[0])) || b.name;
+};
+
+// ---------- backdrop and sprites ----------
 // Backdrop rendered by the game (tools/capture), one image per number of land expansions bought.
-// Optional: the grid works without it.
-const bg = await fetch("data/background.json").then(r => r.json()).catch(() => null);
 const backdrops = new Map();
 function backdrop(level) {
   if (!bg) return null;
@@ -35,30 +88,33 @@ function backdrop(level) {
   // while another level's image loads, keep showing whichever one is ready
   return img.complete && img.naturalWidth ? img : [...backdrops.values()].find(i => i.complete && i.naturalWidth) ?? null;
 }
-// In-game building sprites, packed in one atlas: items[type] = [x, y, w, h, anchorX, anchorY].
-const atlas = await fetch("data/sprites.json").then(r => r.json()).catch(() => null);
+// Buildings as the game draws them, packed in one atlas: items[type] = [x, y, w, h, anchorX, anchorY].
 const atlasImage = atlas && Object.assign(new Image(), { src: "data/sprites.webp" });
 atlasImage?.addEventListener("load", () => requestDraw());
 
+// ---------- layout state ----------
 const decoded = decode(location.hash, byName);
 const maxLand = base.expansions?.length ?? 0;
 // a shared link says how much land it was planned on; otherwise use this viewer's last choice
 let land = Math.min(maxLand, decoded.land ?? (location.hash.length > 1 ? 0 : store0("land", 0)));
 let { tiles, cells } = cellsFor(base, land);
 let placed = decoded.placed.filter(p => fits(p, [], byName, cells));
+// Every base starts with its Temple, which the game won't delete: add it where it usually stands.
+for (const d of base.defaults ?? []) {
+  const name = typeToName[d.type], b = byName[name];
+  const p = { name, x: d.x, y: d.y, r: 0 };
+  if (b && !placed.some(q => chainKey(byName[q.name]) === chainKey(b)) && fits(p, placed, byName, cells)) placed.unshift(p);
+}
 let tool = "select"; // or "erase"
 let brush = null; // { name, r, from? } while holding a building; `from` = where a moved one came from
+let selected = null; // placed building whose level picker is open
 let hover = null; // cell under the pointer
 let view = { s: 20, tx: 0, ty: 0 }, fitScale = 20, userView = false; // userView: panned/zoomed by hand, so stop auto-fitting
 let size = { w: 0, h: 0, dpr: 1 };
-let gesture = null; // { kind: "pan" | "paint" | "erase", ... } while a pointer is down
+let gesture = null; // { kind: "pan" | "paint" | "erase" | "press" | "drag", ... } while a pointer is down
 let spaceHeld = false;
 const undoStack = [], redoStack = [];
 let strokeBefore = null;
-
-// Per-viewer conveniences only; the layout itself lives in the URL.
-const store = { get: store0, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
-function store0(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }
 let recent = store.get("recent", []).filter(n => byName[n]);
 let showLabels = store.get("labels", false);
 
@@ -85,7 +141,7 @@ function anchored(c) {
   return { name: brush.name, r: brush.r, x: c.x - Math.floor((r.w - 1) / 2), y: c.y - Math.floor((r.h - 1) / 2) };
 }
 
-// ---------- icons ----------
+// ---------- wiki icons (fallback art) ----------
 const images = new Map();
 function icon(name) {
   let img = images.get(name);
@@ -138,7 +194,7 @@ function draw(c, sz, v, live) {
 
   // footprints flat on the ground first, then sprites back-to-front so nearer ones overlap
   const hovered = live && !brush && hover ? itemAt(hover.x, hover.y, placed, byName) : null;
-  const items = placed.map(p => [p, p === hovered ? (tool === "erase" ? "erase" : "hover") : "normal"]);
+  const items = placed.map(p => [p, live && p === selected ? "selected" : p === hovered ? (tool === "erase" ? "erase" : "hover") : "normal"]);
   if (live && brush && hover) {
     const g = anchored(hover);
     items.push([g, fits(g, placed, byName, cells) ? "ghost" : "blocked"]);
@@ -147,6 +203,7 @@ function draw(c, sz, v, live) {
   const depth = p => p.x + p.y; // larger x + y sits further up the screen, i.e. further back
   for (const [p, mode] of items.sort((a, b) => depth(b[0]) - depth(a[0]))) sprite(c, sz, v, p, mode);
   if (showLabels) for (const [p, mode] of items) if (mode !== "ghost" && mode !== "blocked") label(c, sz, v, p);
+  if (live) placeSelectionCard();
 }
 
 function halo(c, text, x, y) {
@@ -161,10 +218,10 @@ function halo(c, text, x, y) {
 function footprint(c, sz, v, p, mode) {
   const r = rect(p, byName[p.name]), hue = hueOf(p.name);
   gridSpace(c, sz, v);
-  c.fillStyle = { ghost: "rgb(143 179 108 / .55)", blocked: "rgb(200 66 59 / .55)", erase: "rgb(200 66 59 / .5)" }[mode] ?? `hsl(${hue} 30% 24% / .45)`;
+  c.fillStyle = { ghost: "rgb(143 179 108 / .55)", blocked: "rgb(200 66 59 / .55)", erase: "rgb(200 66 59 / .5)", selected: "rgb(200 66 59 / .25)" }[mode] ?? `hsl(${hue} 30% 24% / .45)`;
   c.fillRect(r.x - .5, r.y - .5, r.w, r.h);
   c.lineWidth = (mode === "normal" ? 1.25 : 2) / v.s;
-  c.strokeStyle = { ghost: "#b9d896", blocked: "#e06b63", erase: "#e06b63", hover: "#ede4d3" }[mode] ?? `hsl(${hue} 40% 52%)`;
+  c.strokeStyle = { ghost: "#b9d896", blocked: "#e06b63", erase: "#e06b63", hover: "#ede4d3", selected: "#e06b63" }[mode] ?? `hsl(${hue} 40% 52%)`;
   c.strokeRect(r.x - .5 + .5 / v.s, r.y - .5 + .5 / v.s, r.w - 1 / v.s, r.h - 1 / v.s);
 }
 
@@ -172,7 +229,7 @@ function sprite(c, sz, v, p, mode) {
   const b = byName[p.name], r = rect(p, b);
   const a = atlasImage?.complete && atlasImage.naturalWidth && atlas.items[b.type];
   if (a) {
-    // the game's own art: anchored at the centre of the footprint's first cell, same projection as the map
+    // the game's own render: anchored at the centre of the footprint's first cell, same projection as the map
     const [x, y, w, h, ax, ay] = a, k = v.s / atlas.ppu;
     const [px, py] = toScreen(r.x, r.y, v);
     screenSpace(c, sz);
@@ -214,13 +271,13 @@ function label(c, sz, v, p) {
   screenSpace(c, sz);
   c.font = "500 11px 'Geist Variable', system-ui";
   c.textAlign = "center"; c.textBaseline = "top";
-  halo(c, p.name, cx, front + 3);
+  halo(c, nameOf(byName[p.name]), cx, front + 3);
 }
 
 // ---------- state changes ----------
 // History entries hold the layout and the land level together, so undo can bring back land too.
 const snapshot = () => JSON.stringify({ placed, land });
-function restore(json) { const s = JSON.parse(json); placed = s.placed; applyLand(s.land); }
+function restore(json) { const s = JSON.parse(json); placed = s.placed; selected = null; applyLand(s.land); }
 function beginStroke() { strokeBefore ??= snapshot(); }
 function endStroke() {
   if (strokeBefore !== null && strokeBefore !== snapshot()) {
@@ -232,13 +289,15 @@ function endStroke() {
   commit();
 }
 function commit() {
+  if (selected && !placed.includes(selected)) selected = null;
   const hash = encode(placed, land);
   history.replaceState(null, "", hash ? "#" + hash : location.pathname + location.search);
   $("undo").disabled = !undoStack.length;
   $("redo").disabled = !redoStack.length;
-  $("hint").hidden = placed.length > 0 || !!brush;
+  $("hint").hidden = placed.some(deletable) || !!brush || !!selected;
   updateStats();
   updateInspector();
+  updateSelectionCard();
   requestDraw();
 }
 function undo() { if (!undoStack.length) return; dropHeld(); redoStack.push(snapshot()); restore(undoStack.pop()); commit(); }
@@ -265,12 +324,32 @@ function setLand(level) {
   if (lost) toast(`Removed ${lost} building${lost > 1 ? "s" : ""} on land you haven't bought. Ctrl+Z brings them back.`);
 }
 
+// Places the held building at cell c. Over a one-per-base limit it offers to move the existing one.
 function tryPlace(c) {
   const cand = anchored(c);
   if (!fits(cand, placed, byName, cells)) return false;
+  const b = byName[cand.name];
+  const same = placed.filter(p => chainKey(byName[p.name]) === chainKey(b));
+  if (!brush.from && same.length >= limitOf(b)) {
+    gesture = null; // stop painting a row while we ask
+    offerMove(cand, same[0], limitOf(b));
+    return false;
+  }
   placed.push(cand);
   remember(cand.name);
   return true;
+}
+async function offerMove(cand, old, limit) {
+  const b = byName[old.name];
+  const ok = await confirm(limit === 1 ? `Only one ${nameOf(b)}` : `Up to ${limit} ${nameOf(b)}`,
+    `The game allows ${limit === 1 ? "one per base" : `${limit} per base`}, counting every level. Move ${limit === 1 ? "it" : "the oldest one"} here instead?`,
+    "Move here");
+  if (!ok) { endStroke(); return; }
+  placed.splice(placed.indexOf(old), 1);
+  const moved = { ...cand, name: old.name }; // the same building keeps its level
+  placed.push(fits(moved, placed, byName, cells) ? moved : old);
+  endStroke();
+  if (!placed.includes(moved)) toast("It doesn't fit there at its current level.");
 }
 function remember(name) {
   if (recent[0] === name) return;
@@ -278,9 +357,14 @@ function remember(name) {
   store.set("recent", recent);
   renderPalette();
 }
+function removeBuilding(p) {
+  if (!deletable(p)) { toast(`The game won't let you remove the ${nameOf(byName[p.name])}, only move it.`); return false; }
+  placed.splice(placed.indexOf(p), 1);
+  return true;
+}
 function eraseAt(c) {
   const p = itemAt(c.x, c.y, placed, byName);
-  if (p) placed.splice(placed.indexOf(p), 1);
+  if (p) removeBuilding(p);
 }
 
 function markTiles() {
@@ -288,6 +372,7 @@ function markTiles() {
 }
 function setBrush(b) {
   brush = b;
+  if (b) selected = null;
   if (b && tool !== "select") setTool("select");
   markTiles();
   cursor();
@@ -301,9 +386,14 @@ function dropHeld() {
   markTiles();
   endStroke();
 }
+function pickUp(p) {
+  beginStroke();
+  placed.splice(placed.indexOf(p), 1);
+  setBrush({ name: p.name, r: p.r, from: p });
+}
 function setTool(t) {
   tool = t;
-  if (t === "erase") { dropHeld(); brush = null; markTiles(); }
+  if (t === "erase") { dropHeld(); brush = null; selected = null; markTiles(); }
   $("tool-select").setAttribute("aria-pressed", String(t === "select"));
   $("tool-erase").setAttribute("aria-pressed", String(t === "erase"));
   cursor();
@@ -326,8 +416,12 @@ function updateStats() {
     .map(([k, n]) => el("li", {}, el("span", {}, k), el("b", { className: "num" }, String(n)))));
 }
 
+const levelText = b => {
+  const t = tiersOf(b);
+  return t.length > 1 ? `, level ${t.indexOf(b.name) + 1} of ${t.length}` : "";
+};
 function updateInspector() {
-  const p = brush ?? (hover && itemAt(hover.x, hover.y, placed, byName));
+  const p = brush ?? (hover && !selected && itemAt(hover.x, hover.y, placed, byName));
   $("inspector").hidden = !p;
   if (!p) return;
   const b = byName[p.name], r = rect(p, b);
@@ -335,9 +429,57 @@ function updateInspector() {
     $("ins-icon").dataset.name = b.name;
     $("ins-icon").src = b.icon || "";
   }
-  $("ins-name").textContent = b.name;
-  $("ins-meta").textContent = `${b.category}, ${r.w}×${r.h}${brush ? (brush.from ? ", moving" : ", placing") : ""}`;
+  $("ins-name").textContent = nameOf(b);
+  $("ins-meta").textContent = `${b.category}, ${r.w}×${r.h}${levelText(b)}${limitOf(b) === 1 ? ", one per base" : ""}${brush ? (brush.from ? ", moving" : ", placing") : ""}`;
   $("ins-warn").hidden = !b.guess;
+}
+
+// Level picker for the selected building: every tier of its upgrade chain, plus flip/move/delete.
+function updateSelectionCard() {
+  const card = $("selection");
+  card.hidden = !selected;
+  if (!selected) return;
+  const b = byName[selected.name], tiers = tiersOf(b);
+  $("sel-name").textContent = nameOf(b);
+  $("sel-meta").textContent = `${rect(selected, b).w}×${rect(selected, b).h}${levelText(b)}${limitOf(b) === 1 ? ", one per base" : ""}`;
+  $("sel-tiers").hidden = tiers.length < 2;
+  $("sel-tiers").replaceChildren(...tiers.map((name, i) => {
+    const t = el("button", { textContent: ROMAN[i] ?? String(i + 1), title: nameOf(byName[name]) });
+    t.setAttribute("aria-pressed", String(name === selected.name));
+    t.onclick = () => setLevel(name);
+    return t;
+  }));
+  $("sel-delete").disabled = !deletable(selected);
+  $("sel-delete").title = deletable(selected) ? "Delete (Del)" : "The game won't delete this, only move it";
+  placeSelectionCard();
+}
+function placeSelectionCard() {
+  if (!selected) return;
+  const b = byName[selected.name], r = rect(selected, b);
+  const [cx] = toScreen(r.x - .5 + r.w / 2, r.y - .5 + r.h / 2);
+  const [, back] = toScreen(r.x - .5 + r.w, r.y - .5 + r.h); // the footprint's top corner on screen
+  const a = atlas?.items[b.type];
+  const top = a ? toScreen(r.x, r.y)[1] - a[5] * view.s / atlas.ppu : back - view.s; // the sprite's top edge
+  const card = $("selection"), h = card.offsetHeight;
+  // above the sprite, or below the footprint when the toolbar leaves no room above
+  const below = top - 8 - h < 64;
+  const y = below ? toScreen(r.x - .5, r.y - .5)[1] + 10 : top - 8;
+  card.classList.toggle("below", below);
+  card.style.left = `${Math.min(size.w - 170, Math.max(170, cx))}px`;
+  card.style.top = `${Math.min(size.h - 10 - (below ? h : 0), y)}px`;
+}
+function setLevel(name) {
+  const next = { ...selected, name };
+  const others = placed.filter(p => p !== selected);
+  if (!fits(next, others, byName, cells)) { toast("That level doesn't fit here."); return; }
+  beginStroke();
+  placed[placed.indexOf(selected)] = next;
+  selected = next;
+  endStroke();
+}
+function select(p) {
+  selected = p;
+  commit();
 }
 
 let toastTimer;
@@ -345,7 +487,16 @@ function toast(text) {
   $("toast-text").textContent = text;
   $("toast").hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => ($("toast").hidden = true), 2200);
+  toastTimer = setTimeout(() => ($("toast").hidden = true), 2600);
+}
+function confirm(title, text, okLabel) {
+  const d = $("confirm-dialog");
+  $("confirm-title").textContent = title;
+  $("confirm-text").textContent = text;
+  $("confirm-ok").textContent = okLabel;
+  d.returnValue = "";
+  d.showModal();
+  return new Promise(res => d.addEventListener("close", () => res(d.returnValue === "ok"), { once: true }));
 }
 
 // ---------- palette ----------
@@ -361,10 +512,12 @@ $("tabs").replaceChildren(...groupNames.map(g => {
 }));
 
 function tile(b) {
-  const t = el("button", { className: "tile", title: b.guess ? `${b.name} (footprint not confirmed)` : b.name },
+  const name = nameOf(b), tiers = tiersOf(b).length;
+  const t = el("button", { className: "tile", title: b.guess ? `${name} (footprint not confirmed)` : name },
     b.icon ? el("img", { crossOrigin: "anonymous", referrerPolicy: "no-referrer", loading: "lazy", src: b.icon, alt: "", onerror() { this.replaceWith(el("i", { className: "ph ph-image" })); } }) : el("i", { className: "ph ph-image" }),
-    el("span", {}, b.name),
+    el("span", {}, name),
     el("small", { className: b.guess ? "num guess" : "num" }, `${b.w}×${b.h}${b.guess ? "?" : ""}`));
+  if (tiers > 1) t.prepend(el("span", { className: "tiers num", title: `${tiers} levels: pick one on the map` }, el("i", { className: "ph ph-stack" }), String(tiers)));
   t.dataset.name = b.name;
   t.setAttribute("aria-pressed", String(brush?.name === b.name));
   t.onclick = () => setBrush(brush?.name === b.name && !brush.from ? null : { name: b.name, r: 0 });
@@ -376,7 +529,9 @@ function renderPalette() {
   document.querySelectorAll("#tabs button").forEach(t => t.setAttribute("aria-selected", String(!q && t.dataset.group === group)));
   const cats = {};
   for (const b of buildings) {
-    if (q ? !b.name.toLowerCase().includes(q) : b.group !== group) continue;
+    // browsing shows first levels only; a search finds every level, in the chosen language or English
+    if (q ? !(nameOf(b).toLowerCase().includes(q) || b.name.toLowerCase().includes(q)) : b.group !== group || !inPalette(b)) continue;
+    if (q && chainKey(b) === "SHRINE") continue;
     (cats[q ? GROUPS[b.group] : b.category] ??= []).push(b);
   }
   if (q && !Object.keys(cats).length) {
@@ -406,7 +561,7 @@ canvas.addEventListener("pointerdown", e => {
   const under = itemAt(c.x, c.y, placed, byName);
   if (e.button === 1 || spaceHeld || (e.button === 0 && tool === "select" && !brush && !under)) {
     canvas.setPointerCapture(e.pointerId);
-    gesture = { kind: "pan", px, py, tx: view.tx, ty: view.ty };
+    gesture = { kind: "pan", px, py, tx: view.tx, ty: view.ty, still: true };
     return cursor();
   }
   if (e.button !== 0) return;
@@ -422,9 +577,9 @@ canvas.addEventListener("pointerdown", e => {
     gesture = { kind: "paint", last: `${c.x},${c.y}` };
     beginStroke(); tryPlace(c);
   } else {
-    beginStroke();
-    placed.splice(placed.indexOf(under), 1);
-    return setBrush({ name: under.name, r: under.r, from: under });
+    // on a building: a click selects it (level picker), a drag moves it
+    gesture = { kind: "press", p: under, px, py };
+    return;
   }
   commit();
 });
@@ -435,10 +590,16 @@ canvas.addEventListener("pointermove", e => {
   const moved = !hover || hover.x !== c.x || hover.y !== c.y;
   hover = c;
   if (gesture?.kind === "pan") {
+    if (Math.hypot(px - gesture.px, py - gesture.py) > 4) gesture.still = false;
     userView = true;
     view.tx = gesture.tx + px - gesture.px;
     view.ty = gesture.ty + py - gesture.py;
     return requestDraw();
+  }
+  if (gesture?.kind === "press" && Math.hypot(px - gesture.px, py - gesture.py) > 5) {
+    const p = gesture.p;
+    gesture = { kind: "drag" };
+    pickUp(p);
   }
   if (!moved) return;
   if (gesture?.kind === "paint") tryPlace(c);
@@ -450,9 +611,12 @@ canvas.addEventListener("pointermove", e => {
 
 const endGesture = () => {
   if (!gesture) return;
-  const kind = gesture.kind;
+  const g = gesture;
   gesture = null;
-  if (kind !== "pan") endStroke();
+  if (g.kind === "press") select(g.p === selected ? null : g.p);
+  else if (g.kind === "drag") { if (hover && tryPlace(hover)) { brush = null; markTiles(); endStroke(); } else dropHeld(); }
+  else if (g.kind === "pan") { if (g.still && selected) select(null); }
+  else endStroke();
   cursor();
 };
 canvas.addEventListener("pointerup", endGesture);
@@ -461,7 +625,7 @@ canvas.addEventListener("pointerleave", () => { if (!gesture) { hover = null; up
 canvas.addEventListener("contextmenu", e => {
   e.preventDefault();
   const c = cellAt(...local(e)), p = itemAt(c.x, c.y, placed, byName);
-  if (p) { beginStroke(); placed.splice(placed.indexOf(p), 1); endStroke(); }
+  if (p) { beginStroke(); removeBuilding(p); endStroke(); }
 });
 canvas.addEventListener("wheel", e => {
   e.preventDefault();
@@ -484,7 +648,7 @@ function fit() {
 }
 
 document.addEventListener("keydown", e => {
-  if (e.target.closest?.("input, dialog")) return;
+  if (e.target.closest?.("input, select, dialog")) return;
   const k = e.key.toLowerCase();
   if ((e.metaKey || e.ctrlKey) && k === "z") { e.preventDefault(); return e.shiftKey ? redo() : undo(); }
   if ((e.metaKey || e.ctrlKey) && k === "y") { e.preventDefault(); return redo(); }
@@ -498,15 +662,18 @@ document.addEventListener("keydown", e => {
   else if (k === "+" || k === "=") zoomAt(size.w / 2, size.h / 2, 1.25);
   else if (k === "-") zoomAt(size.w / 2, size.h / 2, .8);
   else if (k === "?") $("help-dialog").showModal();
-  else if (k === "escape") { dropHeld(); setBrush(null); }
-  else if ((k === "delete" || k === "backspace") && hover) {
-    const p = itemAt(hover.x, hover.y, placed, byName);
-    if (p) { beginStroke(); placed.splice(placed.indexOf(p), 1); endStroke(); }
+  else if (k === "escape") { dropHeld(); selected = null; setBrush(null); }
+  else if (k === "delete" || k === "backspace") {
+    const p = selected ?? (hover && itemAt(hover.x, hover.y, placed, byName));
+    if (p) { beginStroke(); removeBuilding(p); endStroke(); }
   }
 });
 document.addEventListener("keyup", e => { if (e.key === " ") { spaceHeld = false; cursor(); } });
 
-function rotate() { if (brush) { brush.r = brush.r ? 0 : 1; updateInspector(); requestDraw(); } }
+function rotate() {
+  if (brush) { brush.r = brush.r ? 0 : 1; updateInspector(); requestDraw(); }
+  else if (selected) { beginStroke(); const i = placed.indexOf(selected); placed[i] = selected = { ...selected, r: selected.r ? 0 : 1 }; endStroke(); }
+}
 function toggleLabels() {
   showLabels = !showLabels;
   store.set("labels", showLabels);
@@ -525,9 +692,12 @@ $("help").onclick = () => $("help-dialog").showModal();
 $("zoom-in").onclick = () => zoomAt(size.w / 2, size.h / 2, 1.25);
 $("zoom-out").onclick = () => zoomAt(size.w / 2, size.h / 2, .8);
 $("fit").onclick = fit;
+$("sel-flip").onclick = rotate;
+$("sel-move").onclick = () => { const p = selected; selected = null; pickUp(p); };
+$("sel-delete").onclick = () => { beginStroke(); removeBuilding(selected); endStroke(); };
 $("clear").onclick = () => {
-  if (!placed.length) return;
-  dropHeld(); beginStroke(); placed = []; endStroke();
+  if (!placed.some(deletable)) return;
+  dropHeld(); beginStroke(); placed = placed.filter(p => !deletable(p)); endStroke();
   toast("Map cleared. Press Ctrl+Z to undo.");
 };
 $("share").onclick = async () => {
@@ -552,6 +722,10 @@ $("search").oninput = renderPalette;
 $("land").value = String(land);
 $("land").onchange = e => setLand(+e.target.value);
 if (!maxLand) $("land").closest("label").hidden = true;
+$("lang").replaceChildren(...languages.map(l => el("option", { value: l.code, textContent: native(l.code) })));
+$("lang").value = lang;
+$("lang").onchange = e => { lang = e.target.value; store.set("lang", lang); renderPalette(); commit(); };
+if (languages.length < 2) $("lang").closest("label").hidden = true;
 
 new ResizeObserver(([entry]) => {
   const { width, height } = entry.contentRect;
