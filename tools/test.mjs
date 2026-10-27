@@ -1,7 +1,7 @@
 // Self-check for core.js: node tools/test.mjs
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { fits, itemAt, encode, decode } from "../core.js";
+import { fits, itemAt, encode, decode, cellsFor } from "../core.js";
 
 const byName = { "Farm Plot": { w: 1, h: 1 }, "Long: Thing": { w: 3, h: 1 } };
 const cells = new Set();
@@ -17,15 +17,22 @@ assert.equal(itemAt(4, 2, placed, byName), placed[0]);
 assert.equal(itemAt(4, 3, placed, byName), undefined);
 
 const layout = [...placed, { name: "Farm Plot", x: -1, y: 0, r: 0 }, { name: "Farm Plot", x: 1, y: -2, r: 0 }];
-assert.deepEqual(decode("#" + encode(layout), byName), layout, "hash round-trip");
-assert.deepEqual(decode("#garbage", byName), []);
-assert.deepEqual(decode("#%E0%A4%A:1.1.0", byName), [], "malformed escape ignored");
-assert.deepEqual(decode("#Gone:1.1.0", byName), [], "unknown building dropped");
+assert.deepEqual(decode("#" + encode(layout), byName), { placed: layout, land: null }, "hash round-trip");
+assert.deepEqual(decode("#" + encode(layout, 2), byName), { placed: layout, land: 2 }, "land level round-trip");
+assert.deepEqual(decode("#garbage", byName).placed, []);
+assert.deepEqual(decode("#%E0%A4%A:1.1.0", byName).placed, [], "malformed escape ignored");
+assert.deepEqual(decode("#Gone:1.1.0", byName).placed, [], "unknown building dropped");
+const lands = { tiles: [[0, 0]], expansions: [[[0, -1]], [[-1, 0]], [[1, 0]]] };
+assert.equal(cellsFor(lands, 0).cells.size, 1);
+assert.ok(cellsFor(lands, 2).cells.has("-1,0") && !cellsFor(lands, 2).cells.has("1,0"), "expansions add in order");
 
 const data = JSON.parse(readFileSync(new URL("../data/buildings.json", import.meta.url)));
 assert.ok(data.length > 100 && data.every(b => b.name && b.w > 0 && b.h > 0), "buildings.json sane");
 const base = JSON.parse(readFileSync(new URL("../data/base.json", import.meta.url)));
 assert.ok(base.tiles.length > 1000 && base.tiles.some(([x, y]) => x === 0 && y === 0), "base.json sane");
+assert.equal(base.expansions.length, 3, "three land expansions");
+assert.equal(new Set(base.expansions.flat().concat(base.tiles).map(String)).size,
+  base.tiles.length + base.expansions.flat().length, "expansion cells never repeat");
 const game = JSON.parse(readFileSync(new URL("../data/game.json", import.meta.url)));
 const atlas = JSON.parse(readFileSync(new URL("../data/sprites.json", import.meta.url)));
 assert.ok(Object.values(game.types).every(t => t.w > 0 && t.w === t.h), "game footprints are square and positive");

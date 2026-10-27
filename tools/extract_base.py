@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Regenerate data/base.json (buildable cells + landmarks) from the game's base scene.
+"""Regenerate data/base.json (buildable cells, plus the Woolhaven land expansions) from the
+game's base scene.
 
 1. Export the game with AssetRipper (File > Export > Unity Project). Load only the
    base scene's bundles: AssetRipper 2.0.0 crashes on a sprite-atlas clash if you
@@ -9,6 +10,12 @@
 How the game builds the grid (PlacementRegion.FloodFillCreateTiles): integer
 points in the region's local space, flood-filled from (0,0), kept while inside
 the region's PolygonCollider2D. Building footprints extend +x/+y from their tile.
+
+Land expansions (DLCLandController.landSlots, bought in a fixed order: south, then west,
+then east): the game appends slot N's FullCollider to the placement polygon and floods
+again from (-15,-15). Quirk kept here: it reads that collider's raw points as world
+coordinates (GetPath without TransformPoint). "expansions"[N] lists only the cells slot N
+adds on top of the previous level.
 """
 import json
 import math
@@ -18,7 +25,6 @@ import sys
 
 E = sys.argv[1]
 SCENE = os.path.join(E, "Assets/Scenes/Base Biome 1.unity")
-LANDMARKS = {"SHRINE_BASE": "Shrine", "COLLECTED_RESOURCES_CHEST": "Resource Chest", "MISSION_SHRINE": "Mission Shrine"}
 
 guid_to_script = {}
 for root, _, files in os.walk(os.path.join(E, "Assets/Scripts")):
@@ -94,37 +100,34 @@ for path in re.split(r"\n\s*- - ", collider.split("m_Paths:")[1])[1:]:
     polys.append([(lambda p: (p[0] + cx, p[1] + cy))(rotate(x + ox, y + oy, ca)) for x, y in pts])
 
 max_tiles = int(re.search(r"MaxTileCount: (\d+)", region).group(1))
-tiles, stack = set(), [(0, 0)]
-while stack:
-    x, y = stack.pop()
-    if (x, y) in tiles or len(tiles) >= max_tiles or not inside(x, y, polys):
-        continue
-    tiles.add((x, y))
-    stack += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
 
-# Landmarks, converted from world space into the region's grid space.
-enum = open(os.path.join(E, "Assets/Scripts/Assembly-CSharp/StructureBrain.cs")).read()
-enum = enum[enum.index("public enum TYPES"):]
-enum = enum[enum.index("{") + 1:enum.index("}")]
-types, i = {}, 0
-for item in filter(None, (s.strip() for s in enum.split(","))):
-    if "=" in item:
-        item, v = (s.strip() for s in item.split("="))
-        i = int(v)
-    types[i] = item
-    i += 1
+
+def flood(seed, test, tiles):
+    added, stack = 0, [seed]
+    while stack:
+        x, y = stack.pop()
+        if (x, y) in tiles or added >= max_tiles or not test(x, y):
+            continue
+        tiles.add((x, y)); added += 1
+        stack += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+    return tiles
+
+
+main = flood((0, 0), lambda x, y: inside(x, y, polys), set())
 
 rx, ry = world(region_go)
 _, _, ra = local(transform(region_go))
-landmarks = []
-for c, b in docs.values():
-    if c == 114 and script(b) == "Structure":
-        t = types.get(int(re.search(r"Type: (\d+)", b).group(1)))
-        if t in LANDMARKS:
-            wx, wy = world(game_object(b))
-            gx, gy = rotate(wx - rx, wy - ry, -ra)
-            landmarks.append({"name": LANDMARKS[t], "x": round(gx, 2), "y": round(gy, 2)})
+controller = next(b for c, b in docs.values() if c == 114 and script(b) == "DLCLandController")
+expansions, previous = [], main
+for full in re.findall(r"FullCollider: \{fileID: (-?\d+)\}", controller):
+    raw = [[(float(a), float(b)) for a, b in re.findall(r"x: (\S+), y: (\S+)\}", path)]
+           for path in re.split(r"\n\s*- - ", docs[full][1].split("m_Paths:")[1])[1:]]
+    land = [[rotate(wx - rx, wy - ry, -ra) for wx, wy in path] for path in raw]  # world -> region grid
+    test = lambda x, y, land=land: inside(x, y, polys) or inside(x, y, land)
+    level = flood((-15, -15), test, flood((0, 0), test, set()))
+    expansions.append(sorted(level - previous))
+    previous = level
 
-json.dump({"rotation": round(math.degrees(ra)), "world": [round(rx, 4), round(ry, 4)], "tiles": sorted(tiles), "landmarks": sorted(landmarks, key=lambda l: l["name"])},
-          sys.stdout, separators=(",", ":"))
-print(f"{len(tiles)} tiles, {len(landmarks)} landmarks", file=sys.stderr)
+json.dump({"rotation": round(math.degrees(ra)), "world": [round(rx, 4), round(ry, 4)], "tiles": sorted(main),
+           "expansions": expansions}, sys.stdout, separators=(",", ":"))
+print(f"{len(main)} tiles, expansions add {[len(e) for e in expansions]}", file=sys.stderr)

@@ -1,4 +1,4 @@
-import { rect, fits, itemAt, encode, decode } from "./core.js";
+import { rect, fits, itemAt, encode, decode, cellsFor } from "./core.js";
 
 // The game rotates the base grid 45° (data/base.json "rotation") and its cameras look down
 // at ~45°, which flattens the ground vertically by about cos 45°. So a cell (x, y) lands
@@ -17,18 +17,35 @@ for (const b of buildings) {
   if (t) Object.assign(b, { type: game.wiki[b.name], w: t.w, h: t.h, guess: false });
 }
 const byName = Object.fromEntries(buildings.map(b => [b.name, b]));
-const cells = new Set(base.tiles.map(([x, y]) => `${x},${y}`));
 
-// Game-art backdrop rendered from the base scene (tools/background). Optional: the grid works without it.
+// Backdrop rendered by the game (tools/capture), one image per number of land expansions bought.
+// Optional: the grid works without it.
 const bg = await fetch("data/background.json").then(r => r.json()).catch(() => null);
-const bgImage = bg && Object.assign(new Image(), { src: "data/background.webp" });
-bgImage?.addEventListener("load", () => requestDraw());
+const backdrops = new Map();
+function backdrop(level) {
+  if (!bg) return null;
+  const src = bg.images ? bg.images[Math.min(level, bg.images.length - 1)] : "background.webp";
+  let img = backdrops.get(src);
+  if (!img) {
+    img = new Image();
+    img.onload = requestDraw;
+    img.src = "data/" + src;
+    backdrops.set(src, img);
+  }
+  // while another level's image loads, keep showing whichever one is ready
+  return img.complete && img.naturalWidth ? img : [...backdrops.values()].find(i => i.complete && i.naturalWidth) ?? null;
+}
 // In-game building sprites, packed in one atlas: items[type] = [x, y, w, h, anchorX, anchorY].
 const atlas = await fetch("data/sprites.json").then(r => r.json()).catch(() => null);
 const atlasImage = atlas && Object.assign(new Image(), { src: "data/sprites.webp" });
 atlasImage?.addEventListener("load", () => requestDraw());
 
-let placed = decode(location.hash, byName).filter(p => fits(p, [], byName, cells));
+const decoded = decode(location.hash, byName);
+const maxLand = base.expansions?.length ?? 0;
+// a shared link says how much land it was planned on; otherwise use this viewer's last choice
+let land = Math.min(maxLand, decoded.land ?? (location.hash.length > 1 ? 0 : store0("land", 0)));
+let { tiles, cells } = cellsFor(base, land);
+let placed = decoded.placed.filter(p => fits(p, [], byName, cells));
 let tool = "select"; // or "erase"
 let brush = null; // { name, r, from? } while holding a building; `from` = where a moved one came from
 let hover = null; // cell under the pointer
@@ -40,17 +57,18 @@ const undoStack = [], redoStack = [];
 let strokeBefore = null;
 
 // Per-viewer conveniences only; the layout itself lives in the URL.
-const store = {
-  get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
-  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
-};
+const store = { get: store0, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+function store0(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }
 let recent = store.get("recent", []).filter(n => byName[n]);
 let showLabels = store.get("labels", false);
 
 // ---------- geometry ----------
-const corners = base.tiles.flatMap(([x, y]) => [[x - .5, y - .5], [x + .5, y + .5], [x - .5, y + .5], [x + .5, y - .5]]);
-const isoX = corners.map(([x, y]) => K * (x - y)), isoY = corners.map(([x, y]) => -K * V * (x + y));
-const BOUNDS = { x0: Math.min(...isoX), x1: Math.max(...isoX), y0: Math.min(...isoY), y1: Math.max(...isoY) };
+function boundsOf(ts) {
+  const corners = ts.flatMap(([x, y]) => [[x - .5, y - .5], [x + .5, y + .5], [x - .5, y + .5], [x + .5, y - .5]]);
+  const isoX = corners.map(([x, y]) => K * (x - y)), isoY = corners.map(([x, y]) => -K * V * (x + y));
+  return { x0: Math.min(...isoX), x1: Math.max(...isoX), y0: Math.min(...isoY), y1: Math.max(...isoY) };
+}
+let BOUNDS = boundsOf(tiles);
 const toScreen = (x, y, v = view) => [v.s * K * (x - y) + v.tx, -v.s * K * V * (x + y) + v.ty];
 function cellAt(px, py) {
   const X = (px - view.tx) / (view.s * K), Y = (py - view.ty) / (view.s * K * V); // X = x − y, Y = −(x + y)
@@ -103,17 +121,19 @@ function draw(c, sz, v, live) {
   c.fillRect(0, 0, sz.w, sz.h);
 
   // backdrop: image pixel (X, Y) sits at u = u0 + X/ppu, v = v0 - Y/ppu relative to grid origin
-  const hasBg = bgImage?.complete && bgImage.naturalWidth;
+  const bgImage = backdrop(land), hasBg = !!bgImage;
   if (hasBg) c.drawImage(bgImage, v.s * bg.u0 + v.tx, -v.s * bg.v0 + v.ty, bg.w * v.s / bg.ppu, bg.h * v.s / bg.ppu);
 
-  // ground: faint grid over the art, or plain cells when there is no art
+  // ground: over the art, inset rounded green outlines like the game's build-mode tiles;
+  // without art, plain filled cells
   gridSpace(c, sz, v);
   c.beginPath();
-  for (const [x, y] of base.tiles) c.rect(x - .5, y - .5, 1, 1);
-  c.fillStyle = hasBg ? "rgb(237 228 211 / .06)" : "#3d4e33";
+  if (hasBg) for (const [x, y] of tiles) c.roundRect(x - .42, y - .42, .84, .84, .14);
+  else for (const [x, y] of tiles) c.rect(x - .5, y - .5, 1, 1);
+  c.fillStyle = hasBg ? "rgb(150 220 140 / .07)" : "#3d4e33";
   c.fill();
-  c.lineWidth = 1 / v.s;
-  c.strokeStyle = hasBg ? "rgb(237 228 211 / .22)" : "rgb(20 16 18 / .45)";
+  c.lineWidth = (hasBg ? 1.5 : 1) / v.s;
+  c.strokeStyle = hasBg ? "rgb(72 176 96 / .75)" : "rgb(20 16 18 / .45)";
   c.stroke();
 
   // footprints flat on the ground first, then sprites back-to-front so nearer ones overlap
@@ -127,21 +147,6 @@ function draw(c, sz, v, live) {
   const depth = p => p.x + p.y; // larger x + y sits further up the screen, i.e. further back
   for (const [p, mode] of items.sort((a, b) => depth(b[0]) - depth(a[0]))) sprite(c, sz, v, p, mode);
   if (showLabels) for (const [p, mode] of items) if (mode !== "ghost" && mode !== "blocked") label(c, sz, v, p);
-
-  // landmarks
-  screenSpace(c, sz);
-  c.font = "600 12px 'Geist Variable', system-ui";
-  c.textBaseline = "middle";
-  const pins = base.landmarks.map(l => [l, ...toScreen(l.x, l.y, v)]);
-  for (const [l, px, py] of pins) {
-    c.fillStyle = "#c8423b";
-    c.beginPath(); c.arc(px, py, 5, 0, Math.PI * 2); c.fill();
-    c.lineWidth = 2; c.strokeStyle = "#141012"; c.stroke();
-    // label to the left when another pin sits just to the right, so neighbours don't collide
-    const crowded = pins.some(([o, ox, oy]) => o !== l && ox > px && ox - px < 120 && Math.abs(oy - py) < 16);
-    c.textAlign = crowded ? "right" : "left";
-    halo(c, l.name, px + (crowded ? -10 : 10), py);
-  }
 }
 
 function halo(c, text, x, y) {
@@ -213,9 +218,12 @@ function label(c, sz, v, p) {
 }
 
 // ---------- state changes ----------
-function beginStroke() { strokeBefore ??= JSON.stringify(placed); }
+// History entries hold the layout and the land level together, so undo can bring back land too.
+const snapshot = () => JSON.stringify({ placed, land });
+function restore(json) { const s = JSON.parse(json); placed = s.placed; applyLand(s.land); }
+function beginStroke() { strokeBefore ??= snapshot(); }
 function endStroke() {
-  if (strokeBefore !== null && strokeBefore !== JSON.stringify(placed)) {
+  if (strokeBefore !== null && strokeBefore !== snapshot()) {
     undoStack.push(strokeBefore);
     if (undoStack.length > 200) undoStack.shift();
     redoStack.length = 0;
@@ -224,7 +232,8 @@ function endStroke() {
   commit();
 }
 function commit() {
-  history.replaceState(null, "", placed.length ? "#" + encode(placed) : location.pathname + location.search);
+  const hash = encode(placed, land);
+  history.replaceState(null, "", hash ? "#" + hash : location.pathname + location.search);
   $("undo").disabled = !undoStack.length;
   $("redo").disabled = !redoStack.length;
   $("hint").hidden = placed.length > 0 || !!brush;
@@ -232,8 +241,29 @@ function commit() {
   updateInspector();
   requestDraw();
 }
-function undo() { if (!undoStack.length) return; dropHeld(); redoStack.push(JSON.stringify(placed)); placed = JSON.parse(undoStack.pop()); commit(); }
-function redo() { if (!redoStack.length) return; dropHeld(); undoStack.push(JSON.stringify(placed)); placed = JSON.parse(redoStack.pop()); commit(); }
+function undo() { if (!undoStack.length) return; dropHeld(); redoStack.push(snapshot()); restore(undoStack.pop()); commit(); }
+function redo() { if (!redoStack.length) return; dropHeld(); undoStack.push(snapshot()); restore(redoStack.pop()); commit(); }
+
+function applyLand(level) {
+  if (level === land && tiles) return;
+  land = level;
+  ({ tiles, cells } = cellsFor(base, land));
+  BOUNDS = boundsOf(tiles);
+  $("land").value = String(land);
+  store.set("land", land);
+  if (!userView && size.w) fit();
+}
+// Buying less land than a layout uses drops what no longer fits (one undoable step).
+function setLand(level) {
+  dropHeld();
+  beginStroke();
+  applyLand(level);
+  const before = placed.length;
+  placed = placed.filter(p => fits(p, [], byName, cells));
+  endStroke();
+  const lost = before - placed.length;
+  if (lost) toast(`Removed ${lost} building${lost > 1 ? "s" : ""} on land you haven't bought. Ctrl+Z brings them back.`);
+}
 
 function tryPlace(c) {
   const cand = anchored(c);
@@ -519,6 +549,9 @@ $("png").onclick = () => {
   });
 };
 $("search").oninput = renderPalette;
+$("land").value = String(land);
+$("land").onchange = e => setLand(+e.target.value);
+if (!maxLand) $("land").closest("label").hidden = true;
 
 new ResizeObserver(([entry]) => {
   const { width, height } = entry.contentRect;

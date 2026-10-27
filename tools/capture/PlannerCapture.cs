@@ -2,13 +2,18 @@
 // looking down at 45° without perspective (the planner's projection), and saves PNGs.
 //
 // Flow: on the main menu it continues the configured save slot, waits for the base to settle,
-// switches saving off, captures "full.png" (as the save looks) and "clean.png" (no placed
-// structures, obstacles, followers or player), writes capture.json and quits.
+// switches saving off, and captures the base without placed structures, obstacles, followers
+// or player once per Woolhaven land level: land0.png (none bought) to land3.png (all three),
+// switched in memory with the game's own DLCLandController. For each level it also rebuilds
+// the game's placement grid (PlacementRegion.CreateFloodFill), dumps it to grid.json as
+// [x, y, occupied] cells, and captures gridN.png with the game's build-mode tile on every cell.
+// Then writes capture.json and quits.
 // It never writes the save: SaveAndLoad, metadata and persistence saves are blocked while installed.
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
@@ -92,11 +97,49 @@ public class PlannerCapture : BaseUnityPlugin
             DataManager.Instance.CurrentGameTime = 560f; // mid-afternoon: phases are 240 units, afternoon starts at 480
             yield return new WaitForSecondsRealtime(6f);
         }
-        yield return new WaitForEndOfFrame();
+        var lands = DLCLandController.Instance;
+        var region = PlacementRegion.Instance;
+        var grids = new List<string>();
+        foreach (int level in lands ? new[] { -1, 0, 1, 2 } : new[] { -1 })
+        {
+            if (lands) { if (level < 0) lands.SetDefault(); else lands.DEBUG_ShowSlot(level); } // in memory only; saving is off
+            yield return new WaitForSecondsRealtime(3f);
+            yield return new WaitForEndOfFrame();
+            try { Shoot($"land{level + 1}", clean: true); }
+            catch (Exception e) { Logger.LogError(e); }
+            if (!region) continue;
+
+            var squares = new List<GameObject>();
+            try
+            {
+                if (level < 0)
+                {
+                    // with nothing bought, CombineColliders leaves the last merge in place; restore the base outline
+                    var cached = Traverse.Create(region).Field("cachedColliderPoints").GetValue<Vector2[]>();
+                    region.polygonCollider2D.pathCount = 1;
+                    region.polygonCollider2D.SetPath(0, cached);
+                }
+                region.CreateFloodFill();
+                var tiles = region.Grid.ToList();
+                grids.Add("[" + string.Join(",", tiles.Select(t => $"[{t.Position.x},{t.Position.y},{(t.Occupied ? 1 : 0)}]")) + "]");
+                foreach (var t in tiles)
+                {
+                    var sq = Instantiate(region.PlacementSquare, region.transform, false);
+                    sq.transform.localPosition = new Vector3(t.Position.x, t.Position.y, 0f);
+                    squares.Add(sq);
+                }
+                Logger.LogInfo($"land level {level + 1}: {tiles.Count} grid cells, {tiles.Count(t => t.Occupied)} occupied");
+            }
+            catch (Exception e) { Logger.LogError(e); }
+            yield return new WaitForSecondsRealtime(1.5f);
+            yield return new WaitForEndOfFrame();
+            try { Shoot($"grid{level + 1}", clean: true, hideWorldUI: false); } // the build tiles draw on a UI sorting layer
+            catch (Exception e) { Logger.LogError(e); }
+            foreach (var sq in squares) Destroy(sq);
+        }
         try
         {
-            Shoot("full", clean: false);
-            Shoot("clean", clean: true);
+            File.WriteAllText(Path.Combine(outDir, "grid.json"), "[" + string.Join(",", grids) + "]");
             int w = width.Value, h = Mathf.RoundToInt(w * (V1 - V0) / (U1 - U0));
             File.WriteAllText(Path.Combine(outDir, "capture.json"),
                 $"{{\"ppu\":{w / (U1 - U0):0.####},\"w\":{w},\"h\":{h},\"u_left\":{U0},\"v_top\":{V1},\"time\":\"{DateTime.Now:s}\"}}");
@@ -114,7 +157,7 @@ public class PlannerCapture : BaseUnityPlugin
         }
     }
 
-    void Shoot(string name, bool clean)
+    void Shoot(string name, bool clean, bool hideWorldUI = true)
     {
         var hiddenRenderers = new List<Renderer>();
         var hiddenCanvases = new List<Canvas>();
@@ -125,8 +168,9 @@ public class PlannerCapture : BaseUnityPlugin
                 if (r.enabled) { r.enabled = false; hiddenRenderers.Add(r); }
         }
         foreach (var c in FindObjectsOfType<Canvas>()) if (c.enabled) { c.enabled = false; hiddenCanvases.Add(c); }
-        foreach (var r in FindObjectsOfType<SpriteRenderer>())
-            if (r.enabled && r.sortingLayerName.Contains("UI")) { r.enabled = false; hiddenRenderers.Add(r); } // world-space bars and icons
+        if (hideWorldUI)
+            foreach (var r in FindObjectsOfType<SpriteRenderer>())
+                if (r.enabled && r.sortingLayerName.Contains("UI")) { r.enabled = false; hiddenRenderers.Add(r); } // world-space bars and icons
         foreach (var p in PlayerFarming.players) Hide(p);
         if (clean)
         {

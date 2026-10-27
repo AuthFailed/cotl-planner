@@ -15,21 +15,32 @@ export function fits(cand, placed, byName, cells) {
   return !placed.some(p => overlaps(c, rect(p, byName[p.name])));
 }
 
+// Buildable cells with the first `land` Woolhaven expansions bought (the game sells them in order).
+export function cellsFor(base, land) {
+  const tiles = [base.tiles, ...(base.expansions ?? []).slice(0, land)].flat();
+  return { tiles, cells: new Set(tiles.map(([x, y]) => `${x},${y}`)) };
+}
+
 export function itemAt(x, y, placed, byName) {
   return placed.findLast(p => overlaps({ x, y, w: 1, h: 1 }, rect(p, byName[p.name])));
 }
 
-// URL hash format: "Name:x.y.r,x.y.r|Other:x.y.r" (x/y may be negative) — keyed by
-// name so it survives reordering of buildings.json.
-export function encode(placed) {
+// URL hash format: "land=2|Name:x.y.r,x.y.r|Other:x.y.r" (x/y may be negative; land
+// only when expansions are bought) — keyed by name so it survives reordering of buildings.json.
+export function encode(placed, land = 0) {
   const groups = {};
   for (const p of placed) (groups[p.name] ??= []).push(`${p.x}.${p.y}.${p.r ? 1 : 0}`);
-  return Object.entries(groups).map(([n, ps]) => `${encodeURIComponent(n)}:${ps.join(",")}`).join("|");
+  const parts = Object.entries(groups).map(([n, ps]) => `${encodeURIComponent(n)}:${ps.join(",")}`);
+  return (land > 0 ? [`land=${land}`, ...parts] : parts).join("|");
 }
 
+// Returns { placed, land }; land is null when the hash doesn't say.
 export function decode(hash, byName) {
   const placed = [];
+  let land = null;
   for (const g of hash.replace(/^#/, "").split("|")) {
+    const m = /^land=(\d)$/.exec(g);
+    if (m) { land = +m[1]; continue; }
     const i = g.lastIndexOf(":");
     if (i < 0) continue;
     let name;
@@ -40,5 +51,5 @@ export function decode(hash, byName) {
       if (Number.isInteger(x) && Number.isInteger(y)) placed.push({ name, x, y, r: r === 1 ? 1 : 0 });
     }
   }
-  return placed;
+  return { placed, land };
 }

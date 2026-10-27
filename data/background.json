@@ -1,1 +1,1 @@
-{"ppu": 60.1616, "w": 4096, "h": 3676, "u0": -34.7477, "v0": 30.0695, "source": "in-game capture (tools/capture)"}
+{"ppu": 60.1616, "w": 4096, "h": 3676, "u0": -34.7477, "v0": 30.0695, "images": ["background-0.webp", "background-1.webp", "background-2.webp", "background-3.webp"], "source": "in-game capture (tools/capture), index = land expansions bought"}

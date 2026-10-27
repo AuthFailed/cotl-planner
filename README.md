@@ -3,8 +3,10 @@
 A browser-based layout planner for your cult's base in *Cult of the Lamb*. Pick a
 building, drop it on the grid, share the layout as a link.
 
-- The real base grid (1,222 cells, Shrine plaza and landmarks), extracted from the
-  game files, drawn over the base's own art with the game's camera angle
+- The game's own build grid (1,223 cells), drawn like build mode over the base as the
+  game renders it, from the game's camera angle
+- Woolhaven land expansions as an option: south field, then west, then east (the order
+  the game sells them), each with its own background; saved in the share link
 - Buildings drawn with their real in-game sprites and exact footprints, standing on the
   grid back to front like in-game
 - 220+ buildings and decorations, grouped as on the wiki, with their grid footprints
@@ -51,16 +53,16 @@ Known real footprints for those can go in `data/overrides.json`, for example
 
 ## Base grid
 
-`data/base.json` holds the buildable cells and landmark positions of the cult base,
-derived from the game's `Base Biome 1` scene. The game flood-fills integer points
-inside the placement region's polygon collider, and `tools/extract_base.py` repeats
-that. To regenerate it from your own copy of the game, export the scene with
-[AssetRipper](https://github.com/AssetRipper/AssetRipper) (see the script's
-docstring), then run:
+`data/base.json` holds the buildable cells: `tiles` for the base, and `expansions[N]` for
+the cells each Woolhaven land purchase adds. They come from the game itself: the capture
+plugin (below) rebuilds `PlacementRegion`'s grid for every land level and dumps it, and
+`python3 tools/capture/grid_to_base.py grid.json` writes it into `base.json`, leaving out
+the 18-cell bridge strip the game reserves.
 
-```bash
-python3 tools/extract_base.py path/to/ExportedProject > data/base.json
-```
+`tools/extract_base.py` derives the same grid from an [AssetRipper](https://github.com/AssetRipper/AssetRipper)
+export of the `Base Biome 1` scene (flood fill over the placement polygon, land slots
+from `DLCLandController`). It also provides the region origin (`world`, `rotation`), and
+matches the game's dump except for one edge cell.
 
 Rubble, trees and weeds are randomised in each save, so they aren't part of the grid.
 
@@ -83,14 +85,16 @@ is a BepInEx 5 plugin that continues a save, switches saving off, hides the UI, 
 followers, placed buildings and obstacles, and renders the base with the game's own
 camera, shaders and colour grading, looking down at 45° without perspective (the
 planner's projection). Focus blur, vignette and grain are switched off for the capture.
-It writes `clean.png`, `full.png` (the save as it is) and `capture.json`, then quits.
+For each land level (switched in memory with the game's own `DLCLandController`) it
+writes `landN.png`, the grid dump `grid.json`, and `gridN.png` with the game's build-mode
+tiles on every cell, plus `capture.json`, then quits.
 
 To redo it: install BepInEx 5 in the game, build with
 `tools/capture/build.sh "<game>/Cult Of The Lamb_Data/Managed" "<game>/BepInEx/core"`
 (needs the .NET SDK), copy `PlannerCapture.dll` into `BepInEx/plugins`, start the game,
-then **remove the DLL**: while installed it blocks all saving. Convert `clean.png` to a
-4096-wide WebP and set `data/background.json` (`u0 = u_left - world.x`,
-`v0 = v_top - 0.7071 * world.y`, with `world` from `data/base.json`).
+then **remove the DLL**: while installed it blocks all saving. Convert each `landN.png` to
+a 4096-wide `data/background-N.webp` and set `data/background.json`
+(`u0 = u_left - world.x`, `v0 = v_top - 0.7071 * world.y`, with `world` from `data/base.json`).
 
 `tools/background/compose.html` is an older fallback that composites the scene's sprites
 straight from an AssetRipper export; it lacks the game's shaders and lighting.
@@ -103,7 +107,7 @@ node tools/test.mjs
 
 ## Not done yet
 
-- Land expansions (purchased land, Woolhaven) and the DLC shrine room
+- The DLC shrine room
 - Spine-animated building parts; about 40 decorations still use wiki icons and sizes
 - Follower reach areas (farmer station, propaganda speakers)
 
