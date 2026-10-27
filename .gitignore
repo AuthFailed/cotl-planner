@@ -1,3 +1,4 @@
 .DS_Store
 __pycache__/
 tools/background/drawlist.json
+tools/background/sprites_drawlist.json

@@ -1,0 +1,59 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Compose sprites</title>
+<body style="margin:0;background:#222;color:#ddd;font:13px sans-serif">
+<div id="log">loading…</div>
+<canvas id="atlas" style="max-width:100%;background:#333"></canvas>
+<script type="module">
+// Renders every building's in-game sprites (sprites_drawlist.json) and packs them into one atlas.
+// Each entry records where the building's anchor (centre of its first footprint cell) sits.
+import { loadTextures, drawItem } from "/bg/draw.js";
+const P = +(new URLSearchParams(location.search).get("ppu") || 48);
+const log = t => (document.getElementById("log").textContent = t);
+const dl = await (await fetch("/bg/sprites_drawlist.json")).json();
+const tex = await loadTextures(Object.values(dl.sprites).map(s => s.tex), log);
+
+// draw each building on a scratch canvas with its anchor at (AX, AY), then crop to its pixels
+const SW = 16 * P, SH = 18 * P, AX = SW / 2, AY = SH - 4 * P;
+const scratch = Object.assign(document.createElement("canvas"), { width: SW, height: SH });
+const g = scratch.getContext("2d", { willReadFrequently: true });
+const OUT = [P, 0, 0, -P, AX, AY];
+const crops = [];
+for (const [type, items] of Object.entries(dl.buildings)) {
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1;
+  g.clearRect(0, 0, SW, SH);
+  for (const it of items) drawItem(g, it, dl.sprites, tex, OUT);
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  const px = g.getImageData(0, 0, SW, SH).data;
+  let x0 = SW, y0 = SH, x1 = -1, y1 = -1;
+  for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) if (px[(y * SW + x) * 4 + 3] > 8) {
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  if (x1 < 0) continue;
+  const w = x1 - x0 + 1, h = y1 - y0 + 1;
+  const c = Object.assign(document.createElement("canvas"), { width: w, height: h });
+  c.getContext("2d").drawImage(scratch, x0, y0, w, h, 0, 0, w, h);
+  crops.push({ type, c, w, h, ax: AX - x0, ay: AY - y0 });
+}
+
+// shelf packing, tallest first
+const ATW = 4096, GAP = 2;
+crops.sort((a, b) => b.h - a.h);
+let x = 0, y = 0, rowH = 0;
+for (const cr of crops) {
+  if (x + cr.w > ATW) { x = 0; y += rowH + GAP; rowH = 0; }
+  cr.x = x; cr.y = y; x += cr.w + GAP; rowH = Math.max(rowH, cr.h);
+}
+const atlas = document.getElementById("atlas");
+atlas.width = ATW; atlas.height = y + rowH;
+const ag = atlas.getContext("2d");
+for (const cr of crops) ag.drawImage(cr.c, cr.x, cr.y);
+const meta = { ppu: P, items: Object.fromEntries(crops.map(c => [c.type, [c.x, c.y, c.w, c.h, +c.ax.toFixed(1), +c.ay.toFixed(1)]])) };
+log(`${crops.length} buildings, atlas ${atlas.width}x${atlas.height}`);
+window.save = async (q = .85) => {
+  const blob = await new Promise(r => atlas.toBlob(r, "image/webp", q));
+  await fetch("/bg/sprites.webp", { method: "PUT", body: blob });
+  await fetch("/bg/sprites.json", { method: "PUT", body: JSON.stringify(meta) });
+  return { bytes: blob.size, count: crops.length, h: atlas.height };
+};
+</script>

@@ -10,7 +10,12 @@ const MIN_S = 6, MAX_S = 90;
 const $ = id => document.getElementById(id);
 const canvas = $("map"), ctx = canvas.getContext("2d");
 
-const [buildings, base] = await Promise.all(["data/buildings.json", "data/base.json"].map(async u => (await fetch(u)).json()));
+const [buildings, base, game] = await Promise.all(["data/buildings.json", "data/base.json", "data/game.json"].map(async u => (await fetch(u)).json()));
+// Exact footprints from the game files (tools/background/build_sprites.py) replace the wiki's sizes.
+for (const b of buildings) {
+  const t = game.types[game.wiki[b.name]];
+  if (t) Object.assign(b, { type: game.wiki[b.name], w: t.w, h: t.h, guess: false });
+}
 const byName = Object.fromEntries(buildings.map(b => [b.name, b]));
 const cells = new Set(base.tiles.map(([x, y]) => `${x},${y}`));
 
@@ -18,6 +23,10 @@ const cells = new Set(base.tiles.map(([x, y]) => `${x},${y}`));
 const bg = await fetch("data/background.json").then(r => r.json()).catch(() => null);
 const bgImage = bg && Object.assign(new Image(), { src: "data/background.webp" });
 bgImage?.addEventListener("load", () => requestDraw());
+// In-game building sprites, packed in one atlas: items[type] = [x, y, w, h, anchorX, anchorY].
+const atlas = await fetch("data/sprites.json").then(r => r.json()).catch(() => null);
+const atlasImage = atlas && Object.assign(new Image(), { src: "data/sprites.webp" });
+atlasImage?.addEventListener("load", () => requestDraw());
 
 let placed = decode(location.hash, byName).filter(p => fits(p, [], byName, cells));
 let tool = "select"; // or "erase"
@@ -147,16 +156,33 @@ function halo(c, text, x, y) {
 function footprint(c, sz, v, p, mode) {
   const r = rect(p, byName[p.name]), hue = hueOf(p.name);
   gridSpace(c, sz, v);
-  c.fillStyle = { ghost: "rgb(143 179 108 / .55)", blocked: "rgb(200 66 59 / .55)", erase: "rgb(200 66 59 / .5)" }[mode] ?? `hsl(${hue} 30% 24% / .9)`;
+  c.fillStyle = { ghost: "rgb(143 179 108 / .55)", blocked: "rgb(200 66 59 / .55)", erase: "rgb(200 66 59 / .5)" }[mode] ?? `hsl(${hue} 30% 24% / .45)`;
   c.fillRect(r.x - .5, r.y - .5, r.w, r.h);
   c.lineWidth = (mode === "normal" ? 1.25 : 2) / v.s;
   c.strokeStyle = { ghost: "#b9d896", blocked: "#e06b63", erase: "#e06b63", hover: "#ede4d3" }[mode] ?? `hsl(${hue} 40% 52%)`;
   c.strokeRect(r.x - .5 + .5 / v.s, r.y - .5 + .5 / v.s, r.w - 1 / v.s, r.h - 1 / v.s);
 }
 
-// Upright sprite standing on the footprint: as wide as the footprint's diamond, feet near its front corner.
 function sprite(c, sz, v, p, mode) {
-  const r = rect(p, byName[p.name]);
+  const b = byName[p.name], r = rect(p, b);
+  const a = atlasImage?.complete && atlasImage.naturalWidth && atlas.items[b.type];
+  if (a) {
+    // the game's own art: anchored at the centre of the footprint's first cell, same projection as the map
+    const [x, y, w, h, ax, ay] = a, k = v.s / atlas.ppu;
+    const [px, py] = toScreen(r.x, r.y, v);
+    screenSpace(c, sz);
+    c.translate(px, py);
+    if (p.r) c.scale(-1, 1); // the game's "rotate" mirrors the building
+    if (mode === "ghost" || mode === "blocked") c.globalAlpha = .75;
+    c.drawImage(atlasImage, x, y, w, h, -ax * k, -ay * k, w * k, h * k);
+    c.globalAlpha = 1;
+    return;
+  }
+  wikiIcon(c, sz, v, r, p, mode);
+}
+
+// Fallback for buildings without extracted art: the wiki's build-menu icon, upright, feet near the front corner.
+function wikiIcon(c, sz, v, r, p, mode) {
   const [cx] = toScreen(r.x - .5 + r.w / 2, r.y - .5 + r.h / 2, v);
   const [, front] = toScreen(r.x - .5, r.y - .5, v); // lowest corner on screen
   const [, back] = toScreen(r.x - .5 + r.w, r.y - .5 + r.h, v);
@@ -166,7 +192,6 @@ function sprite(c, sz, v, p, mode) {
   const img = icon(p.name);
   if (img) {
     const k = width / img.naturalWidth, h = img.naturalHeight * k;
-    // ponytail: wiki build-menu icons stand in for in-game sprites; feet sit a little above the front corner
     c.drawImage(img, cx - width / 2, front - (front - back) * .25 - h, width, h);
   } else {
     c.font = `600 ${Math.max(8, width * .22)}px 'Geist Variable', system-ui`;

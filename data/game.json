@@ -1,0 +1,2274 @@
+{
+"types": {
+"DEMOLISH_STRUCTURE": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"MOVE_STRUCTURE": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"FARM_PLOT": {
+"name": "Farm Plot",
+"w": 1,
+"h": 1
+},
+"BED": {
+"name": "Sleeping Bag",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"BED_2": {
+"name": "Shelter",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"BED_3": {
+"name": "Grand Shelter",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"FARM_STATION": {
+"name": "Farmer Station",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_TREE": {
+"name": "Twig Wall",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_STONE": {
+"name": "Ancient Stone",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DANCING_FIREPIT": {
+"name": null,
+"w": 5,
+"h": 5,
+"sprite": true
+},
+"FARM_PLOT_SOZO": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"GRAVE": {
+"name": "Grave",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"GRAVE2": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"BODY_PIT": {
+"name": "Body Pit",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"PRISON": {
+"name": "Prison",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"KITCHEN": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"LUMBERJACK_STATION": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"LUMBERJACK_STATION_2": {
+"name": "Lumberyard II",
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"PLANK_PATH": {
+"name": "Wooden Planks",
+"w": 1,
+"h": 1
+},
+"CULT_UPGRADE1": {
+"name": null,
+"w": 4,
+"h": 4
+},
+"CULT_UPGRADE2": {
+"name": null,
+"w": 4,
+"h": 4
+},
+"TAROT_BUILDING": {
+"name": null,
+"w": 4,
+"h": 4,
+"sprite": true
+},
+"SACRIFICIAL_TEMPLE_2": {
+"name": null,
+"w": 3,
+"h": 3
+},
+"COOKING_FIRE": {
+"name": "Cooking Fire",
+"w": 4,
+"h": 4,
+"sprite": true
+},
+"ALCHEMY_CAULDRON": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"BLOODSTONE_MINE": {
+"name": "Stone Mine",
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"BLOODSTONE_MINE_2": {
+"name": "Stone Mine II",
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"CONFESSION_BOOTH": {
+"name": "Confession Booth",
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"ENEMY_TRAP": {
+"name": null,
+"w": 1,
+"h": 1
+},
+"FISHING_HUT": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"GHOST_CIRCLE": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"HIPPY_TENT": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"HUNTERS_HUT": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"KNUCKLEBONES_ARENA": {
+"name": "Knucklebones Arena",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"MEDITATION_MAT": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"SCARIFICATIONIST": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"SECURITY_TURRET": {
+"name": null,
+"w": 2,
+"h": 2
+},
+"WITCH_DOCTOR": {
+"name": null,
+"w": 3,
+"h": 3
+},
+"MAYPOLE": {
+"name": null,
+"w": 3,
+"h": 3
+},
+"FLOWER_GARDEN": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"FOOD_STORAGE": {
+"name": "Food Storage",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"FOOD_STORAGE_2": {
+"name": "Food Storage II",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"SLEEPING_BAG": {
+"name": null,
+"w": 2,
+"h": 2
+},
+"OUTHOUSE": {
+"name": "Outhouse",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"COMPOST_BIN": {
+"name": "Compost Bin",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_TORCH": {
+"name": "Torch",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_LAMB_STATUE": {
+"name": "Lamb Statue",
+"w": 2,
+"h": 2
+},
+"TEMPLE": {
+"name": null,
+"w": 5,
+"h": 5,
+"sprite": true
+},
+"DECORATION_FLOWER_BOX_2": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_FLOWER_BOX_3": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_SMALL_STONE_CANDLE": {
+"name": "Small Stone Candle",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_FLAG_CROWN": {
+"name": "Flag of the Crown",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_WALL_TWIGS": {
+"name": "Twig Wall",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_FLAG_SCRIPTURE": {
+"name": "Flag of Scripture",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_LAMB_FLAG_STATUE": {
+"name": "Lamb Flag Statue",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"COLLECTED_RESOURCES_CHEST": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"SHRINE": {
+"name": "Shrine",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"SHRINE_II": {
+"name": "Shrine II",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"TEMPLE_BASE": {
+"name": null,
+"w": 3,
+"h": 3
+},
+"HARVEST_TOTEM": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"SCARECROW": {
+"name": "Scarecrow",
+"w": 1,
+"h": 1
+},
+"FARM_PLOT_SIGN": {
+"name": "Farmer Station",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_SHRUB": {
+"name": "Small Stone Candle",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"TEMPLE_II": {
+"name": "Cult II",
+"w": 5,
+"h": 5,
+"sprite": true
+},
+"REFINERY": {
+"name": "Refinery",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"SHRINE_PASSIVE": {
+"name": null,
+"w": 2,
+"h": 2
+},
+"SHRINE_III": {
+"name": "Shrine III",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"SHRINE_IV": {
+"name": "Shrine IV",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"OFFERING_STATUE": {
+"name": "Offering Statue",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"SHRINE_PASSIVE_II": {
+"name": null,
+"w": 2,
+"h": 2
+},
+"SHRINE_PASSIVE_III": {
+"name": null,
+"w": 2,
+"h": 2
+},
+"TEMPLE_III": {
+"name": "Cult III",
+"w": 5,
+"h": 5,
+"sprite": true
+},
+"TEMPLE_IV": {
+"name": "Cult IV",
+"w": 5,
+"h": 5,
+"sprite": true
+},
+"TILE_PATH": {
+"name": "Dirt Flooring",
+"w": 1,
+"h": 1
+},
+"PROPAGANDA_SPEAKER": {
+"name": "Propaganda Speakers",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"HEALING_BAY": {
+"name": "Healing Bay",
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"HEALING_BAY_2": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"MISSIONARY": {
+"name": "Missionary",
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"FEAST_TABLE": {
+"name": null,
+"w": 5,
+"h": 5,
+"sprite": true
+},
+"SILO_SEED": {
+"name": "Seed Silo",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"SILO_FERTILISER": {
+"name": "Fertiliser Silo",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"SURVEILLANCE": {
+"name": "Surveillance Tower",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"FISHING_HUT_2": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"OUTHOUSE_2": {
+"name": "Outhouse II",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"SCARECROW_2": {
+"name": "Trap Scarecrow",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"HARVEST_TOTEM_2": {
+"name": "Devotion Harvest Totem",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"REFINERY_2": {
+"name": "Refinery II",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_BARROW": {
+"name": "Golden Bell Statue",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_BELL_STATUE": {
+"name": "Golden Bell Statue",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_BONE_ARCH": {
+"name": "Bone Arch",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_BONE_BARREL": {
+"name": "Barrel of Bones",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_BONE_CANDLE": {
+"name": "Skeleton Crown Flag",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_BONE_FLAG": {
+"name": "Skeleton Crown Flag",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_BONE_LANTERN": {
+"name": "Bone Lantern",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_BONE_PILLAR": {
+"name": "Pile O' Skulls",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_BONE_SCULPTURE": {
+"name": "Bone Sculpture",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_CANDLE_BARREL": {
+"name": "Candle Barrel",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_CRYSTAL_LAMP": {
+"name": "Crystal Lamp",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_CRYSTAL_LIGHT": {
+"name": "Crystal Lantern",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_CRYSTAL_ROCK": {
+"name": "Crystal Rock",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_CRYSTAL_STATUE": {
+"name": "Crystal Tree",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_CRYSTAL_TREE": {
+"name": "Crystal Tree",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_CRYSTAL_WINDOW": {
+"name": "Crystal Window",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_FLOWER_ARCH": {
+"name": "Flower Arch",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_FOUNTAIN": {
+"name": "Crown Fountain",
+"w": 2,
+"h": 2
+},
+"DECORATION_POST_BOX": {
+"name": "Prayer Box",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_PUMPKIN_PILE": {
+"name": "Carved Pumpkin",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_PUMPKIN_STOOL": {
+"name": "Carved Pumpkin",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_STONE_FLAG": {
+"name": "Stone Flag",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_STONE_MUSHROOM": {
+"name": "Stone Mushroom",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_STUMP_LAMB_STATUE": {
+"name": "Tree Stump Lamb Statue",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_TORCH_BIG": {
+"name": "Wooden Lanterns",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_TWIG_LAMP": {
+"name": "Wooden Lanterns",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_WALL_BONE": {
+"name": "Bone Wall",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_WALL_STONE": {
+"name": "Stone Wall",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_WALL_GRASS": {
+"name": "Grass Wall",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_WREATH_STICK": {
+"name": "Wreath",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_STONE_CANDLE": {
+"name": "Stone Flag",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"CHOPPING_SHRINE": {
+"name": "Chopping Shrine",
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"MINING_SHRINE": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"FORAGING_SHRINE": {
+"name": "Foraging Shrine",
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"EDIT_BUILDINGS": {
+"name": null,
+"w": 1,
+"h": 1
+},
+"JANITOR_STATION": {
+"name": "Janitor Station",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_BELL_SMALL": {
+"name": "Small Bell Statue",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_BONE_SKULL_BIG": {
+"name": "Giant Skull",
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"DECORATION_BONE_SKULL_PILE": {
+"name": "Skull Pile",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_FLAG_CRYSTAL": {
+"name": "Crystal Flag",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_FLAG_MUSHROOM": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_FLOWER_BOTTLE": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_FLOWER_CART": {
+"name": "Hay Bale",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_HAY_BALE": {
+"name": "Hay Bale",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_HAY_PILE": {
+"name": "Hay Pile",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_LEAFY_FLOWER_SCULPTURE": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"DECORATION_LEAFY_LANTERN": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_LEAFY_SCULPTURE": {
+"name": "Leafy Sculpture",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_MUSHROOM_1": {
+"name": "Little Mushroom",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_MUSHROOM_2": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_MUSHROOM_CANDLE_1": {
+"name": "Large Mushroom Candle",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_MUSHROOM_CANDLE_2": {
+"name": "Large Mushroom Candle",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_MUSHROOM_CANDLE_LARGE": {
+"name": "Mushroom Candle Shrine",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_MUSHROOM_SCULPTURE": {
+"name": "Mushroom Sculpture",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_SPIDER_LANTERN": {
+"name": "Spider Lantern",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_SPIDER_PILLAR": {
+"name": "Spider Silk Sculpture",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_SPIDER_SCULPTURE": {
+"name": "Spider Silk Sculpture",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_SPIDER_TORCH": {
+"name": "Spider Torch",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_SPIDER_WEB_CROWN_SCULPTURE": {
+"name": "Web Crown Sculpture",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_STONE_CANDLE_LAMP": {
+"name": "Stone Candle Lamp",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_STONE_HENGE": {
+"name": "Stonehenge",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_WALL_SPIDER": {
+"name": "Spider Silk Wall",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_POND": {
+"name": "Sleeping Bag",
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"DEMON_SUMMONER": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"COMPOST_BIN_DEAD_BODY": {
+"name": "Natural Burial",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DEMON_SUMMONER_2": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"DEMON_SUMMONER_3": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"FARM_STATION_II": {
+"name": "Farmer Station II",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"MISSIONARY_II": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"MISSIONARY_III": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"TILE_FLOWERS": {
+"name": "Flower Flooring",
+"w": 1,
+"h": 1
+},
+"TILE_HAY": {
+"name": "Hay Flooring",
+"w": 1,
+"h": 1
+},
+"TILE_ROCKS": {
+"name": "Cobblestone Flooring",
+"w": 1,
+"h": 1
+},
+"TILE_BLOOD": {
+"name": "Lava Flooring",
+"w": 1,
+"h": 1
+},
+"TILE_WATER": {
+"name": "Pond Tile",
+"w": 1,
+"h": 1
+},
+"TILE_PLANKS": {
+"name": "Plank Flooring",
+"w": 1,
+"h": 1
+},
+"TILE_BRICKS": {
+"name": "Brick Flooring",
+"w": 1,
+"h": 1
+},
+"TILE_REDGRASS": {
+"name": "Red Carpet Flooring",
+"w": 1,
+"h": 1
+},
+"TILE_SPOOKYPLANKS": {
+"name": "Marked Flooring",
+"w": 1,
+"h": 1
+},
+"TILE_GOLD": {
+"name": "Gold Flooring",
+"w": 1,
+"h": 1
+},
+"TILE_FLOWERSROCKY": {
+"name": "Forest Flooring",
+"w": 1,
+"h": 1
+},
+"TILE_MOSAIC": {
+"name": "Mosaic Flooring",
+"w": 1,
+"h": 1
+},
+"DECORATION_MONSTERSHRINE": {
+"name": "Massive Monster Shrine",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_FLOWERPOTWALL": {
+"name": "Wall Flower Pot",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_LEAFYLAMPPOST": {
+"name": "Flower Vase",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_FLOWERVASE": {
+"name": "Flower Vase",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_WATERINGCAN": {
+"name": "Watering Can",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_WEEPINGSHRINE": {
+"name": "Weeping Shrine",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_FLOWER_CART_SMALL": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_BOSS_TROPHY_1": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_BOSS_TROPHY_2": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_BOSS_TROPHY_3": {
+"name": "A trophy for killing Kallamar.",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_BOSS_TROPHY_4": {
+"name": "A trophy for killing Shamura.",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_BOSS_TROPHY_5": {
+"name": "A trophy for killing The One Who Waits.",
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"DECORATION_VIDEO": {
+"name": "Witness's All Seeing Eye",
+"w": 2,
+"h": 2
+},
+"DECORATION_PLUSH": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_TWITCH_ROSE_BUSH": {
+"name": "Stone Flag",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_TWITCH_FLAG_CROWN": {
+"name": "Flag of the Crown",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_TWITCH_STONE_FLAG": {
+"name": "Stone Flag",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_TWITCH_MUSHROOM_BAG": {
+"name": "Bag of Mushrooms",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_TWITCH_STONE_STATUE": {
+"name": "Stone Statue",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_TWITCH_WOODEN_GUARDIAN": {
+"name": "Wooden Guardian",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_FLOWER_BOX_1": {
+"name": "Camellia Bed",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_HALLOWEEN_TREE": {
+"name": "Blood Moon Tree",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_HALLOWEEN_SKULL": {
+"name": "Blood Moon Skull",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_HALLOWEEN_CANDLE": {
+"name": "Blood Moon Skull",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_HALLOWEEN_PUMPKIN": {
+"name": "Blood Moon Pumpkin",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"MORGUE_1": {
+"name": "Morgue",
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"MORGUE_2": {
+"name": "Morgue II",
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"CRYPT_1": {
+"name": "Crypt",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"CRYPT_2": {
+"name": "Crypt II",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"CRYPT_3": {
+"name": "Crypt III",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"SHARED_HOUSE": {
+"name": "Shared Shelter",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"TILE_OLDFAITH": {
+"name": "Flooring of the Old Faith",
+"w": 1,
+"h": 1
+},
+"DECORATION_OLDFAITH_FLAG": {
+"name": "Flag of the Old Faith",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_OLDFAITH_WALL": {
+"name": "Walls of Ruin",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_OLDFAITH_TORCH": {
+"name": "Walls of Ruin",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_OLDFAITH_SHRINE": {
+"name": "Shrine of the Old Faith",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_OLDFAITH_CRYSTAL": {
+"name": "Gem of Gore",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_OLDFAITH_FOUNTAIN": {
+"name": "Fount of Desolation",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_OLDFAITH_IRONMAIDEN": {
+"name": "Iron Maiden of Old Faith",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_DST_TREE": {
+"name": "Potted Treeguard",
+"w": 2,
+"h": 2
+},
+"DECORATION_DST_WALL": {
+"name": "Hay Wall",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DST_ALCHEMY": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DST_PIGSTICK": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DST_DEERCLOPS": {
+"name": "Deerclops Figure",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DST_MARBLETREE": {
+"name": "Marble Tree",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DST_SCIENCEMACHINE": {
+"name": "Science Machine",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DST_BEEFALOSKELETON": {
+"name": "Beefalo Skeleton",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_DST_GLOMMERSTATUE": {
+"name": "Glommer Statue",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"TAILOR": {
+"name": "Tailor",
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"SEED_BUCKET": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"POOP_BUCKET": {
+"name": "Fertiliser Storage",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"JANITOR_STATION_2": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"SHRINE_DISCIPLE_BOOST": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"SHRINE_PLEASURE": {
+"name": "Sin Totem",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"PUB": {
+"name": "Drinkhouse",
+"w": 4,
+"h": 4,
+"sprite": true
+},
+"DRUM_CIRCLE": {
+"name": null,
+"w": 4,
+"h": 4,
+"sprite": true
+},
+"MATING_TENT": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"SHRINE_DISCIPLE_COLLECTION": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"HATCHERY": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"HATCHERY_2": {
+"name": "Lamb of Gold",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"PUB_2": {
+"name": null,
+"w": 4,
+"h": 4,
+"sprite": true
+},
+"DECORATION_CNY_TREE": {
+"name": "Fortuitous Tree",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_CNY_DRAGON": {
+"name": "Fortuitous Statue",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_CNY_LANTERN": {
+"name": "Fortuitous Lantern",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_GNOME1": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_GNOME2": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_GNOME3": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_SINFUL_SKULL": {
+"name": "Skull of Impurity",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_SINFUL_STATUE": {
+"name": "Lamb of Gold",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_SINFUL_INCENSE": {
+"name": "Glommer Statue",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_SINFUL_CRUCIFIX": {
+"name": "Flowers of Seduction",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_SINFUL_FLOWERS1": {
+"name": "Flowers of Seduction",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_SINFUL_FLOWERS2": {
+"name": "Vase of Vanity",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"LEADER_TENT": {
+"name": "Leader Tent",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DAYCARE": {
+"name": "Nursery",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_PILGRIM_WALL": {
+"name": "Bamboo Wall",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_PILGRIM_VASE": {
+"name": "Vase of Peonies",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_PILGRIM_BONSAI": {
+"name": "Bonsai Tree",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_PILGRIM_PAGODA": {
+"name": "Small Pagoda",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_PILGRIM_LANTERN": {
+"name": "Hanging Lantern",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_GOAT_LANTERN": {
+"name": "The Goat Lantern",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_GOAT_PLANT": {
+"name": "The Goat Vase",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_GOAT_STATUE": {
+"name": "The Goat Statue",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"WEATHER_VANE": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"WOOLY_SHACK": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"VOLCANIC_SPA": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"RANCH": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"RANCH_FENCE": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"RANCH_TROUGH": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"MEDIC": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"RANCH_2": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"RANCH_HUTCH": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"RACING_GATE": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_PALWORLD_LAMB": {
+"name": "Mysterious Fruit Statue",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_PALWORLD_TREE": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_PALWORLD_PLANT": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_PALWORLD_STATUE": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_PALWORLD_LANTERN": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"LOGISTICS": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"WOLF_TRAP": {
+"name": null,
+"w": 1,
+"h": 1
+},
+"LIGHTNING_ROD": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"FURNACE_1": {
+"name": "Rotburn Furnace",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"FURNACE_2": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"FURNACE_3": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"LIGHTNING_ROD_2": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"TOOLSHED": {
+"name": "Carpentry Station",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"FARM_CROP_GROWER": {
+"name": "Thawing Harvest Totem",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"SACRIFICE_TABLE": {
+"name": "Table of Offerings",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"TRAIT_MANIPULATOR_1": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"TRAIT_MANIPULATOR_2": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"TRAIT_MANIPULATOR_3": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_DLC_ROT_BOTTLE": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_DLC_ROT_BUCKET": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_DLC_ROT_CAGE1": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_ROT_CAGE2": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_ROT_CAULDRON": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_ROT_DIORAMA": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_DLC_ROT_FIREMACHINE": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_DLC_ROT_IRONMAIDEN": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_ROT_LUMP1": {
+"name": null,
+"w": 1,
+"h": 1
+},
+"DECORATION_DLC_ROT_LUMP2": {
+"name": null,
+"w": 1,
+"h": 1
+},
+"DECORATION_DLC_ROT_PILLAR1": {
+"name": null,
+"w": 1,
+"h": 1
+},
+"DECORATION_DLC_ROT_PILLAR2": {
+"name": null,
+"w": 1,
+"h": 1
+},
+"DECORATION_DLC_ROT_STONE1": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_ROT_STONE2": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_ROT_TENTACLE": {
+"name": null,
+"w": 1,
+"h": 1
+},
+"DECORATION_DLC_ROT_WALL": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOLF_BULB": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOLF_CULTIST1": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOLF_CULTIST2": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOLF_DIORAMA": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_DLC_WOLF_FIREPIT": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOLF_LAMPPOST": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOLF_PILLAR1": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOLF_PILLAR2": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOLF_STATUE1": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOLF_STATUE2": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOLF_STATUE3": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOLF_STATUE4": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOLF_STATUE5": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOLF_TESLA": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOLF_TREE1": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOLF_WIRES": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_ROT_FLOOR": {
+"name": null,
+"w": 1,
+"h": 1
+},
+"DECORATION_DLC_STEAMPUNK_CHIMNEY_1": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_STEAMPUNK_CHIMNEY_2": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_STEAMPUNK_LAMPPOST": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_STEAMPUNK_CLOCK": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_STEAMPUNK_PLANT": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_STEAMPUNK_WALL": {
+"name": null,
+"w": 1,
+"h": 1
+},
+"DECORATION_DLC_YNGYA_CANDLE": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_YNGYA_TREEPOT": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_YNGYA_TREEBUSH": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_YNGYA_STICKBUNDLE": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_YNGYA_TALLFLOWERS": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_YNGYA_FLOWERBUCKET": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOOLHAVEN_TREE": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOOLHAVEN_WALL": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOOLHAVEN_BUSH1": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOOLHAVEN_BUSH2": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_DLC_WOOLHAVEN_FOUNTAIN": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_DLC_WOOLHAVEN_STREETLAMP": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOOLHAVEN_SMALLSTATUE1": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOOLHAVEN_SMALLSTATUE2": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOOLHAVEN_FLOOR": {
+"name": null,
+"w": 1,
+"h": 1
+},
+"DECORATION_BOSS_TROPHY_DLC_WOLF": {
+"name": "Marchosias Trophy",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_BOSS_TROPHY_DLC_YNGYA": {
+"name": "Yngya Trophy",
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_BOSS_TROPHY_DLC_EXECUTIONER": {
+"name": "Yngya Trophy",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_DLC_WOOLHAVEN_JUG": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOOLHAVEN_RUG": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_DLC_WOOLHAVEN_BARREL1": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOOLHAVEN_BARREL2": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOOLHAVEN_CANDLE": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_DLC_WOOLHAVEN_BELLS": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"RANCH_CHOPPING_BLOCK": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"PROXIMITY_FURNACE": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"ROTSTONE_MINE": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"ROTSTONE_MINE_2": {
+"name": null,
+"w": 3,
+"h": 3,
+"sprite": true
+},
+"DECORATION_EASTEREGG_EGG": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_EASTEREGG_TURUA": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_EASTEREGG_WARRACKA": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_EASTEREGG_HAROSTATUE": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_CHRISTMAS_TREE": {
+"name": "Midwinter Tree",
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_CHRISTMAS_CANDYCANE": {
+"name": null,
+"w": 1,
+"h": 1,
+"sprite": true
+},
+"DECORATION_CHRISTMAS_CANDLE": {
+"name": null,
+"w": 2,
+"h": 2,
+"sprite": true
+},
+"DECORATION_CHRISTMAS_SNOWMAN": {
+"name": "Midwinter Lamb",
+"w": 2,
+"h": 2,
+"sprite": true
+}
+},
+"wiki": {
+"Sleeping Bag": "BED",
+"Shelter": "BED_2",
+"Grand Shelter": "BED_3",
+"Shared Shelter": "SHARED_HOUSE",
+"Cooking Fire": "COOKING_FIRE",
+"Kitchen": "KITCHEN",
+"Body Pit": "BODY_PIT",
+"Grave": "GRAVE",
+"Outhouse": "OUTHOUSE",
+"Outhouse II": "OUTHOUSE_2",
+"Janitor Station": "JANITOR_STATION",
+"Janitor Station II": "JANITOR_STATION_2",
+"Prison": "PRISON",
+"Propaganda Speakers": "PROPAGANDA_SPEAKER",
+"Demonic Summoning Circle": "DEMON_SUMMONER",
+"Demonic Summoning Circle II": "DEMON_SUMMONER_2",
+"Demonic Summoning Circle III": "DEMON_SUMMONER_3",
+"Healing Bay": "HEALING_BAY",
+"Healing Bay II": "HEALING_BAY",
+"Morgue": "MORGUE_1",
+"Morgue II": "MORGUE_2",
+"Crypt": "CRYPT_1",
+"Crypt II": "CRYPT_2",
+"Crypt III": "CRYPT_3",
+"Tailor": "TAILOR",
+"Leader Tent": "LEADER_TENT",
+"Farm Plot": "FARM_PLOT",
+"Farmer Station": "FARM_STATION",
+"Farmer Station II": "FARM_STATION_II",
+"Scarecrow": "SCARECROW",
+"Trap Scarecrow": "SCARECROW_2",
+"Compost Bin": "COMPOST_BIN",
+"Natural Burial": "COMPOST_BIN_DEAD_BODY",
+"Harvest Totem": "HARVEST_TOTEM",
+"Devotion Harvest Totem": "HARVEST_TOTEM_2",
+"Seed Silo": "SILO_SEED",
+"Fertiliser Silo": "SILO_FERTILISER",
+"Lumberyard": "LUMBERJACK_STATION",
+"Lumberyard II": "LUMBERJACK_STATION_2",
+"Stone Mine": "BLOODSTONE_MINE",
+"Stone Mine II": "BLOODSTONE_MINE_2",
+"Refinery": "REFINERY",
+"Refinery II": "REFINERY_2",
+"Shrine": "SHRINE",
+"Temple": "TEMPLE",
+"Confession Booth": "CONFESSION_BOOTH",
+"Missionary": "MISSIONARY",
+"Missionary II": "MISSIONARY_II",
+"Missionary III": "MISSIONARY_III",
+"Tabernacle III": "SHRINE_PASSIVE",
+"Offering Statue": "OFFERING_STATUE",
+"Drinkhouse": "PUB",
+"Mating Tent": "MATING_TENT",
+"Hatchery": "HATCHERY",
+"Drum Circle": "DRUM_CIRCLE",
+"Wooden Lanterns": "DECORATION_TWIG_LAMP",
+"Crown Fountain": "DECORATION_FOUNTAIN",
+"Wreath": "DECORATION_WREATH_STICK",
+"Tree Stump Lamb Statue": "DECORATION_STUMP_LAMB_STATUE",
+"Stonehenge": "DECORATION_STONE_HENGE",
+"Pond": "DECORATION_POND",
+"Leafy Flower Sculpture": "DECORATION_LEAFY_FLOWER_SCULPTURE",
+"Leafy Lantern": "DECORATION_LEAFY_LANTERN",
+"Lamb Flag Statue": "DECORATION_LAMB_FLAG_STATUE",
+"Stone Candle": "DECORATION_STONE_CANDLE",
+"Flower Arch": "DECORATION_FLOWER_ARCH",
+"Camellia Bed": "DECORATION_FLOWER_BOX_1",
+"Candle Barrel": "DECORATION_CANDLE_BARREL",
+"Small Stone Candle": "DECORATION_SMALL_STONE_CANDLE",
+"Twig Wall": "DECORATION_WALL_TWIGS",
+"Grass Wall": "DECORATION_WALL_GRASS",
+"Potted Bush": "DECORATION_TREE",
+"Ancient Stone": "DECORATION_STONE",
+"Flag of the Crown": "DECORATION_FLAG_CROWN",
+"Bone Arch": "DECORATION_BONE_ARCH",
+"Barrel of Bones": "DECORATION_BONE_BARREL",
+"Skull Candle": "DECORATION_BONE_CANDLE",
+"Skeleton Crown Flag": "DECORATION_BONE_FLAG",
+"Bone Lantern": "DECORATION_BONE_LANTERN",
+"Pile O' Skulls": "DECORATION_BONE_PILLAR",
+"Bone Wall": "DECORATION_WALL_BONE",
+"Bone Sculpture": "DECORATION_BONE_SCULPTURE",
+"Massive Monster Shrine": "DECORATION_MONSTERSHRINE",
+"The One Who Waits Trophy": "DECORATION_BOSS_TROPHY_5",
+"Wall Flower Pot": "DECORATION_FLOWERPOTWALL",
+"Leafy Lamp Post": "DECORATION_LEAFYLAMPPOST",
+"Flower Vase": "DECORATION_FLOWERVASE",
+"Watering Can": "DECORATION_WATERINGCAN",
+"Small Flower Cart": "DECORATION_FLOWER_CART_SMALL",
+"Weeping Shrine": "DECORATION_WEEPINGSHRINE",
+"Flower Flooring": "TILE_FLOWERS",
+"Gem of Gore": "DECORATION_OLDFAITH_CRYSTAL",
+"Flag of the Old Faith": "DECORATION_OLDFAITH_FLAG",
+"Fount of Desolation": "DECORATION_OLDFAITH_FOUNTAIN",
+"Iron Maiden of Old Faith": "DECORATION_OLDFAITH_IRONMAIDEN",
+"Shrine of the Old Faith": "DECORATION_OLDFAITH_SHRINE",
+"Walls of Ruin": "DECORATION_OLDFAITH_WALL",
+"Flooring of the Old Faith": "TILE_OLDFAITH",
+"Skull of Impurity": "DECORATION_SINFUL_SKULL",
+"Flowers of Seduction": "DECORATION_SINFUL_CRUCIFIX",
+"Vase of Vanity": "DECORATION_SINFUL_FLOWERS2",
+"Lamb of Gold": "HATCHERY_2",
+"Small Pagoda": "DECORATION_PILGRIM_PAGODA",
+"Vase of Peonies": "DECORATION_PILGRIM_VASE",
+"Bamboo Wall": "DECORATION_PILGRIM_WALL",
+"Bonsai Tree": "DECORATION_PILGRIM_BONSAI",
+"Hanging Lantern": "DECORATION_PILGRIM_LANTERN",
+"Twitch Flag of the Crown": "DECORATION_TWITCH_FLAG_CROWN",
+"Bag of Mushrooms": "DECORATION_TWITCH_MUSHROOM_BAG",
+"Twitch Potted Bush": "DECORATION_TWITCH_ROSE_BUSH",
+"Twitch Stone Flag": "DECORATION_TWITCH_STONE_FLAG",
+"Stone Statue": "DECORATION_TWITCH_STONE_STATUE",
+"Wooden Guardian": "DECORATION_TWITCH_WOODEN_GUARDIAN",
+"Flower Bottle": "DECORATION_FLOWER_BOTTLE",
+"Large Mushroom Candle": "DECORATION_MUSHROOM_CANDLE_2",
+"Leafy Sculpture": "DECORATION_LEAFY_SCULPTURE",
+"The Goat Statue": "DECORATION_GOAT_STATUE",
+"The Goat Vase": "DECORATION_GOAT_PLANT",
+"Mysterious Fruit Statue": "DECORATION_PALWORLD_LAMB",
+"Lamb Plush Effigy": "DECORATION_PLUSH",
+"Blood Moon Skull": "DECORATION_HALLOWEEN_SKULL",
+"Blood Moon Tree": "DECORATION_HALLOWEEN_TREE",
+"Blood Moon Pumpkin": "DECORATION_HALLOWEEN_PUMPKIN",
+"Deerclops Figure": "DECORATION_DST_DEERCLOPS",
+"Marble Tree": "DECORATION_DST_MARBLETREE",
+"Science Machine": "DECORATION_DST_SCIENCEMACHINE",
+"Potted Treeguard": "DECORATION_DST_TREE",
+"Hay Wall": "DECORATION_DST_WALL",
+"Beefalo Skeleton": "DECORATION_DST_BEEFALOSKELETON",
+"Glommer Statue": "DECORATION_DST_GLOMMERSTATUE",
+"Fortuitous Tree": "DECORATION_CNY_TREE",
+"Fortuitous Statue": "DECORATION_CNY_DRAGON",
+"Fortuitous Lantern": "DECORATION_CNY_LANTERN",
+"Stone Candle Lamp": "DECORATION_STONE_CANDLE_LAMP",
+"Prayer Box": "DECORATION_POST_BOX",
+"Flower Cart": "DECORATION_FLOWER_CART",
+"Dirt Flooring": "TILE_PATH",
+"Hay Flooring": "TILE_HAY",
+"Lava Flooring": "TILE_BLOOD",
+"Cobblestone Flooring": "TILE_ROCKS",
+"Brick Flooring": "TILE_BRICKS",
+"Plank Flooring": "TILE_PLANKS",
+"Gold Flooring": "TILE_GOLD",
+"Mosaic Flooring": "TILE_MOSAIC",
+"Forest Flooring": "TILE_FLOWERSROCKY",
+"Farm Plot Sign": "FARM_PLOT_SIGN",
+"Flower Barrow": "DECORATION_BARROW",
+"Stone Wall": "DECORATION_WALL_STONE",
+"Large Torch": "DECORATION_TORCH_BIG",
+"Hay Bale": "DECORATION_HAY_BALE",
+"Hay Pile": "DECORATION_HAY_PILE",
+"Stone Flag": "DECORATION_STONE_FLAG",
+"Little Mushroom": "DECORATION_MUSHROOM_1",
+"Small Mushroom Candle": "DECORATION_MUSHROOM_CANDLE_1",
+"Mushroom Flag": "DECORATION_FLAG_MUSHROOM",
+"Stone Mushroom": "DECORATION_STONE_MUSHROOM",
+"Carved Pumpkin": "DECORATION_PUMPKIN_STOOL",
+"Mushroom Sculpture": "DECORATION_MUSHROOM_SCULPTURE",
+"Crystal Lamp": "DECORATION_CRYSTAL_LAMP",
+"Crystal Lantern": "DECORATION_CRYSTAL_LIGHT",
+"Crystal Rock": "DECORATION_CRYSTAL_ROCK",
+"Crystal Statue": "DECORATION_CRYSTAL_STATUE",
+"Crystal Window": "DECORATION_CRYSTAL_WINDOW",
+"Crystal Flag": "DECORATION_FLAG_CRYSTAL",
+"Crystal Tree": "DECORATION_CRYSTAL_TREE",
+"Spider Silk Wall": "DECORATION_WALL_SPIDER",
+"Giant Skull": "DECORATION_BONE_SKULL_BIG",
+"Skull Pile": "DECORATION_BONE_SKULL_PILE",
+"Spider Lantern": "DECORATION_SPIDER_LANTERN",
+"Spider Pillar": "DECORATION_SPIDER_PILLAR",
+"Spider Torch": "DECORATION_SPIDER_TORCH",
+"Web Crown Sculpture": "DECORATION_SPIDER_WEB_CROWN_SCULPTURE",
+"Carpentry Station": "TOOLSHED",
+"Weather Vane": "WEATHER_VANE",
+"Lightning Rod": "LIGHTNING_ROD",
+"Rotburn Furnace": "FURNACE_1",
+"Ranch": "RANCH",
+"Wolf Trap": "WOLF_TRAP",
+"Yngya Trophy": "DECORATION_BOSS_TROPHY_DLC_YNGYA",
+"Specimen of Turua": "DECORATION_EASTEREGG_TURUA",
+"Warracka's Seed": "DECORATION_EASTEREGG_WARRACKA"
+}
+}

@@ -26,4 +26,9 @@ const data = JSON.parse(readFileSync(new URL("../data/buildings.json", import.me
 assert.ok(data.length > 100 && data.every(b => b.name && b.w > 0 && b.h > 0), "buildings.json sane");
 const base = JSON.parse(readFileSync(new URL("../data/base.json", import.meta.url)));
 assert.ok(base.tiles.length > 1000 && base.tiles.some(([x, y]) => x === 0 && y === 0), "base.json sane");
+const game = JSON.parse(readFileSync(new URL("../data/game.json", import.meta.url)));
+const atlas = JSON.parse(readFileSync(new URL("../data/sprites.json", import.meta.url)));
+assert.ok(Object.values(game.types).every(t => t.w > 0 && t.w === t.h), "game footprints are square and positive");
+assert.ok(Object.values(game.wiki).every(t => game.types[t]), "every wiki match points at a known type");
+assert.ok(Object.keys(atlas.items).every(t => game.types[t]?.sprite), "atlas only holds known types");
 console.log("ok");

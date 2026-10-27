@@ -5,7 +5,8 @@ building, drop it on the grid, share the layout as a link.
 
 - The real base grid (1,222 cells, Shrine plaza and landmarks), extracted from the
   game files, drawn over the base's own art with the game's camera angle
-- Buildings stand upright on their footprints, back to front, like in-game
+- Buildings drawn with their real in-game sprites and exact footprints, standing on the
+  grid back to front like in-game
 - 220+ buildings and decorations, grouped as on the wiki, with their grid footprints
 - Overlap and buildable-ground checks, rotate, move, delete
 - The whole layout lives in the URL — "Copy link" is your save file
@@ -41,13 +42,12 @@ because browsers block `fetch()` of the data file over `file://`.)
 python3 tools/scrape_wiki.py > data/buildings.json
 ```
 
-Sizes come from each building page's infobox (`size = WxH`). When a page has no
-size, an upgrade takes its base tier's size, and anything else gets **1×1 marked
-as a guess** (shown as `1×1?` in the sidebar).
-
-**Help wanted:** if you know a real footprint, add it to `data/overrides.json`,
-for example `{"Shrine": {"w": 5, "h": 5}}`, then rerun the scraper. Even better,
-also fix the wiki infobox so everyone benefits.
+The planner then overrides sizes with the game's own footprints from `data/game.json`
+(see below) for every building it can match, about 180 of them. For the rest, sizes
+come from each wiki page's infobox (`size = WxH`); an upgrade takes its base tier's size,
+and anything else gets **1×1 marked as a guess** (shown as `1×1?` in the sidebar).
+Known real footprints for those can go in `data/overrides.json`, for example
+`{"Hay Wall": {"w": 1, "h": 1}}`, then rerun the scraper.
 
 ## Base grid
 
@@ -63,6 +63,18 @@ python3 tools/extract_base.py path/to/ExportedProject > data/base.json
 ```
 
 Rubble, trees and weeds are randomised in each save, so they aren't part of the grid.
+
+## Game data and building sprites
+
+`tools/background/build_sprites.py` reads the game's own build list (the base scene's
+`TypeAndPlacementObjects`): each structure type, its placement prefab (exact footprint)
+and its building prefab (the in-game sprites). It writes `data/game.json` (type, English
+name from the game's localisation, footprint, and the wiki-name to type mapping) and a
+draw list that `compose_sprites.html` renders into one atlas, `data/sprites.webp` +
+`data/sprites.json`. Each sprite stores its anchor, the centre of the footprint's first
+cell, which is where the game places the prefab. Spine-animated parts and UI gauges are
+not drawn, and buildings without plain sprites fall back to the wiki icon. In-game
+"rotate" mirrors a building, and so does the planner's Flip.
 
 ## Background art
 
@@ -82,13 +94,13 @@ node tools/test.mjs
 ## Not done yet
 
 - Land expansions (purchased land, Woolhaven) and the DLC shrine room
-- Real in-game building sprites (the wiki's build-menu icons stand in for now)
+- Spine-animated building parts; about 40 decorations still use wiki icons and sizes
 - Follower reach areas (farmer station, propaganda speakers)
 
 ## Legal
 
 Code is MIT licensed (see `LICENSE`). Building names and sizes come from the
 fandom wiki (CC BY-SA); the base grid coordinates are derived from the game's scene data.
-`data/background.webp` is rendered from the game's own art and is included here for this
-fan tool only. Building icons are loaded from the wiki's CDN and are not included. *Cult of the Lamb* and its art belong to Massive Monster
+`data/background.webp` and `data/sprites.webp` are rendered from the game's own art and
+are included here for this fan tool only. Building icons are loaded from the wiki's CDN and are not included. *Cult of the Lamb* and its art belong to Massive Monster
 and Devolver Digital. This is an unofficial fan project, not affiliated with them.
