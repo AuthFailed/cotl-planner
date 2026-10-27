@@ -1,8 +1,9 @@
 import { rect, fits, itemAt, encode, decode } from "./core.js";
 
-// The game rotates the base grid 45° on screen (data/base.json "rotation"), so a cell
-// (x, y) lands at K·(x − y, −(x + y)) before zoom and pan.
-const K = Math.SQRT1_2;
+// The game rotates the base grid 45° (data/base.json "rotation") and its cameras look down
+// at ~45°, which flattens the ground vertically by about cos 45°. So a cell (x, y) lands
+// at K·(x − y, −V·(x + y)) before zoom and pan, and buildings stand upright on top.
+const K = Math.SQRT1_2, V = Math.SQRT1_2;
 const GROUPS = { "Follower buildings": "Followers", Faith: "Faith", Decorations: "Decor", Woolhaven: "Woolhaven" };
 const MIN_S = 6, MAX_S = 90;
 
@@ -34,11 +35,11 @@ let showLabels = store.get("labels", false);
 
 // ---------- geometry ----------
 const corners = base.tiles.flatMap(([x, y]) => [[x - .5, y - .5], [x + .5, y + .5], [x - .5, y + .5], [x + .5, y - .5]]);
-const isoX = corners.map(([x, y]) => K * (x - y)), isoY = corners.map(([x, y]) => -K * (x + y));
+const isoX = corners.map(([x, y]) => K * (x - y)), isoY = corners.map(([x, y]) => -K * V * (x + y));
 const BOUNDS = { x0: Math.min(...isoX), x1: Math.max(...isoX), y0: Math.min(...isoY), y1: Math.max(...isoY) };
-const toScreen = (x, y, v = view) => [v.s * K * (x - y) + v.tx, -v.s * K * (x + y) + v.ty];
+const toScreen = (x, y, v = view) => [v.s * K * (x - y) + v.tx, -v.s * K * V * (x + y) + v.ty];
 function cellAt(px, py) {
-  const X = (px - view.tx) / (view.s * K), Y = (py - view.ty) / (view.s * K); // X = x − y, Y = −(x + y)
+  const X = (px - view.tx) / (view.s * K), Y = (py - view.ty) / (view.s * K * V); // X = x − y, Y = −(x + y)
   return { x: Math.round((X - Y) / 2), y: Math.round((-X - Y) / 2) };
 }
 const fitView = (w, h, pad = 90) => {
@@ -79,7 +80,7 @@ const initials = name => name.split(/\s+/).map(s => s[0]).join("").slice(0, 2).t
 let frame = 0;
 function requestDraw() { frame ||= requestAnimationFrame(() => { frame = 0; draw(ctx, size, view, true); }); }
 
-const gridSpace = (c, sz, v) => c.setTransform(sz.dpr * v.s * K, -sz.dpr * v.s * K, -sz.dpr * v.s * K, -sz.dpr * v.s * K, sz.dpr * v.tx, sz.dpr * v.ty);
+const gridSpace = (c, sz, v) => c.setTransform(sz.dpr * v.s * K, -sz.dpr * v.s * K * V, -sz.dpr * v.s * K, -sz.dpr * v.s * K * V, sz.dpr * v.tx, sz.dpr * v.ty);
 const screenSpace = (c, sz) => c.setTransform(sz.dpr, 0, 0, sz.dpr, 0, 0);
 
 function draw(c, sz, v, live) {
@@ -97,12 +98,17 @@ function draw(c, sz, v, live) {
   c.strokeStyle = "rgb(20 16 18 / .45)";
   c.stroke();
 
+  // footprints flat on the ground first, then sprites back-to-front so nearer ones overlap
   const hovered = live && !brush && hover ? itemAt(hover.x, hover.y, placed, byName) : null;
-  for (const p of placed) footprint(c, sz, v, p, p === hovered ? (tool === "erase" ? "erase" : "hover") : "normal");
+  const items = placed.map(p => [p, p === hovered ? (tool === "erase" ? "erase" : "hover") : "normal"]);
   if (live && brush && hover) {
     const g = anchored(hover);
-    footprint(c, sz, v, g, fits(g, placed, byName, cells) ? "ghost" : "blocked");
+    items.push([g, fits(g, placed, byName, cells) ? "ghost" : "blocked"]);
   }
+  for (const [p, mode] of items) footprint(c, sz, v, p, mode);
+  const depth = p => p.x + p.y; // larger x + y sits further up the screen, i.e. further back
+  for (const [p, mode] of items.sort((a, b) => depth(b[0]) - depth(a[0]))) sprite(c, sz, v, p, mode);
+  if (showLabels) for (const [p, mode] of items) if (mode !== "ghost" && mode !== "blocked") label(c, sz, v, p);
 
   // landmarks
   screenSpace(c, sz);
@@ -137,28 +143,39 @@ function footprint(c, sz, v, p, mode) {
   c.lineWidth = (mode === "normal" ? 1.25 : 2) / v.s;
   c.strokeStyle = { ghost: "#b9d896", blocked: "#e06b63", erase: "#e06b63", hover: "#ede4d3" }[mode] ?? `hsl(${hue} 40% 52%)`;
   c.strokeRect(r.x - .5 + .5 / v.s, r.y - .5 + .5 / v.s, r.w - 1 / v.s, r.h - 1 / v.s);
+}
 
-  // upright icon at the footprint centre
-  const [cx, cy] = toScreen(r.x - .5 + r.w / 2, r.y - .5 + r.h / 2, v);
-  const px = v.s * Math.min(r.w, r.h) * .95;
+// Upright sprite standing on the footprint: as wide as the footprint's diamond, feet near its front corner.
+function sprite(c, sz, v, p, mode) {
+  const r = rect(p, byName[p.name]);
+  const [cx] = toScreen(r.x - .5 + r.w / 2, r.y - .5 + r.h / 2, v);
+  const [, front] = toScreen(r.x - .5, r.y - .5, v); // lowest corner on screen
+  const [, back] = toScreen(r.x - .5 + r.w, r.y - .5 + r.h, v);
+  const width = v.s * K * (r.w + r.h);
   screenSpace(c, sz);
-  if (mode === "ghost" || mode === "blocked") c.globalAlpha = .8;
+  if (mode === "ghost" || mode === "blocked") c.globalAlpha = .75;
   const img = icon(p.name);
   if (img) {
-    const k = Math.min(px / img.naturalWidth, px / img.naturalHeight);
-    c.drawImage(img, cx - img.naturalWidth * k / 2, cy - img.naturalHeight * k / 2, img.naturalWidth * k, img.naturalHeight * k);
+    const k = width / img.naturalWidth, h = img.naturalHeight * k;
+    // ponytail: wiki build-menu icons stand in for in-game sprites; feet sit a little above the front corner
+    c.drawImage(img, cx - width / 2, front - (front - back) * .25 - h, width, h);
   } else {
-    c.font = `600 ${Math.max(8, px * .32)}px 'Geist Variable', system-ui`;
+    c.font = `600 ${Math.max(8, width * .22)}px 'Geist Variable', system-ui`;
     c.textAlign = "center"; c.textBaseline = "middle";
     c.fillStyle = "#ede4d3";
-    c.fillText(initials(p.name), cx, cy);
+    c.fillText(initials(p.name), cx, (front + back) / 2);
   }
   c.globalAlpha = 1;
-  if (showLabels && mode !== "ghost" && mode !== "blocked") {
-    c.font = "500 11px 'Geist Variable', system-ui";
-    c.textAlign = "center"; c.textBaseline = "top";
-    halo(c, p.name, cx, cy + px / 2 + 2);
-  }
+}
+
+function label(c, sz, v, p) {
+  const r = rect(p, byName[p.name]);
+  const [cx] = toScreen(r.x - .5 + r.w / 2, r.y - .5 + r.h / 2, v);
+  const [, front] = toScreen(r.x - .5, r.y - .5, v);
+  screenSpace(c, sz);
+  c.font = "500 11px 'Geist Variable', system-ui";
+  c.textAlign = "center"; c.textBaseline = "top";
+  halo(c, p.name, cx, front + 3);
 }
 
 // ---------- state changes ----------
