@@ -54,7 +54,6 @@ node tools/test.mjs
 
 ## Not done yet
 
-- The game draws its grid diagonally (isometric); this planner shows it top-down
 - The base's real buildable area and obstacles aren't modelled. Set the grid size yourself.
 - Follower reach areas (farmer station, propaganda speakers)
 
