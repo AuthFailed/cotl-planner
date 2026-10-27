@@ -12,8 +12,13 @@ building, drop it on the grid, share the layout as a link.
 - The game's build rules: one-per-base buildings (moving the existing one if you place
   another), upgrade levels picked on the map, and the Temple placed by default, movable but
   not removable
-- Building names in all 15 languages the game ships, from the game's own translations
-- 220+ buildings and decorations, grouped as on the wiki, with their grid footprints
+- The game's build menu: 266 buildings and decorations in the game's own tabs and sections,
+  each with its in-game description
+- Fully translated into the 15 languages the game ships (Arabic right to left): building
+  names, descriptions and menu titles come from the game's own translations, the planner's
+  interface text from `tools/i18n/ui.json`
+- Works on phones: the building list is a bottom sheet, one finger places or pans, two
+  fingers pinch to zoom
 - Overlap and buildable-ground checks, rotate, move, delete
 - The whole layout lives in the URL — "Copy link" is your save file
 - Export to PNG
@@ -33,12 +38,13 @@ because browsers block `fetch()` of the data file over `file://`.)
 
 | Action | How |
 |---|---|
-| Place | pick a building in the sidebar, click the grid (keeps painting) |
-| Change level | click a placed building, pick I, II, III... |
+| Place | pick a building in the sidebar, click the grid (keeps painting); on a phone, drag it into place and lift your finger |
+| Change level | click (tap) a placed building, pick I, II, III... |
 | Move | drag a placed building, or click it and choose Move |
-| Delete | right-click a placed building |
+| Delete | right-click a placed building, or select it and choose Delete |
 | Flip | `R` or the Flip button (the game mirrors buildings) |
-| Cancel | `Esc` |
+| Zoom | scroll or pinch; `F` fits the base |
+| Cancel | `Esc`, or the × next to the building you're holding |
 
 ## Building data
 
@@ -49,12 +55,10 @@ because browsers block `fetch()` of the data file over `file://`.)
 python3 tools/scrape_wiki.py > data/buildings.json
 ```
 
-The planner then overrides sizes with the game's own footprints from `data/game.json`
-(see below) for every building it can match, about 180 of them. For the rest, sizes
-come from each wiki page's infobox (`size = WxH`); an upgrade takes its base tier's size,
-and anything else gets **1×1 marked as a guess** (shown as `1×1?` in the sidebar).
-Known real footprints for those can go in `data/overrides.json`, for example
-`{"Hay Wall": {"w": 1, "h": 1}}`, then rerun the scraper.
+Sizes, names and the building list now come from the game (`data/game.json`, below). The
+wiki data is still used for two things: build-menu icons for the few buildings without a
+game render, and reading share links made before layouts were keyed by the game's type
+names (they named buildings by their wiki names).
 
 ## Base grid
 
@@ -76,14 +80,20 @@ Rubble, trees and weeds are randomised in each save, so they aren't part of the 
 `tools/background/build_sprites.py` also parses the game's build rules from
 `StructuresData`: `GetBuildOnlyOne` (one per base, counting every level of an upgrade
 chain), `GetUpgradePath` (the levels) and `isDeletable` (the Temple can be moved but never
-removed). They land in `data/game.json` as `once`, `chains` and `fixed`. Wiki entries are
-matched to game types by the game's own English names. `data/base.json` `defaults` holds
-the Temple's usual spot.
+removed). They land in `data/game.json` as `once`, `chains` and `fixed`, next to `menu`: the
+build menu's tabs and sections as the game's `FollowerCategory`, `FaithCategory`,
+`AestheticCategory` and `MajorDLCCategory` list them, with the localisation term of each
+title. Wiki entries are matched to game types by the game's own English names.
+`data/base.json` `defaults` holds the Temple's usual spot.
 
-`data/i18n.json` holds every building name in the game's 15 languages, dumped by the
-capture plugin from the game's I2 Localization data and converted with
-`tools/capture/i18n_to_data.py`. Only building names are translated; the planner's own
-interface text is English.
+`data/i18n/<code>.json` holds one language: building names (`Structures/<TYPE>`),
+descriptions (`Structures/<TYPE>/Description`, as plain text: colour tags dropped, inline
+item icons dropped or, where they stand in for a word, replaced by the item's name), the
+menu titles, and the planner's own strings from `tools/i18n/ui.json`, which are written by
+hand for every language. `data/i18n/index.json` lists the languages. The capture plugin's
+Translations job dumps every term of the game's I2 Localization data, and
+`python3 tools/capture/i18n_to_data.py i18n.json` writes these files. Anything missing in a
+language falls back to English in the page.
 
 ## Building sprites (older pipeline)
 
@@ -136,7 +146,7 @@ node tools/test.mjs
 ## Not done yet
 
 - The DLC shrine room
-- Spine-animated building parts; about 40 decorations still use wiki icons and sizes
+- Spine-animated building parts; 17 menu entries (mostly paths) still use wiki icons
 - Follower reach areas (farmer station, propaganda speakers)
 
 ## Legal
@@ -144,5 +154,5 @@ node tools/test.mjs
 Code is MIT licensed (see `LICENSE`). Building names and sizes come from the
 fandom wiki (CC BY-SA); the base grid coordinates are derived from the game's scene data.
 `data/background-*.webp` and `data/sprites.webp` are rendered from the game's own art, and
-`data/i18n.json` holds the game's building names; they're included here for this fan tool only. Building icons are loaded from the wiki's CDN and are not included. *Cult of the Lamb* and its art belong to Massive Monster
+`data/i18n/` holds the game's building names and descriptions; they're included here for this fan tool only. Building icons are loaded from the wiki's CDN and are not included. *Cult of the Lamb* and its art belong to Massive Monster
 and Devolver Digital. This is an unofficial fan project, not affiliated with them.

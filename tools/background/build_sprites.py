@@ -157,6 +157,60 @@ for w in json.load(open(os.path.join(DATA, "buildings.json"))):
     if T:
         wiki[w["name"]] = T
 
+# The game's build menu: its four tabs and their sections, in the game's order, with the
+# localisation term for every header. Upgrade tiers above the first are left to the planner's
+# level picker, and the Shrine is left out (it stands in the plaza, off the grid).
+SCRIPTS = os.path.join(E, "Assets/Scripts/Assembly-CSharp")
+def src(path):
+    return open(os.path.join(SCRIPTS, path)).read()
+def body(text, signature):
+    start = text.index(signature)
+    return text[start:text.index("\n\t}\n", start)] if "\n\t}\n" in text[start:] else text[start:]
+def arms(text):  # "Enum.Value => new List<StructureBrain.TYPES> { ... }" switch arms
+    return {m.group(1): re.findall(r"TYPES\.(\w+)", m.group(2))
+            for m in re.finditer(r"\w+\.(\w+)\s*=>\s*new List<StructureBrain\.TYPES>\s*\{(.*?)\}", text, re.S)}
+def first_list(text):
+    return re.findall(r"TYPES\.(\w+)", re.search(r"new List<StructureBrain\.TYPES>\s*\{(.*?)\}", text, re.S).group(1))
+follower = arms(src("Lamb/UI/Buildmenu/FollowerCategory.cs"))
+faith_src = src("Lamb/UI/Buildmenu/FaithCategory.cs")
+woolhaven = arms(src("Lamb/UI/Buildmenu/MajorDLCCategory.cs"))
+dm = src("DataManager.cs")
+decor = arms(body(dm, "public static List<StructureBrain.TYPES> DecorationsForType("))
+decor_dlc = arms(body(dm, "public static List<StructureBrain.TYPES> MajorDLCDecorationsDisplay("))
+heads = {c[0] for c in chains}
+in_chain = {T for c in chains for T in c}
+def section(sid, term, types):
+    keep = [T for T in dict.fromkeys(types) if T in game and T != "SHRINE" and (T not in in_chain or T in heads)]
+    return {"id": sid, "term": term, "types": keep}
+menu = [
+    {"id": "follower", "term": "UI/Generic/Follower", "sections": [
+        section("misc", "UI/Generic/General", follower.get("Misc", [])),
+        section("food", "UI/PauseScreen/Inventory/Food", follower.get("Food", [])),
+        section("items", "UI/PauseScreen/Inventory/Items", follower.get("Items", []))]},
+    {"id": "faith", "term": "UI/PrisonMenu/Faith", "sections": [
+        section("general", "UI/Generic/General", first_list(body(faith_src, "public static List<StructureBrain.TYPES> AllStructures("))),
+        section("sin", "UI/Sin", first_list(body(faith_src, "public static List<StructureBrain.TYPES> SinStructures(")))]},
+    {"id": "decor", "term": "UI/Generic/Decorations", "sections": [  # AestheticCategory.Populate order
+        section("misc", "UI/Generic/General", decor.get("All", [])),
+        section("woolhaven-misc", "UI/DLC/BuildMenu/DecorationsMisc", decor_dlc.get("Major_DLC", [])),
+        section("woolhaven-town", "UI/DLC/BuildMenu/DecorationsWoolhaven", decor_dlc.get("Woolhaven", [])),
+        section("ewefall", "UI/DLC/BuildMenu/DecorationsEwefall", decor_dlc.get("Ewefall", [])),
+        section("rot", "UI/DLC/BuildMenu/DecorationsRot", decor_dlc.get("Rot", [])),
+        section("dlc", "UI/DLC", decor.get("DLC", [])),
+        section("events", "UI/FollowerForms/SpecialEvents", decor.get("Special_Events", [])),
+        section("paths", "UI/Paths", decor.get("Path", [])),
+        section("darkwood", "NAMES/Places/Dungeon1_1", decor.get("Dungeon1", [])),
+        section("anura", "NAMES/Places/Dungeon1_2", decor.get("Mushroom", [])),
+        section("anchordeep", "NAMES/Places/Dungeon1_3", decor.get("Crystal", [])),
+        section("silk-cradle", "NAMES/Places/Dungeon1_4", decor.get("Spider", []))]},
+    {"id": "woolhaven", "term": "UI/DLC/Name", "sections": [
+        section("misc", "UI/Generic/General", woolhaven.get("Misc", [])),
+        section("winter", "UI/Generic/Winter", woolhaven.get("Winter", [])),
+        section("ranching", "UI/Ranching", woolhaven.get("Ranching", []))]},
+]
+for tab in menu:
+    tab["sections"] = [sec for sec in tab["sections"] if sec["types"]]
+
 # "X II" / "X III" on the wiki is that tier of X's upgrade chain, even when the match landed on tier I.
 tier_of = {T: (c, i) for c in chains for i, T in enumerate(c)}
 for name, T in wiki.items():
@@ -167,7 +221,7 @@ for name, T in wiki.items():
         if n < len(c) and c[n] in game:
             wiki[name] = c[n]
 
-json.dump({"types": game, "wiki": wiki, "chains": chains}, open(os.path.join(DATA, "game.json"), "w"), indent=0, ensure_ascii=False)
+json.dump({"types": game, "wiki": wiki, "chains": chains, "menu": menu}, open(os.path.join(DATA, "game.json"), "w"), indent=0, ensure_ascii=False)
 json.dump({"sprites": {g: s for g, s in sprites.cache.items() if s}, "buildings": draw},
           open(os.path.join(HERE, "sprites_drawlist.json"), "w"))
 print(f"{len(game)} types, {len(draw)} with sprites, {len(wiki)} wiki entries matched, "

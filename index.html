@@ -2,9 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141012">
 <title>Cult of the Lamb Planner</title>
 <meta name="description" content="Plan your Cult of the Lamb base on the real in-game grid and share it as a link.">
+<meta property="og:type" content="website">
 <meta property="og:title" content="Cult of the Lamb Planner">
 <meta property="og:description" content="Plan your Cult of the Lamb base on the real in-game grid and share it as a link.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3 29 16 16 29 3 16Z' fill='%23c8423b'/%3E%3C/svg%3E">
@@ -22,68 +24,72 @@
     --r-panel: 12px; --r-ctl: 8px; --r-tile: 8px;
     --shadow: 0 10px 30px rgb(8 4 6 / .55), 0 1px 0 rgb(255 255 255 / .04) inset;
     --ease: cubic-bezier(.16, 1, .3, 1);
+    --gap: 14px;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Geist Variable", system-ui, sans-serif; display: grid; grid-template-columns: 340px 1fr; overflow: hidden; -webkit-font-smoothing: antialiased; }
-  button, input { font: inherit; color: inherit; }
-  button { cursor: pointer; }
+  body { margin: 0; height: 100dvh; background: var(--bg); color: var(--text); font: 14px/1.45 "Geist Variable", system-ui, sans-serif; display: grid; grid-template-columns: 340px 1fr; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .num { font-family: "Geist Mono Variable", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
-  .skip { position: absolute; left: -999px; top: 8px; z-index: 30; background: var(--raised); padding: 8px 12px; border-radius: var(--r-ctl); }
-  .skip:focus { left: 8px; }
+  .skip { position: absolute; inset-inline-start: -999px; top: 8px; z-index: 30; background: var(--raised); padding: 8px 12px; border-radius: var(--r-ctl); }
+  .skip:focus { inset-inline-start: 8px; }
 
-  /* Sidebar */
-  aside { background: var(--surface); border-right: 1px solid var(--line); display: grid; grid-template-rows: auto auto auto auto 1fr; min-height: 0; }
+  /* Sidebar (a bottom sheet on phones) */
+  aside { background: var(--surface); border-inline-end: 1px solid var(--line); display: grid; grid-template-rows: auto auto auto auto 1fr; min-height: 0; }
+  .grabber { display: none; }
   .brand { padding: 18px 18px 14px; display: flex; align-items: center; gap: 10px; }
   .brand i { color: var(--accent); font-size: 22px; }
   .brand h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
   .brand p { margin: 0; color: var(--muted); font-size: 12px; }
-  .lang { display: flex; align-items: center; gap: 8px; margin: 0 14px 10px; color: var(--muted); font-size: 12.5px; }
+  .lang { display: flex; align-items: center; gap: 8px; margin: 0 var(--gap) 10px; color: var(--muted); }
   .lang i { font-size: 16px; }
-  .lang select { flex: 1; height: 32px; padding: 0 8px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-ctl); font-size: 13px; }
-  .lang select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .search { margin: 0 14px 12px; position: relative; }
-  .search i { position: absolute; left: 11px; top: 50%; translate: 0 -50%; color: var(--faint); pointer-events: none; }
-  .search input { width: 100%; height: 38px; padding: 0 12px 0 34px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-ctl); transition: border-color .2s var(--ease); }
+  .lang select { flex: 1; height: 34px; padding: 0 8px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-ctl); font-size: 13px; }
+  .search { margin: 0 var(--gap) 12px; position: relative; }
+  .search i { position: absolute; inset-inline-start: 11px; top: 50%; translate: 0 -50%; color: var(--faint); pointer-events: none; }
+  .search input { width: 100%; height: 38px; padding-inline: 34px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-ctl); transition: border-color .2s var(--ease); }
   .search input::placeholder { color: var(--faint); }
   .search input:focus { border-color: var(--line-strong); outline: none; }
-  .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 0 14px 10px; padding: 3px; background: var(--bg); border-radius: var(--r-ctl); }
-  .tabs button { height: 30px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 12px; font-weight: 500; transition: background .2s var(--ease), color .2s var(--ease); }
+  .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin: 0 var(--gap) 6px; padding: 3px; background: var(--bg); border-radius: var(--r-ctl); }
+  .tabs button { min-width: 0; min-height: 46px; padding: 5px 3px 4px; display: grid; justify-items: center; align-content: center; gap: 2px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 11px; font-weight: 500; line-height: 1.15; transition: background .2s var(--ease), color .2s var(--ease); }
+  .tabs button i { font-size: 18px; }
+  .tabs button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tabs button:hover { color: var(--text); }
   .tabs button[aria-selected="true"] { background: var(--raised); color: var(--text); }
-  .palette { overflow-y: auto; padding: 0 14px 24px; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
-  .palette h2 { font-size: 12px; font-weight: 500; color: var(--muted); margin: 16px 2px 8px; display: flex; justify-content: space-between; }
+  .tabs button[aria-selected="true"] i { color: var(--accent); }
+  .palette { overflow-y: auto; overscroll-behavior: contain; padding: 0 var(--gap) 24px; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+  .palette h2 { font-size: 12px; font-weight: 500; color: var(--muted); margin: 16px 2px 8px; display: flex; justify-content: space-between; gap: 8px; }
   .palette h2 span { color: var(--faint); }
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .tile { position: relative; display: grid; justify-items: center; gap: 4px; padding: 10px 4px 8px; background: var(--bg); border: 1px solid transparent; border-radius: var(--r-tile); text-align: center; transition: border-color .15s var(--ease), background .15s var(--ease), transform .15s var(--ease); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+  .tile { position: relative; display: grid; justify-items: center; gap: 4px; padding: 12px 4px 8px; background: var(--bg); border: 1px solid transparent; border-radius: var(--r-tile); text-align: center; transition: border-color .15s var(--ease), background .15s var(--ease), transform .15s var(--ease); }
   .tile:hover { border-color: var(--line-strong); background: var(--raised); }
   .tile:active { transform: scale(.97); }
   .tile[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
-  .tile img { width: 40px; height: 40px; object-fit: contain; }
-  .tile .ph-image { font-size: 28px; color: var(--faint); height: 40px; display: grid; place-items: center; }
-  .tile span { font-size: 11.5px; line-height: 1.25; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.5em; }
-  .tile small { position: absolute; top: 5px; right: 6px; font-size: 10px; color: var(--faint); }
-  .tile small.guess { color: #d8a24a; }
-  .tile .tiers { position: absolute; top: 5px; left: 6px; font-size: 10px; color: var(--faint); display: flex; align-items: center; gap: 2px; }
+  .thumb { display: block; width: 44px; height: 44px; object-fit: contain; }
+  i.thumb { display: grid; place-items: center; font-size: 26px; color: var(--faint); }
+  .tile span { font-size: 11.5px; line-height: 1.25; max-width: 100%; hyphens: auto; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.5em; }
+  .tile small { position: absolute; top: 5px; inset-inline-end: 6px; font-size: 10px; color: var(--faint); }
+  .tile .tiers { position: absolute; top: 5px; inset-inline-start: 6px; font-size: 10px; color: var(--faint); display: flex; align-items: center; gap: 2px; }
   .tile .tiers i { font-size: 11px; }
   .recent { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
-  .recent .tile { flex: 0 0 64px; padding: 6px 4px; }
-  .recent .tile img { width: 32px; height: 32px; }
-  .recent .tile span, .recent .tile small { display: none; }
+  .recent .tile { flex: 0 0 60px; padding: 7px 4px; }
+  .recent .thumb { width: 36px; height: 36px; }
+  .recent .tile span, .recent .tile small, .recent .tile .tiers { display: none; }
   .empty-search { color: var(--muted); padding: 24px 4px; text-align: center; }
-  .skeleton { height: 82px; border-radius: var(--r-tile); background: linear-gradient(90deg, var(--bg) 0%, var(--raised) 50%, var(--bg) 100%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+  .skeleton { height: 92px; border-radius: var(--r-tile); background: linear-gradient(90deg, var(--bg) 0%, var(--raised) 50%, var(--bg) 100%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
   @keyframes shimmer { to { background-position: -200% 0; } }
 
   /* Map */
   main { position: relative; min-width: 0; min-height: 0; }
-  canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
-  canvas.pan { cursor: grab; } canvas.panning { cursor: grabbing; } canvas.erase { cursor: not-allowed; }
+  #map { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+  #map.pan { cursor: grab; } #map.panning { cursor: grabbing; } #map.erase { cursor: not-allowed; }
   .float { position: absolute; background: rgb(28 23 25 / .92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); }
-  .toolbar { top: 14px; left: 14px; display: flex; align-items: center; gap: 2px; padding: 4px; }
-  .toolbar.right { left: auto; right: 14px; }
-  .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
-  .icon-btn { height: 34px; min-width: 34px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: var(--r-ctl); background: none; color: var(--muted); font-size: 13px; transition: background .15s var(--ease), color .15s var(--ease), transform .1s var(--ease); }
+  .toolbar { top: var(--gap); inset-inline-start: var(--gap); display: flex; align-items: center; gap: 2px; padding: 4px; }
+  .toolbar.right { inset-inline: auto var(--gap); }
+  .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; flex: none; }
+  .icon-btn { height: 34px; min-width: 34px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: var(--r-ctl); background: none; color: var(--muted); font-size: 13px; white-space: nowrap; transition: background .15s var(--ease), color .15s var(--ease), transform .1s var(--ease); }
   .icon-btn i { font-size: 18px; }
   .icon-btn:hover:not(:disabled) { background: var(--raised); color: var(--text); }
   .icon-btn:active:not(:disabled) { transform: translateY(1px); }
@@ -92,22 +98,30 @@
   .icon-btn[aria-pressed="true"] i { color: var(--accent); }
   .icon-btn.primary { background: var(--accent); color: #fff7f2; padding: 0 12px; }
   .icon-btn.primary:hover { background: #d6514a; color: #fff7f2; }
+  .icon-btn.secondary { border: 1px solid var(--line); color: var(--text); padding: 0 12px; }
+  .more-btn, .menu-label { display: none; }
+  .more { display: contents; } /* inline in the toolbar; a popup menu on phones */
   .land { display: inline-flex; align-items: center; gap: 4px; height: 34px; padding: 0 4px 0 8px; border-radius: var(--r-ctl); color: var(--muted); transition: background .15s var(--ease); }
   .land:hover { background: var(--raised); color: var(--text); }
   .land i { font-size: 18px; }
-  .land select { appearance: none; border: 0; background: none; color: inherit; font-size: 13px; padding: 0 6px; height: 100%; cursor: pointer; }
+  .land select { appearance: none; border: 0; background: none; font-size: 13px; padding: 0 6px; height: 100%; cursor: pointer; }
   .land select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-  .land option { background: var(--surface); color: var(--text); }
+  .land option { background: var(--surface); }
   .zoom { min-width: 48px; text-align: center; font-size: 12px; color: var(--muted); }
 
-  .inspector { left: 14px; bottom: 14px; width: 280px; padding: 12px; display: grid; grid-template-columns: 48px 1fr; gap: 4px 12px; align-items: center; transition: opacity .2s var(--ease), translate .2s var(--ease); }
-  .inspector[hidden] { display: grid; opacity: 0; translate: 0 6px; pointer-events: none; }
-  .inspector img { width: 48px; height: 48px; object-fit: contain; grid-row: span 2; }
-  .inspector b { font-weight: 600; font-size: 14px; }
-  .inspector p { margin: 0; color: var(--muted); font-size: 12px; }
-  .inspector .warn { grid-column: 1 / -1; color: #d8a24a; font-size: 12px; display: flex; gap: 6px; align-items: center; margin-top: 4px; }
+  .meta { margin: 0; color: var(--muted); font-size: 12px; }
+  .desc { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.45; white-space: pre-line; text-wrap: pretty; }
+  .desc:empty { display: none; }
 
-  .stats { right: 14px; bottom: 14px; padding: 12px 14px; min-width: 220px; }
+  .inspector { inset-inline-start: var(--gap); bottom: var(--gap); width: 300px; padding: 12px; display: grid; grid-template-columns: 52px 1fr auto; gap: 2px 12px; align-items: center; transition: opacity .2s var(--ease), translate .2s var(--ease); }
+  .inspector[hidden] { display: grid; opacity: 0; translate: 0 6px; pointer-events: none; }
+  .inspector .thumb { width: 52px; height: 52px; }
+  .inspector b { font-weight: 600; font-size: 14px; }
+  .inspector .desc { grid-column: 1 / -1; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .ins-actions { display: flex; gap: 2px; }
+  .ins-actions[hidden] { display: none; }
+
+  .stats { inset-inline-end: var(--gap); bottom: var(--gap); padding: 12px 14px; min-width: 220px; }
   .stats .big { display: flex; gap: 18px; }
   .stats .big div { display: grid; }
   .stats .big b { font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
@@ -118,62 +132,83 @@
   .stats li { display: flex; justify-content: space-between; gap: 12px; }
   .stats li b { color: var(--text); font-weight: 500; }
 
-  .hint { left: 50%; top: 50%; translate: -50% -50%; padding: 18px 20px; max-width: 320px; text-align: center; pointer-events: none; transition: opacity .3s var(--ease); }
+  .hint { left: 50%; top: 50%; translate: -50% -50%; padding: 18px 20px; width: max-content; max-width: min(340px, calc(100% - 40px)); text-align: center; pointer-events: none; transition: opacity .3s var(--ease); }
   .hint[hidden] { display: block; opacity: 0; }
   .hint i { font-size: 26px; color: var(--accent); }
   .hint b { display: block; margin: 6px 0 4px; font-weight: 600; }
-  .hint p { margin: 0; color: var(--muted); font-size: 13px; }
-  .selection { width: max-content; max-width: 320px; padding: 10px 12px; display: grid; gap: 8px; translate: -50% -100%; z-index: 5; }
+  .hint p { margin: 0; color: var(--muted); font-size: 13px; text-wrap: balance; }
+  .selection { width: max-content; max-width: 330px; padding: 12px; display: grid; gap: 8px; translate: -50% -100%; z-index: 5; }
   .selection[hidden] { display: none; }
   .selection.below { translate: -50% 0; }
   .selection b { font-weight: 600; }
-  .selection p { margin: 0; color: var(--muted); font-size: 12px; }
   .selection .tiers { display: flex; gap: 4px; flex-wrap: wrap; }
-  .selection .tiers button { height: 30px; min-width: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--bg); color: var(--muted); font-size: 12.5px; transition: border-color .15s var(--ease), color .15s var(--ease); }
+  .selection .tiers[hidden] { display: none; }
+  .selection .tiers button { height: 40px; min-width: 44px; padding: 0 8px 0 4px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--bg); color: var(--muted); font-size: 12.5px; transition: border-color .15s var(--ease), color .15s var(--ease); }
+  .selection .tiers .thumb { width: 30px; height: 30px; }
   .selection .tiers button:hover { border-color: var(--line-strong); color: var(--text); }
   .selection .tiers button[aria-pressed="true"] { border-color: var(--accent); color: var(--text); background: var(--accent-soft); }
   .selection .actions { display: flex; gap: 2px; border-top: 1px solid var(--line); padding-top: 6px; }
-  .confirm p { margin: 0 0 16px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
-  .confirm .buttons { display: flex; justify-content: flex-end; gap: 8px; }
-  .icon-btn.secondary { border: 1px solid var(--line); color: var(--text); padding: 0 12px; }
-  .toast { left: 50%; bottom: 18px; translate: -50% 0; padding: 9px 14px; font-size: 13px; display: flex; gap: 8px; align-items: center; transition: opacity .2s var(--ease), translate .2s var(--ease); }
+  .toast { left: 50%; bottom: 18px; translate: -50% 0; padding: 9px 14px; width: max-content; max-width: calc(100% - 32px); font-size: 13px; display: flex; gap: 8px; align-items: center; transition: opacity .2s var(--ease), translate .2s var(--ease); z-index: 6; }
   .toast[hidden] { display: flex; opacity: 0; translate: -50% 8px; pointer-events: none; }
   .toast i { color: var(--ok); }
 
-  dialog { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); padding: 20px 22px; max-width: 420px; }
+  dialog { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); padding: 20px 22px; max-width: min(440px, calc(100vw - 32px)); }
   dialog::backdrop { background: rgb(8 4 6 / .6); }
   dialog h2 { margin: 0 0 12px; font-size: 16px; font-weight: 600; }
   dialog dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 0 0 16px; font-size: 13px; }
-  dialog dt { text-align: right; }
+  dialog dt { text-align: end; }
   dialog dd { margin: 0; color: var(--muted); }
-  kbd { font-family: "Geist Mono Variable", monospace; font-size: 11.5px; padding: 2px 6px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 5px; background: var(--bg); }
+  .confirm p { margin: 0 0 16px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+  .confirm .buttons { display: flex; justify-content: flex-end; gap: 8px; }
+  kbd { font-family: "Geist Mono Variable", monospace; font-size: 11.5px; padding: 2px 6px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 5px; background: var(--bg); white-space: nowrap; }
 
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+  /* Phones: the map takes the screen, buildings live in a bottom sheet, extras in a menu. */
   @media (max-width: 767px) {
-    body { grid-template-columns: 1fr; grid-template-rows: 1fr 42dvh; }
-    aside { grid-row: 2; border-right: 0; border-top: 1px solid var(--line); }
-    .brand { display: none; }
-    .search { margin-top: 12px; }
+    :root { --gap: 10px; }
+    body { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
     main { grid-row: 1; }
-    .toolbar .label, .stats, .inspector { display: none; }
-    .toolbar { top: 10px; left: 10px; } .toolbar.right { right: 10px; }
+    aside { grid-row: 2; border-inline-end: 0; border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; margin-top: -16px; position: relative; z-index: 7; box-shadow: 0 -10px 30px rgb(8 4 6 / .45); padding-bottom: env(safe-area-inset-bottom); }
+    aside.open { height: min(62dvh, 560px); }
+    aside:not(.open) :is(.lang, .search, .palette) { display: none; }
+    aside:not(.open) .tabs { margin-bottom: 10px; }
+    .grabber { display: grid; place-items: center; height: 24px; width: 100%; padding: 0; border: 0; background: none; }
+    .grabber span { width: 40px; height: 4px; border-radius: 4px; background: var(--line-strong); }
+    .brand, .desk, .toolbar .label { display: none !important; }
+    .icon-btn { height: 40px; min-width: 40px; }
+    .more-btn { display: inline-flex; }
+    .more:not(:popover-open) { display: none; }
+    .more:popover-open { position: fixed; inset: auto; top: 62px; inset-inline-start: var(--gap); margin: 0; padding: 6px; min-width: 230px; display: grid; gap: 2px; background: rgb(28 23 25 / .97); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); }
+    .more .sep { display: none; }
+    .more .icon-btn, .more .land { height: 44px; justify-content: flex-start; padding: 0 12px; gap: 10px; color: var(--text); }
+    .more .land select { flex: 1; padding: 0; }
+    .menu-label { display: inline; }
+    .stats { display: none; }
+    .inspector { inset-inline: var(--gap); bottom: calc(var(--gap) + 16px); width: auto; }
+    .inspector:not(.holding) { display: none; }
+    .selection { inset-inline: var(--gap); bottom: calc(var(--gap) + 16px); top: auto; width: auto; max-width: none; translate: none; }
+    .toast { top: 62px; bottom: auto; }
+    .toast[hidden] { translate: -50% -8px; }
   }
+  @media (max-width: 359px) { #fit { display: none; } }
 </style>
 </head>
 <body>
-<a class="skip" href="#palette">Skip to building list</a>
-<aside aria-label="Buildings">
+<a class="skip" href="#palette" data-i18n="skip">Skip to building list</a>
+<aside id="sheet" aria-label="Buildings" data-i18n-label="buildings">
+  <button class="grabber" id="sheet-toggle" aria-expanded="false" aria-controls="palette" data-i18n-label="sheetToggle"><span></span></button>
   <div class="brand">
     <i class="ph-fill ph-diamond" aria-hidden="true"></i>
-    <div><h1>Cult of the Lamb Planner</h1><p>Plan your base on the real in-game grid</p></div>
+    <div><h1 data-i18n="title">Cult of the Lamb Planner</h1><p data-i18n="tagline">Plan your base on the real in-game grid</p></div>
   </div>
-  <label class="lang" title="Language for building names (from the game)">
+  <label class="lang">
     <i class="ph ph-translate" aria-hidden="true"></i>
-    <select id="lang" aria-label="Language for building names"></select>
+    <select id="lang" aria-label="Language" data-i18n-label="language"></select>
   </label>
   <label class="search">
     <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
-    <input id="search" type="search" placeholder="Search buildings" aria-label="Search buildings" autocomplete="off">
+    <input id="search" type="search" placeholder="Search buildings" aria-label="Search buildings" data-i18n-placeholder="search" data-i18n-label="search" autocomplete="off">
   </label>
   <div class="tabs" role="tablist" id="tabs"></div>
   <div class="palette" id="palette" tabindex="-1">
@@ -181,70 +216,77 @@
   </div>
 </aside>
 <main>
-  <canvas id="map" aria-label="Base map. Pick a building, then click the ground to place it."></canvas>
+  <canvas id="map" aria-label="Base map" data-i18n-label="mapLabel"></canvas>
 
-  <div class="float toolbar" role="toolbar" aria-label="Tools">
-    <button class="icon-btn" id="tool-select" aria-pressed="true" title="Move (V)" aria-label="Move tool"><i class="ph ph-cursor"></i></button>
-    <button class="icon-btn" id="tool-erase" aria-pressed="false" title="Erase (E)" aria-label="Erase tool"><i class="ph ph-eraser"></i></button>
-    <button class="icon-btn" id="rotate" title="Flip building (R)" aria-label="Flip building"><i class="ph ph-arrows-clockwise"></i></button>
+  <div class="float toolbar" role="toolbar" data-i18n-label="tools">
+    <button class="icon-btn" id="tool-select" aria-pressed="true" data-i18n-tip="moveTool"><i class="ph ph-cursor"></i></button>
+    <button class="icon-btn" id="tool-erase" aria-pressed="false" data-i18n-tip="erase"><i class="ph ph-eraser"></i></button>
+    <button class="icon-btn desk" id="rotate" data-i18n-tip="flipKey"><i class="ph ph-arrows-clockwise"></i></button>
     <span class="sep"></span>
-    <button class="icon-btn" id="undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled><i class="ph ph-arrow-counter-clockwise"></i></button>
-    <button class="icon-btn" id="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled><i class="ph ph-arrow-clockwise"></i></button>
+    <button class="icon-btn" id="undo" data-i18n-tip="undo" disabled><i class="ph ph-arrow-counter-clockwise"></i></button>
+    <button class="icon-btn" id="redo" data-i18n-tip="redo" disabled><i class="ph ph-arrow-clockwise"></i></button>
     <span class="sep"></span>
-    <label class="land" title="Woolhaven land expansions you've bought (they're sold in this order)">
-      <i class="ph ph-map-trifold" aria-hidden="true"></i>
-      <select id="land" aria-label="Land expansions bought">
-        <option value="0">Base land</option>
-        <option value="1">+ South field</option>
-        <option value="2">+ West</option>
-        <option value="3">+ East</option>
-      </select>
-    </label>
-    <span class="sep"></span>
-    <button class="icon-btn" id="labels" aria-pressed="false" title="Show names (L)" aria-label="Show names"><i class="ph ph-text-aa"></i></button>
-    <button class="icon-btn" id="clear" title="Clear map" aria-label="Clear map"><i class="ph ph-trash"></i></button>
-    <button class="icon-btn" id="help" title="Shortcuts (?)" aria-label="Keyboard shortcuts"><i class="ph ph-keyboard"></i></button>
+    <button class="icon-btn more-btn" popovertarget="more" data-i18n-tip="more"><i class="ph ph-dots-three-outline"></i></button>
+    <div class="more" id="more" popover>
+      <label class="land" data-i18n-title="landTitle">
+        <i class="ph ph-map-trifold" aria-hidden="true"></i>
+        <select id="land" data-i18n-label="landTitle">
+          <option value="0" data-i18n="land0">Base land</option>
+          <option value="1" data-i18n="land1">+ South field</option>
+          <option value="2" data-i18n="land2">+ West</option>
+          <option value="3" data-i18n="land3">+ East</option>
+        </select>
+      </label>
+      <span class="sep"></span>
+      <button class="icon-btn" id="labels" aria-pressed="false" data-i18n-tip="names"><i class="ph ph-text-aa"></i><span class="menu-label" data-i18n-short="names"></span></button>
+      <button class="icon-btn" id="clear" data-i18n-tip="clear"><i class="ph ph-trash"></i><span class="menu-label" data-i18n="clear"></span></button>
+      <button class="icon-btn" id="png" data-i18n-tip="png"><i class="ph ph-download-simple"></i><span class="menu-label" data-i18n="png"></span></button>
+      <button class="icon-btn desk" id="help" data-i18n-tip="shortcuts"><i class="ph ph-keyboard"></i></button>
+    </div>
   </div>
 
-  <div class="float toolbar right" role="toolbar" aria-label="View and share">
-    <button class="icon-btn" id="zoom-out" title="Zoom out (-)" aria-label="Zoom out"><i class="ph ph-minus"></i></button>
-    <span class="zoom num" id="zoom">100%</span>
-    <button class="icon-btn" id="zoom-in" title="Zoom in (+)" aria-label="Zoom in"><i class="ph ph-plus"></i></button>
-    <button class="icon-btn" id="fit" title="Fit base (F)" aria-label="Fit base to screen"><i class="ph ph-corners-out"></i></button>
-    <span class="sep"></span>
-    <button class="icon-btn" id="png" title="Export PNG" aria-label="Export PNG"><i class="ph ph-download-simple"></i></button>
-    <button class="icon-btn primary" id="share" title="Copy share link"><i class="ph ph-link"></i><span class="label">Share</span></button>
+  <div class="float toolbar right" role="toolbar" data-i18n-label="viewShare">
+    <button class="icon-btn desk" id="zoom-out" data-i18n-tip="zoomOut"><i class="ph ph-minus"></i></button>
+    <span class="zoom num desk" id="zoom">100%</span>
+    <button class="icon-btn desk" id="zoom-in" data-i18n-tip="zoomIn"><i class="ph ph-plus"></i></button>
+    <button class="icon-btn" id="fit" data-i18n-tip="fit"><i class="ph ph-corners-out"></i></button>
+    <span class="sep desk"></span>
+    <button class="icon-btn primary" id="share" data-i18n-title="shareTitle" data-i18n-label="share"><i class="ph ph-link"></i><span class="label" data-i18n="share">Share</span></button>
   </div>
 
   <div class="float hint" id="hint">
     <i class="ph-fill ph-hand-pointing" aria-hidden="true"></i>
-    <b>Your base is empty</b>
-    <p>Pick a building on the left, then click the ground. Drag to place a row, scroll to zoom.</p>
+    <b data-i18n="emptyTitle">Your base is empty</b>
+    <p id="hint-text">Pick a building on the left, then click the ground. Drag to place a row, scroll to zoom.</p>
   </div>
 
   <div class="float inspector" id="inspector" hidden aria-live="polite">
-    <img id="ins-icon" alt="" referrerpolicy="no-referrer" crossorigin="anonymous">
-    <b id="ins-name"></b>
-    <p id="ins-meta"></p>
-    <div class="warn" id="ins-warn" hidden><i class="ph ph-warning"></i>Footprint not confirmed, shown as 1×1</div>
+    <span id="ins-art"></span>
+    <div><b id="ins-name"></b><p class="meta" id="ins-meta"></p></div>
+    <div class="ins-actions" id="ins-actions">
+      <button class="icon-btn" id="ins-flip" data-i18n-tip="flipKey"><i class="ph ph-arrows-clockwise"></i></button>
+      <button class="icon-btn" id="ins-cancel" data-i18n-tip="stopPlacing"><i class="ph ph-x"></i></button>
+    </div>
+    <p class="desc" id="ins-desc"></p>
   </div>
 
-  <div class="float stats" aria-label="Layout stats">
+  <div class="float stats" role="group" data-i18n-label="layoutStats">
     <div class="big">
-      <div><b class="num" id="st-count">0</b><span>buildings</span></div>
-      <div><b class="num" id="st-cells">0</b><span id="st-cells-of">of 0 cells used</span></div>
+      <div><b class="num" id="st-count">0</b><span data-i18n="statsBuildings">buildings</span></div>
+      <div><b class="num" id="st-cells">0</b><span id="st-cells-of"></span></div>
     </div>
     <div class="bar"><i id="st-bar" style="width:0"></i></div>
     <ul id="st-groups"></ul>
   </div>
 
-  <div class="float selection" id="selection" hidden role="dialog" aria-label="Selected building">
-    <div><b id="sel-name"></b><p id="sel-meta"></p></div>
-    <div class="tiers" id="sel-tiers" role="group" aria-label="Level"></div>
+  <div class="float selection" id="selection" hidden role="dialog" data-i18n-label="selected">
+    <div><b id="sel-name"></b><p class="meta" id="sel-meta"></p></div>
+    <p class="desc" id="sel-desc"></p>
+    <div class="tiers" id="sel-tiers" role="group" data-i18n-label="level"></div>
     <div class="actions">
-      <button class="icon-btn" id="sel-flip" title="Flip (R)"><i class="ph ph-arrows-clockwise"></i><span>Flip</span></button>
-      <button class="icon-btn" id="sel-move" title="Move"><i class="ph ph-arrows-out-cardinal"></i><span>Move</span></button>
-      <button class="icon-btn" id="sel-delete" title="Delete (Del)"><i class="ph ph-trash"></i><span>Delete</span></button>
+      <button class="icon-btn" id="sel-flip" data-i18n-title="flipKey"><i class="ph ph-arrows-clockwise"></i><span data-i18n="flip">Flip</span></button>
+      <button class="icon-btn" id="sel-move" data-i18n-title="move"><i class="ph ph-arrows-out-cardinal"></i><span data-i18n="move">Move</span></button>
+      <button class="icon-btn" id="sel-delete"><i class="ph ph-trash"></i><span data-i18n="delete">Delete</span></button>
     </div>
   </div>
 
@@ -255,26 +297,26 @@
   <h2 id="confirm-title"></h2>
   <p id="confirm-text"></p>
   <form method="dialog" class="buttons">
-    <button class="icon-btn secondary" value="cancel">Cancel</button>
+    <button class="icon-btn secondary" value="cancel" data-i18n="cancel">Cancel</button>
     <button class="icon-btn primary" value="ok" id="confirm-ok" autofocus></button>
   </form>
 </dialog>
 
 <dialog id="help-dialog" aria-labelledby="help-title">
-  <h2 id="help-title">Shortcuts</h2>
+  <h2 id="help-title" data-i18n="helpTitle">Shortcuts</h2>
   <dl>
-    <dt><kbd>Click</kbd></dt><dd>Place the picked building, or select a placed one to change its level</dd>
-    <dt><kbd>Drag</kbd></dt><dd>Move a placed building, place a row of the picked one, or pan the map</dd>
-    <dt><kbd>Right-click</kbd></dt><dd>Delete a building</dd>
-    <dt><kbd>R</kbd></dt><dd>Flip the building you're holding</dd>
-    <dt><kbd>V</kbd> <kbd>E</kbd></dt><dd>Move tool, erase tool</dd>
-    <dt><kbd>Ctrl Z</kbd></dt><dd>Undo (add Shift to redo)</dd>
-    <dt><kbd>Scroll</kbd> <kbd>F</kbd></dt><dd>Zoom, fit the base to the screen</dd>
-    <dt><kbd>Space</kbd></dt><dd>Hold and drag to pan</dd>
-    <dt><kbd>L</kbd></dt><dd>Show building names</dd>
-    <dt><kbd>Esc</kbd></dt><dd>Drop what you're holding</dd>
+    <dt><kbd data-i18n="keyClick">Click</kbd></dt><dd data-i18n="helpClick"></dd>
+    <dt><kbd data-i18n="keyDrag">Drag</kbd></dt><dd data-i18n="helpDrag"></dd>
+    <dt><kbd data-i18n="keyRight">Right-click</kbd></dt><dd data-i18n="helpRight"></dd>
+    <dt><kbd>R</kbd></dt><dd data-i18n="helpR"></dd>
+    <dt><kbd>V</kbd> <kbd>E</kbd></dt><dd data-i18n="helpVE"></dd>
+    <dt><kbd>Ctrl Z</kbd></dt><dd data-i18n="helpUndo"></dd>
+    <dt><kbd data-i18n="keyScroll">Scroll</kbd> <kbd>F</kbd></dt><dd data-i18n="helpZoom"></dd>
+    <dt><kbd data-i18n="keySpace">Space</kbd></dt><dd data-i18n="helpSpace"></dd>
+    <dt><kbd>L</kbd></dt><dd data-i18n="helpL"></dd>
+    <dt><kbd>Esc</kbd></dt><dd data-i18n="helpEsc"></dd>
   </dl>
-  <form method="dialog"><button class="icon-btn primary" autofocus>Got it</button></form>
+  <form method="dialog"><button class="icon-btn primary" autofocus data-i18n="gotIt">Got it</button></form>
 </dialog>
 <script type="module" src="app.js"></script>
 </body>

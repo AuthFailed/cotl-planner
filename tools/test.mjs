@@ -39,6 +39,21 @@ assert.ok(Object.values(game.types).every(t => t.w > 0 && t.w === t.h), "game fo
 assert.ok(Object.values(game.wiki).every(t => game.types[t]), "every wiki match points at a known type");
 assert.ok(Object.keys(atlas.items).every(t => game.types[t]), "atlas only holds known types");
 assert.ok(game.chains.every(c => c.length > 0) && Object.values(game.types).some(t => t.once), "build rules present");
-const i18n = JSON.parse(readFileSync(new URL("../data/i18n.json", import.meta.url)));
-assert.ok(Object.values(i18n.names).every(row => row.length === i18n.languages.length && row[0]), "every name row covers every language");
+const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+const json = path => JSON.parse(read(path));
+const menuTypes = game.menu.flatMap(tab => tab.sections.flatMap(s => s.types));
+assert.ok(menuTypes.every(T => game.types[T]), "the build menu only lists known types");
+const en = json("data/i18n/en.json");
+assert.ok(menuTypes.every(T => en.names[T] && en.desc[T]), "every build-menu building has an English name and description");
+assert.ok(game.menu.flatMap(tab => [tab.term, ...tab.sections.map(s => s.term)]).every(k => en.terms[k]), "menu titles have text");
+// every string key the page asks for exists
+const used = [...read("index.html").matchAll(/data-i18n(?:-\w+)?="(\w+)"/g), ...read("app.js").matchAll(/\bt\("(\w+)"/g)].map(m => m[1]);
+assert.deepEqual(used.filter(k => !(k in en.ui)), [], "UI keys used by the page exist");
+const vars = s => [...s.matchAll(/\{\w+\}/g)].map(m => m[0]).sort().join();
+for (const { code } of json("data/i18n/index.json")) {
+  const d = json(`data/i18n/${code}.json`);
+  assert.deepEqual(Object.keys(d.ui).sort(), Object.keys(en.ui).sort(), `${code}: every planner string`);
+  assert.ok(Object.entries(d.ui).every(([k, s]) => vars(s) === vars(en.ui[k])), `${code}: same {placeholders} as English`);
+  assert.ok(Object.values(d.desc).every(s => !/[<>]/.test(s)), `${code}: descriptions are plain text`);
+}
 console.log("ok");

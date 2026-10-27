@@ -4,7 +4,7 @@
 // Flow: on the main menu it continues the configured save slot, waits for the base to settle,
 // switches saving off, then runs the enabled jobs:
 //   Structures   structures.json: every placed structure's type, cell, footprint and flags
-//   Translations i18n.json: every "Structures/..." term in every language the game ships
+//   Translations i18n.json: every localisation term in every language the game ships
 //   Buildings    buildings/<TYPE>.png: each buildable structure alone, as the game draws it,
 //                cut out exactly from renders over black and white; buildings/buildings.json
 //                holds each sprite's anchor (the centre of the footprint's first cell)
@@ -62,7 +62,7 @@ public class PlannerCapture : BaseUnityPlugin
         forceDay = Config.Bind("Capture", "ForceDay", true, "Move the clock to the afternoon before capturing.");
         quitAfter = Config.Bind("Capture", "QuitAfter", true, "Quit the game after capturing.");
         doStructures = Config.Bind("Jobs", "Structures", true, "structures.json: placed structures with their cells.");
-        doTranslations = Config.Bind("Jobs", "Translations", true, "i18n.json: structure names in every language.");
+        doTranslations = Config.Bind("Jobs", "Translations", true, "i18n.json: every localisation term in every language.");
         doBuildings = Config.Bind("Jobs", "Buildings", true, "buildings/: every buildable structure rendered alone.");
         doBackgrounds = Config.Bind("Jobs", "Backgrounds", true, "landN.png, grid.json, gridN.png per land level.");
         outDir = Path.Combine(Paths.PluginPath, "PlannerCapture");
@@ -165,7 +165,7 @@ public class PlannerCapture : BaseUnityPlugin
     {
         var source = LocalizationManager.Sources.FirstOrDefault(s => s.mTerms.Any(t => t.Term.StartsWith("Structures/")));
         if (source == null) { Logger.LogWarning("no localisation source holds Structures/ terms"); return; }
-        var terms = source.mTerms.Where(t => t.Term.StartsWith("Structures/")).ToList();
+        var terms = source.mTerms; // everything: building names and descriptions, build menu headers, UI words
         var json = new StringBuilder("{\"languages\":[");
         json.Append(string.Join(",", source.mLanguages.Select(l => $"{{\"name\":{Json(l.Name)},\"code\":{Json(l.Code)}}}")));
         json.Append("],\"terms\":{\n");
