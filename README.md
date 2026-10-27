@@ -78,12 +78,22 @@ not drawn, and buildings without plain sprites fall back to the wiki icon. In-ga
 
 ## Background art
 
-`data/background.webp` is composited from the same scene: every active sprite and
-SpriteShape ground fill around the base, projected with the game's camera (orthographic,
-pitched 45°), sorted by sorting layer, order and depth. Shader effects (lighting, grass
-sway, outlines), Spine-animated props and winter snow variants are left out, so it looks
-flatter than the game. To rebuild it, see the docstring in
-`tools/background/build_drawlist.py`.
+`data/background.webp` is rendered by the game itself. `tools/capture/PlannerCapture.cs`
+is a BepInEx 5 plugin that continues a save, switches saving off, hides the UI, player,
+followers, placed buildings and obstacles, and renders the base with the game's own
+camera, shaders and colour grading, looking down at 45° without perspective (the
+planner's projection). Focus blur, vignette and grain are switched off for the capture.
+It writes `clean.png`, `full.png` (the save as it is) and `capture.json`, then quits.
+
+To redo it: install BepInEx 5 in the game, build with
+`tools/capture/build.sh "<game>/Cult Of The Lamb_Data/Managed" "<game>/BepInEx/core"`
+(needs the .NET SDK), copy `PlannerCapture.dll` into `BepInEx/plugins`, start the game,
+then **remove the DLL**: while installed it blocks all saving. Convert `clean.png` to a
+4096-wide WebP and set `data/background.json` (`u0 = u_left - world.x`,
+`v0 = v_top - 0.7071 * world.y`, with `world` from `data/base.json`).
+
+`tools/background/compose.html` is an older fallback that composites the scene's sprites
+straight from an AssetRipper export; it lacks the game's shaders and lighting.
 
 ## Tests
 
