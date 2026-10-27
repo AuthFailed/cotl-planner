@@ -1,15 +1,29 @@
 import { rect, fits, itemAt, encode, decode } from "./core.js";
 
-const CELL = 24;
+const CELL = 16;
+// The game rotates the base grid 45° on screen (see data/base.json "rotation"),
+// so cells draw as diamonds: screen = K·(x − y, −(x + y)).
+const K = CELL * Math.SQRT1_2;
 
-const buildings = await (await fetch("data/buildings.json")).json();
+const [buildings, base] = await Promise.all(["data/buildings.json", "data/base.json"].map(async u => (await fetch(u)).json()));
 const byName = Object.fromEntries(buildings.map(b => [b.name, b]));
+const cells = new Set(base.tiles.map(([x, y]) => `${x},${y}`));
 const $ = id => document.getElementById(id);
 const canvas = $("grid"), ctx = canvas.getContext("2d");
 
-let state = decode(location.hash, byName) || { w: 30, h: 30, placed: [] };
+let placed = decode(location.hash, byName).filter(p => fits(p, [], byName, cells));
 let brush = null; // { name, r } while placing
 let hover = null; // { x, y } cell under the pointer
+
+// Canvas size and origin: bounding box of every cell corner, plus padding for labels.
+const PAD = 60;
+const corners = base.tiles.flatMap(([x, y]) => [[x - .5, y - .5], [x + .5, y + .5], [x - .5, y + .5], [x + .5, y - .5]]);
+const sx = corners.map(([x, y]) => K * (x - y)), sy = corners.map(([x, y]) => -K * (x + y));
+const OX = PAD - Math.min(...sx), OY = PAD - Math.min(...sy);
+canvas.width = Math.max(...sx) - Math.min(...sx) + 2 * PAD;
+canvas.height = Math.max(...sy) - Math.min(...sy) + 2 * PAD;
+const toScreen = (x, y) => [K * (x - y) + OX, -K * (x + y) + OY];
+const gridSpace = () => ctx.setTransform(K, -K, -K, -K, OX, OY); // grid units in, screen pixels out
 
 // Stable per-category colour so a layout reads at a glance.
 const color = name => {
@@ -20,50 +34,68 @@ const color = name => {
 };
 
 function save() {
-  history.replaceState(null, "", "#" + encode(state));
+  history.replaceState(null, "", "#" + encode(placed));
 }
 
 function draw() {
-  canvas.width = state.w * CELL;
-  canvas.height = state.h * CELL;
-  ctx.fillStyle = "#2b1f1c";
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = "#16100f";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = "#3a2a27";
-  ctx.beginPath();
-  for (let x = 0; x <= state.w; x++) { ctx.moveTo(x * CELL + .5, 0); ctx.lineTo(x * CELL + .5, canvas.height); }
-  for (let y = 0; y <= state.h; y++) { ctx.moveTo(0, y * CELL + .5); ctx.lineTo(canvas.width, y * CELL + .5); }
-  ctx.stroke();
-  for (const p of state.placed) block(p, color(p.name));
+  gridSpace();
+  ctx.fillStyle = "#4f6b3a";
+  ctx.strokeStyle = "#3d5530";
+  ctx.lineWidth = 1 / CELL;
+  for (const [x, y] of base.tiles) { ctx.fillRect(x - .5, y - .5, 1, 1); ctx.strokeRect(x - .5, y - .5, 1, 1); }
+  for (const p of placed) block(p, color(p.name));
   if (brush && hover) {
-    const ghost = { ...brush, ...hover };
+    const ghost = anchored(hover);
     ctx.globalAlpha = .6;
-    block(ghost, fits(ghost, state.placed, byName, state.w, state.h) ? "#6fae5a" : "#d33f3f");
+    block(ghost, fits(ghost, placed, byName, cells) ? "#6fae5a" : "#d33f3f");
     ctx.globalAlpha = 1;
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.font = "bold 11px system-ui";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  for (const l of base.landmarks) {
+    const [px, py] = toScreen(l.x, l.y);
+    ctx.fillStyle = "#d33f3f";
+    ctx.beginPath(); ctx.arc(px, py, 5, 0, 7); ctx.fill();
+    ctx.fillStyle = "#efe3cf";
+    ctx.fillText(l.name, px + 8, py);
   }
 }
 
+// The brush footprint is centred on the hovered cell.
+function anchored(c) {
+  const r = rect({ ...brush, x: 0, y: 0 }, byName[brush.name]);
+  return { ...brush, x: c.x - Math.floor((r.w - 1) / 2), y: c.y - Math.floor((r.h - 1) / 2) };
+}
+
 function block(p, fill) {
-  const b = byName[p.name], r = rect(p, b);
-  const [x, y, w, h] = [r.x * CELL, r.y * CELL, r.w * CELL, r.h * CELL];
+  const r = rect(p, byName[p.name]);
+  gridSpace();
   ctx.fillStyle = fill;
-  ctx.fillRect(x + 1, y + 1, w - 1, h - 1);
+  ctx.fillRect(r.x - .5, r.y - .5, r.w, r.h);
   ctx.strokeStyle = "#16100f";
-  ctx.strokeRect(x + 1.5, y + 1.5, w - 2, h - 2);
+  ctx.lineWidth = 2 / CELL;
+  ctx.strokeRect(r.x - .45, r.y - .45, r.w - .1, r.h - .1);
+  // ponytail: single-line label at the footprint centre; 1x1 items get initials only.
+  const label = r.w * r.h === 1 ? p.name.split(/\s+/).map(s => s[0]).join("").slice(0, 2) : p.name;
+  const [px, py] = toScreen(r.x - .5 + r.w / 2, r.y - .5 + r.h / 2);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = "#efe3cf";
   ctx.font = "10px system-ui";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  // ponytail: single-line label clipped to the footprint; 1x1 items get initials only.
-  const label = r.w * r.h === 1 ? p.name.split(/\s+/).map(s => s[0]).join("").slice(0, 2) : p.name;
-  ctx.save();
-  ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
-  ctx.fillText(label, x + w / 2, y + h / 2);
-  ctx.restore();
+  ctx.fillText(label, px, py, K * 1.4 * Math.min(r.w, r.h));
+  gridSpace();
 }
 
 function cellOf(e) {
   const b = canvas.getBoundingClientRect();
-  return { x: Math.floor((e.clientX - b.left) / CELL), y: Math.floor((e.clientY - b.top) / CELL) };
+  const X = (e.clientX - b.left - OX) / K, Y = (e.clientY - b.top - OY) / K; // X = x − y, Y = −(x + y)
+  return { x: Math.round((X - Y) / 2), y: Math.round((-X - Y) / 2) };
 }
 
 function setBrush(b) {
@@ -78,23 +110,23 @@ canvas.addEventListener("pointerdown", e => {
   if (e.button !== 0) return;
   const c = cellOf(e);
   if (brush) {
-    const cand = { ...brush, ...c };
-    if (!fits(cand, state.placed, byName, state.w, state.h)) return;
-    state.placed.push(cand);
+    const cand = anchored(c);
+    if (!fits(cand, placed, byName, cells)) return;
+    placed.push(cand);
     if (brush.moving) setBrush(null); // a moved building drops once; a palette pick keeps painting
     save();
   } else {
-    const p = itemAt(c.x, c.y, state.placed, byName);
+    const p = itemAt(c.x, c.y, placed, byName);
     if (!p) return;
-    state.placed.splice(state.placed.indexOf(p), 1);
+    placed.splice(placed.indexOf(p), 1);
     setBrush({ name: p.name, r: p.r, moving: true });
   }
   draw();
 });
 canvas.addEventListener("contextmenu", e => {
   e.preventDefault();
-  const c = cellOf(e), p = itemAt(c.x, c.y, state.placed, byName);
-  if (p) { state.placed.splice(state.placed.indexOf(p), 1); save(); draw(); }
+  const c = cellOf(e), p = itemAt(c.x, c.y, placed, byName);
+  if (p) { placed.splice(placed.indexOf(p), 1); save(); draw(); }
 });
 
 const rotate = () => { if (brush) { brush.r = brush.r ? 0 : 1; draw(); } };
@@ -105,16 +137,7 @@ document.addEventListener("keydown", e => {
 });
 $("rotate").onclick = rotate;
 
-for (const [id, k] of [["gw", "w"], ["gh", "h"]]) {
-  $(id).value = state[k];
-  $(id).onchange = () => {
-    const v = Math.max(4, Math.min(200, Math.round(+$(id).value) || state[k]));
-    $(id).value = state[k] = v;
-    state.placed = state.placed.filter(p => fits(p, [], byName, state.w, state.h)); // drop what no longer fits
-    save(); draw();
-  };
-}
-$("clear").onclick = () => { if (confirm("Remove every building?")) { state.placed = []; save(); draw(); } };
+$("clear").onclick = () => { if (confirm("Remove every building?")) { placed = []; save(); draw(); } };
 $("share").onclick = async () => {
   save();
   await navigator.clipboard.writeText(location.href);
