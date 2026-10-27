@@ -125,6 +125,6 @@ for c, b in docs.values():
             gx, gy = rotate(wx - rx, wy - ry, -ra)
             landmarks.append({"name": LANDMARKS[t], "x": round(gx, 2), "y": round(gy, 2)})
 
-json.dump({"rotation": round(math.degrees(ra)), "tiles": sorted(tiles), "landmarks": sorted(landmarks, key=lambda l: l["name"])},
+json.dump({"rotation": round(math.degrees(ra)), "world": [round(rx, 4), round(ry, 4)], "tiles": sorted(tiles), "landmarks": sorted(landmarks, key=lambda l: l["name"])},
           sys.stdout, separators=(",", ":"))
 print(f"{len(tiles)} tiles, {len(landmarks)} landmarks", file=sys.stderr)

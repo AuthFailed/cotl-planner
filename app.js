@@ -14,6 +14,11 @@ const [buildings, base] = await Promise.all(["data/buildings.json", "data/base.j
 const byName = Object.fromEntries(buildings.map(b => [b.name, b]));
 const cells = new Set(base.tiles.map(([x, y]) => `${x},${y}`));
 
+// Game-art backdrop rendered from the base scene (tools/background). Optional: the grid works without it.
+const bg = await fetch("data/background.json").then(r => r.json()).catch(() => null);
+const bgImage = bg && Object.assign(new Image(), { src: "data/background.webp" });
+bgImage?.addEventListener("load", () => requestDraw());
+
 let placed = decode(location.hash, byName).filter(p => fits(p, [], byName, cells));
 let tool = "select"; // or "erase"
 let brush = null; // { name, r, from? } while holding a building; `from` = where a moved one came from
@@ -88,14 +93,18 @@ function draw(c, sz, v, live) {
   c.fillStyle = "#141012";
   c.fillRect(0, 0, sz.w, sz.h);
 
-  // ground
+  // backdrop: image pixel (X, Y) sits at u = u0 + X/ppu, v = v0 - Y/ppu relative to grid origin
+  const hasBg = bgImage?.complete && bgImage.naturalWidth;
+  if (hasBg) c.drawImage(bgImage, v.s * bg.u0 + v.tx, -v.s * bg.v0 + v.ty, bg.w * v.s / bg.ppu, bg.h * v.s / bg.ppu);
+
+  // ground: faint grid over the art, or plain cells when there is no art
   gridSpace(c, sz, v);
   c.beginPath();
   for (const [x, y] of base.tiles) c.rect(x - .5, y - .5, 1, 1);
-  c.fillStyle = "#3d4e33";
+  c.fillStyle = hasBg ? "rgb(237 228 211 / .06)" : "#3d4e33";
   c.fill();
   c.lineWidth = 1 / v.s;
-  c.strokeStyle = "rgb(20 16 18 / .45)";
+  c.strokeStyle = hasBg ? "rgb(237 228 211 / .22)" : "rgb(20 16 18 / .45)";
   c.stroke();
 
   // footprints flat on the ground first, then sprites back-to-front so nearer ones overlap

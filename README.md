@@ -4,7 +4,8 @@ A browser-based layout planner for your cult's base in *Cult of the Lamb*. Pick 
 building, drop it on the grid, share the layout as a link.
 
 - The real base grid (1,222 cells, Shrine plaza and landmarks), extracted from the
-  game files and drawn rotated 45° like in-game
+  game files, drawn over the base's own art with the game's camera angle
+- Buildings stand upright on their footprints, back to front, like in-game
 - 220+ buildings and decorations, grouped as on the wiki, with their grid footprints
 - Overlap and buildable-ground checks, rotate, move, delete
 - The whole layout lives in the URL — "Copy link" is your save file
@@ -63,6 +64,15 @@ python3 tools/extract_base.py path/to/ExportedProject > data/base.json
 
 Rubble, trees and weeds are randomised in each save, so they aren't part of the grid.
 
+## Background art
+
+`data/background.webp` is composited from the same scene: every active sprite and
+SpriteShape ground fill around the base, projected with the game's camera (orthographic,
+pitched 45°), sorted by sorting layer, order and depth. Shader effects (lighting, grass
+sway, outlines), Spine-animated props and winter snow variants are left out, so it looks
+flatter than the game. To rebuild it, see the docstring in
+`tools/background/build_drawlist.py`.
+
 ## Tests
 
 ```bash
@@ -72,13 +82,13 @@ node tools/test.mjs
 ## Not done yet
 
 - Land expansions (purchased land, Woolhaven) and the DLC shrine room
-- Background art of the base
+- Real in-game building sprites (the wiki's build-menu icons stand in for now)
 - Follower reach areas (farmer station, propaganda speakers)
 
 ## Legal
 
 Code is MIT licensed (see `LICENSE`). Building names and sizes come from the
 fandom wiki (CC BY-SA); the base grid coordinates are derived from the game's scene data.
-No game files or art are included. Icons are loaded from the wiki's CDN and are **not**
-included in this repo. *Cult of the Lamb* and its art belong to Massive Monster
+`data/background.webp` is rendered from the game's own art and is included here for this
+fan tool only. Building icons are loaded from the wiki's CDN and are not included. *Cult of the Lamb* and its art belong to Massive Monster
 and Devolver Digital. This is an unofficial fan project, not affiliated with them.
