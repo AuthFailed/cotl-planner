@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cult of the Lamb Planner</title>
+<meta name="description" content="Plan your Cult of the Lamb base layout on a grid and share it as a link.">
+<style>
+  :root { --bg: #16100f; --panel: #221817; --line: #3a2a27; --text: #efe3cf; --muted: #a8968a; --accent: #d33f3f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; display: flex; height: 100vh; }
+  aside { width: 300px; flex: none; background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+  aside header { padding: 12px; border-bottom: 1px solid var(--line); }
+  h1 { margin: 0 0 8px; font-size: 18px; color: var(--accent); }
+  input, button { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; }
+  button { cursor: pointer; } button:hover { border-color: var(--accent); }
+  #search { width: 100%; }
+  #list { overflow-y: auto; flex: 1; padding: 4px 0; }
+  details > summary { padding: 6px 12px; cursor: pointer; color: var(--muted); font-weight: 600; }
+  details details > summary { padding-left: 24px; font-weight: 400; }
+  .item { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; border-radius: 0; background: none; padding: 3px 12px 3px 36px; text-align: left; }
+  .item img { width: 28px; height: 28px; object-fit: contain; }
+  .item small { margin-left: auto; color: var(--muted); }
+  .item.active { background: var(--accent); }
+  main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .bar input[type=number] { width: 60px; }
+  .bar .hint { color: var(--muted); margin-left: auto; }
+  #wrap { flex: 1; overflow: auto; padding: 16px; }
+  canvas { display: block; touch-action: none; }
+  @media (max-width: 720px) {
+    body { flex-direction: column; height: auto; }
+    aside { width: 100%; height: 45vh; border-right: 0; border-bottom: 1px solid var(--line); }
+    .bar .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+<aside>
+  <header>
+    <h1>Cult of the Lamb Planner</h1>
+    <input id="search" type="search" placeholder="Search buildings…" aria-label="Search buildings">
+  </header>
+  <div id="list"></div>
+</aside>
+<main>
+  <div class="bar">
+    <label>Grid <input id="gw" type="number" min="4" max="200" aria-label="Grid width"> × <input id="gh" type="number" min="4" max="200" aria-label="Grid height"></label>
+    <button id="rotate" title="Rotate (R)">Rotate</button>
+    <button id="share">Copy link</button>
+    <button id="png">Export PNG</button>
+    <button id="clear">Clear</button>
+    <span class="hint">Click to place · click a building to move it · right-click to delete · R rotate · Esc cancel</span>
+  </div>
+  <div id="wrap"><canvas id="grid"></canvas></div>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>
