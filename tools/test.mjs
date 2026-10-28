@@ -101,4 +101,10 @@ for (const l of bg.looks) {
   for (const f of [...bg.images.map(b => `${b}.small.webp`), ...pictures.flatMap(p => [`${p}.avif`, `${p}@2.avif`, `${p}@3.avif`, `${p}@3.webp`])])
     assert.ok(existsSync(new URL(`../public/data/looks/${l}/${f}`, import.meta.url)), `${l}: ${f}`);
 }
+
+// every icon the page names is in the subset fonts (uv run --with fonttools --with brotli tools/subset_icons.py)
+const iconCss = readFileSync(new URL("../src/icons/icons.css", import.meta.url), "utf8");
+const pageSources = ["../index.html", "../src/app.ts", "../src/core.ts", "../src/save.ts", "../src/types.ts"].map(f => readFileSync(new URL(f, import.meta.url), "utf8"));
+for (const name of new Set(pageSources.join("\n").match(/\bph-[a-z0-9-]+/g)))
+  if (name !== "ph-fill") assert.ok(iconCss.includes(`.ph.${name}:before`) && iconCss.includes(`.ph-fill.${name}:before`), `icon ${name} missing: rerun tools/subset_icons.py`);
 console.log("ok");
