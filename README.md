@@ -1,7 +1,7 @@
 # Cult of the Lamb Planner
 
 A browser-based layout planner for your cult's base in *Cult of the Lamb*. Pick a
-building, drop it on the grid, share the layout as a link.
+building, drop it on the grid, share the layout as a link. Live at https://map.cotl.info.
 
 - The game's own build grid (1,223 cells), drawn like build mode over the base as the
   game renders it, from the game's camera angle
@@ -49,7 +49,9 @@ npm run build    # type-check + production build into dist/
 - `tools/`: the pipelines that produce `public/data/` (below)
 
 Pushing to `main` builds and deploys to GitHub Pages (`.github/workflows/pages.yml`); in the
-repository settings, Pages' source must be set to **GitHub Actions**.
+repository settings, Pages' source must be set to **GitHub Actions** and its custom domain to
+`map.cotl.info` (DNS: a CNAME record `map` → `authfailed.github.io`, not proxied, so GitHub can
+issue the HTTPS certificate).
 
 ## Controls
 
