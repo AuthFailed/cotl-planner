@@ -102,10 +102,10 @@ const preferred = () => {
   return "en";
 };
 
-// Per-viewer conveniences only; the layout itself lives in the URL.
+// Per-viewer conveniences and named copies of layouts; the layout on screen lives in the URL.
 const store = {
   get<T>(k: string, d: T): T { try { return JSON.parse(localStorage.getItem(k) ?? "null") ?? d; } catch { return d; } },
-  set(k: string, v: unknown) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage off: fine */ } },
+  set(k: string, v: unknown) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } }, // storage off: fine, except for layouts
 };
 let lang = store.get<string | null>("lang", null) ?? preferred();
 if (!languages.some(l => l.code === lang)) lang = "en";
@@ -273,18 +273,29 @@ function lightOf(T: string, kind: "mask" | "glow") {
 const aliases: Record<string, string> = {};
 for (const [n, T] of Object.entries(game.wiki)) if (byType[T]) aliases[n] = T;
 for (const T in byType) if (english.names[T]) { aliases[english.names[T]] ??= T; aliases[`${english.names[T]} (${T})`] = T; }
-const decoded = decode(location.hash, { ...aliases, ...byType });
-for (const p of decoded.placed) p.name = byType[p.name] ? p.name : aliases[p.name];
 const maxLand = base.expansions?.length ?? 0;
-// a shared link says how much land it was planned on; otherwise use this viewer's last choice
-let land = Math.min(maxLand, decoded.land ?? (location.hash.length > 1 ? 0 : store.get("land", 0)));
-let { tiles, cells } = cellsFor(base, land);
-let placed: Placed[] = decoded.placed.filter(p => fits(p, [], byType, cells));
-// Every base starts with its Temple, which the game won't delete: add it where it usually stands.
-for (const d of base.defaults ?? []) {
-  const p: Placed = { name: d.type, x: d.x, y: d.y, r: 0 };
-  if (byType[d.type] && !placed.some(q => chainKey(q.name) === chainKey(d.type)) && fits(p, placed, byType, cells)) placed.unshift(p);
+// A layout from its link: buildings that no longer fit its land are dropped.
+function fromHash(hash: string, landIfUnsaid: number) {
+  const decoded = decode(hash, { ...aliases, ...byType });
+  for (const p of decoded.placed) p.name = byType[p.name] ? p.name : aliases[p.name];
+  const land = Math.min(maxLand, decoded.land ?? landIfUnsaid), { cells } = cellsFor(base!, land);
+  const placed = decoded.placed.filter(p => fits(p, [], byType, cells));
+  // Every base starts with its Temple, which the game won't delete: add it where it usually stands.
+  for (const d of base!.defaults ?? []) {
+    const p: Placed = { name: d.type, x: d.x, y: d.y, r: 0 };
+    if (byType[d.type] && !placed.some(q => chainKey(q.name) === chainKey(d.type)) && fits(p, placed, byType, cells)) placed.unshift(p);
+  }
+  return { placed, land };
 }
+// a shared link says how much land it was planned on; otherwise use this viewer's last choice
+let { placed, land } = fromHash(location.hash, location.hash.length > 1 ? 0 : store.get("land", 0));
+let { tiles, cells } = cellsFor(base, land);
+// Named layouts kept in this browser; the open one takes every change. A link that isn't the open
+// layout's own (a shared one, say) opens unsaved.
+type Layout = { name: string; hash: string };
+let layouts = store.get<Layout[]>("layouts", []);
+let current = store.get<string | null>("layout", null);
+if (!layouts.some(l => l.name === current && l.hash === location.hash.slice(1))) current = null;
 let tool: Tool = "select";
 let ruler: { a: CellXY; b: CellXY } | null = null; // the measure tool's last box, corner cells a and b
 let brush: Brush | null = null; // while holding a building; `from`/`at` = where a moved one came from, `grab` = the cell of it held
@@ -785,6 +796,9 @@ function commit() {
   if (selected && !placed.includes(selected)) selected = null;
   const hash = encode(placed, land);
   history.replaceState(null, "", hash ? "#" + hash : location.pathname + location.search);
+  const open = layouts.find(l => l.name === current);
+  if (open && open.hash !== hash) { open.hash = hash; saveLayouts(); }
+  $("layout-name").textContent = current ?? t("layouts");
   $<HTMLButtonElement>("undo").disabled = !undoStack.length;
   $<HTMLButtonElement>("redo").disabled = !redoStack.length;
   $("hint").hidden = placed.some(deletable) || !!brush || !!selected;
@@ -1052,6 +1066,69 @@ async function importSave(file: File) {
   }
   endStroke();
   toast(t(skipped ? "importedSkipped" : "imported", { n: placed.length, m: skipped }));
+}
+
+// ---------- named layouts ----------
+const saveLayouts = () => store.set("layouts", layouts) && store.set("layout", current);
+// for the actions in the layouts dialog: the list stays usable this visit even when the browser won't keep it
+function savedOrWarn() { if (!saveLayouts()) toast(t("noStorage")); renderLayouts(); commit(); }
+function unique(name: string) {
+  let n = name;
+  for (let i = 2; layouts.some(l => l.name === n); i++) n = `${name} ${i}`;
+  return n;
+}
+function askName(title: string, value: string): Promise<string | null> {
+  const d = $<HTMLDialogElement>("name-dialog"), input = $<HTMLInputElement>("name-input");
+  $("name-title").textContent = title;
+  input.value = value;
+  d.returnValue = "";
+  d.showModal();
+  input.select();
+  return new Promise(res => d.addEventListener("close", () => res(d.returnValue === "ok" && input.value.trim() || null), { once: true }));
+}
+async function saveAs() {
+  const name = await askName(t("saveAs"), current ? t("copyOf", { name: current }) : "");
+  if (!name) return;
+  current = unique(name);
+  layouts.push({ name: current, hash: encode(placed, land) });
+  savedOrWarn();
+}
+async function openLayout(l: Layout) {
+  if (l.name === current) return $<HTMLDialogElement>("layouts-dialog").close();
+  // the work on the map is lost unless it's a saved layout already (or nothing)
+  if (!current && placed.some(deletable) && !await confirm(t("discardTitle"), t("discardText", { name: l.name }), t("open"))) return;
+  dropHeld();
+  selected = null;
+  const s = fromHash(l.hash, 0);
+  applyLand(s.land);
+  placed = s.placed;
+  undoStack.length = redoStack.length = 0; // undoing into another layout would save it into this one
+  current = l.name;
+  $<HTMLDialogElement>("layouts-dialog").close();
+  savedOrWarn();
+}
+function renderLayouts() {
+  const action = (l: Layout, icon: string, key: string, fn: () => unknown) =>
+    el("button", { className: "icon-btn", title: t(key), ariaLabel: `${t(key)}: ${l.name}`, onclick: fn }, el("i", { className: `ph ${icon}` }));
+  $("layouts-list").replaceChildren(...layouts.map(l => el("li", {},
+    el("button", { className: "icon-btn name", ariaCurrent: l.name === current ? "true" : null, onclick: () => openLayout(l) }, el("span", {}, l.name)),
+    action(l, "ph-pencil-simple", "rename", async () => {
+      const name = await askName(t("rename"), l.name);
+      if (!name || name === l.name) return;
+      const was = l.name;
+      l.name = unique(name);
+      if (current === was) current = l.name;
+      savedOrWarn();
+    }),
+    action(l, "ph-copy", "duplicate", () => { layouts.push({ name: unique(t("copyOf", { name: l.name })), hash: l.hash }); savedOrWarn(); }),
+    action(l, "ph-trash", "delete", async () => {
+      if (!await confirm(t("deleteLayout"), t("deleteLayoutText", { name: l.name }), t("delete"))) return;
+      layouts = layouts.filter(x => x !== l);
+      if (current === l.name) current = null;
+      savedOrWarn();
+    }),
+  )));
+  $("layouts-empty").hidden = layouts.length > 0;
 }
 
 // ---------- palette: the game's build menu ----------
@@ -1450,6 +1527,9 @@ $("share").onclick = async () => {
   try { await navigator.clipboard.writeText(location.href); toast(t("copied")); }
   catch { toast(t("noClipboard")); }
 };
+$("layouts").onclick = () => { renderLayouts(); $<HTMLDialogElement>("layouts-dialog").showModal(); };
+$("layouts-save").onclick = saveAs;
+$("name-cancel").onclick = () => $<HTMLDialogElement>("name-dialog").close();
 $("import").onclick = () => $<HTMLDialogElement>("import-dialog").showModal();
 $("import-choose").onclick = () => $<HTMLInputElement>("save-file").click();
 $<HTMLInputElement>("save-file").onchange = e => {
