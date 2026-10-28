@@ -198,6 +198,8 @@
   dialog dd { margin: 0; color: var(--muted); }
   .confirm p { margin: 0 0 16px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
   .confirm .buttons { display: flex; justify-content: flex-end; gap: 8px; }
+  .confirm .links { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: -8px 0 16px; padding: 0; list-style: none; font-size: 13.5px; }
+  .confirm .links a { color: var(--text); }
   .layout-name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
   .layouts { width: 400px; }
   .layouts ul { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 2px; max-height: 50dvh; overflow-y: auto; }
@@ -436,6 +438,22 @@
     <button class="icon-btn primary" type="button" id="import-choose" autofocus><i class="ph ph-folder-open"></i><span data-i18n="importChoose"></span></button>
   </form>
   <input type="file" id="save-file" accept=".mp,.json" hidden>
+</dialog>
+
+<dialog id="perf-dialog" class="confirm" aria-labelledby="perf-title">
+  <h2 id="perf-title" data-i18n="perfTitle"></h2>
+  <p data-i18n="perfText"></p>
+  <p data-i18n="perfAccel"></p>
+  <ul class="links">
+    <li><a href="https://www.google.com/search?q=google+chrome+how+to+turn+hardware+acceleration+on" target="_blank" rel="noopener">Google Chrome</a></li>
+    <li><a href="https://www.google.com/search?q=firefox+how+to+turn+hardware+acceleration+on" target="_blank" rel="noopener">Firefox</a></li>
+    <li><a href="https://www.google.com/search?q=edge+how+to+turn+hardware+acceleration+on" target="_blank" rel="noopener">Edge</a></li>
+  </ul>
+  <p data-i18n="perfRestart"></p>
+  <form method="dialog" class="buttons">
+    <button class="icon-btn secondary" value="ok" data-i18n="gotIt">Got it</button>
+    <button class="icon-btn primary" value="lighter" id="perf-lighter" autofocus data-i18n="perfLighter"></button>
+  </form>
 </dialog>
 
 <dialog id="help-dialog" aria-labelledby="help-title">

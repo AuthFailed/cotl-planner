@@ -467,6 +467,25 @@ function draw(c: Ctx, sz: Size, v: View, live: boolean) {
   if (reuse === false) placeSelectionCard();
   // next frame of the fastest animation on screen
   if (fps && live) animTimer ||= window.setTimeout(() => { animTimer = 0; nextFrame(); }, 1000 / Math.min(MAX_FPS, fps));
+  if (live) checkSpeed(fps);
+}
+
+// Low frame rate: while buildings animate, frames that keep coming twice as late as asked for (the median
+// of 60) mean the browser can't keep up, usually because its hardware acceleration is off. The viewer
+// hears it once per visit, and no more once they've said they got it.
+const lateness: number[] = [];
+let lastAnimated = 0, slowTold = store.get("slowTold", false);
+function checkSpeed(fps: number) {
+  const now = performance.now();
+  if (lastAnimated && fps && !document.hidden) lateness.push((now - lastAnimated) * Math.min(MAX_FPS, fps) / 1000);
+  lastAnimated = fps && !document.hidden ? now : 0;
+  if (lateness.length < 60) return;
+  const median = lateness.sort((a, b) => a - b)[30];
+  lateness.length = 0;
+  if (median < 2 || slowTold || document.querySelector("dialog[open]")) return;
+  slowTold = true;
+  $("perf-lighter").hidden = quality.textures === 3 && quality.animations === 3;
+  $<HTMLDialogElement>("perf-dialog").showModal();
 }
 
 // While a building is held: every cell it can cover somewhere it fits (not just where the pointer may go,
@@ -1556,6 +1575,16 @@ for (const key of ["textures", "animations"] as const) {
     requestDraw();
   };
 }
+$("perf-dialog").addEventListener("close", () => {
+  const d = $<HTMLDialogElement>("perf-dialog");
+  if (d.returnValue === "ok") store.set("slowTold", true);
+  if (d.returnValue === "lighter") for (const key of ["textures", "animations"] as const) {
+    const select = $<HTMLSelectElement>(key);
+    select.value = String(Math.min(3, quality[key] + 1));
+    select.dispatchEvent(new Event("change"));
+  }
+  d.returnValue = "";
+});
 lookIcon();
 if (looks.length < 2) lookSelect.closest("label")!.style.display = "none";
 langSelect.replaceChildren(...languages.map(l => el("option", { value: l.code, textContent: native(l.code) })));
