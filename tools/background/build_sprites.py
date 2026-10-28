@@ -93,7 +93,8 @@ for t, g in re.findall(r"- Type: (\d+)\s+Category: \d+\s+Addr_PlacementObject:\s
     ptxt = open(pf).read()
     bounds = re.search(r"Bounds: \{x: (\d+), y: (\d+)\}", ptxt)
     build = re.search(r"ToBuildAsset: (.*)", ptxt)
-    entry = {"name": english(T), "w": int(bounds.group(1)) if bounds else 1, "h": int(bounds.group(2)) if bounds else 1}
+    # id: the TYPES number saves store (StructuresData.Type), for importing a save
+    entry = {"name": english(T), "id": int(t), "w": int(bounds.group(1)) if bounds else 1, "h": int(bounds.group(2)) if bounds else 1}
     game[T] = entry
     bf = building_files.get(build.group(1).strip().split("/")[-1]) if build else None
     if not bf:

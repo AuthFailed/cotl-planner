@@ -25,6 +25,8 @@ building, drop it on the grid, share the layout as a link.
   fingers pinch to zoom
 - Overlap and buildable-ground checks, rotate, move, delete
 - The whole layout lives in the URL — "Copy link" is your save file
+- Import your real base from the game's save file (⋯ menu → Import save): buildings with their
+  levels and flips, and the land you've bought; the file is read in the browser, never uploaded
 - Export to PNG
 
 TypeScript, built with [Vite](https://vite.dev); no backend, the build is static files.
@@ -40,6 +42,7 @@ npm run build    # type-check + production build into dist/
 ```
 
 - `src/core.ts`: pure layout logic (footprints, fit checks, the share-link format), shared with the tests
+- `src/save.ts`: reads the game's save files (below), shared with the tests
 - `src/app.ts`: the page: map drawing, input, palette, translations
 - `src/types.ts`: shapes of the data files
 - `public/data/`: game data, translations and art, copied into the build as is
@@ -183,6 +186,22 @@ falling rain and snow (left out of captures, where they'd freeze into dots).
 
 `tools/background/compose.html` is an older fallback that composites the scene's sprites
 straight from an AssetRipper export; it lacks the game's shaders and lighting.
+
+## Save files
+
+`src/save.ts` reads `saves/slot_N.mp` (and `slot_N.json` from older versions) in the browser. Both
+start with `E`, then a 16-byte AES key and a 16-byte IV; the rest is AES-128-CBC. Inside, the JSON
+saves name their fields; the `.mp` ones are MessagePack-CSharp, LZ4-compressed (ext 98, block
+array), with every object an array indexed by its `[Key(n)]` numbers: `DataManager[1117]` is
+`BaseStructures`, `[1013]` `LandPurchased`; in each `StructuresData`, `[0]` is `Type`, `[30]`
+`Location`, `[43]` `GridTilePosition` (the planner's cell) and `[51]` `Direction` (-1 = flipped).
+`Type` is the game's `StructureBrain.TYPES` number, stored in `public/data/game.json` as each
+type's `id`. The keys come from the game's `Assembly-CSharp.dll`; if an update moves them, the
+importer needs the new numbers.
+
+The save folder: Windows `%USERPROFILE%\AppData\LocalLow\Massive Monster\Cult Of The Lamb\saves`;
+macOS `~/Library/Application Support/Massive Monster/Cult Of The Lamb/saves`; Steam Deck and
+Linux (Proton) `~/.local/share/Steam/steamapps/compatdata/1313140/pfx/drive_c/users/steamuser/AppData/LocalLow/Massive Monster/Cult Of The Lamb/saves`.
 
 ## Tests
 

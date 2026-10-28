@@ -9,7 +9,7 @@ export interface BaseData extends Base {
 export interface MenuSection { id: string; term: string; types: string[] }
 export interface MenuTab { id: string; term: string; sections: MenuSection[] }
 export interface GameData {
-  types: Record<string, { name: string | null; w: number; h: number; once?: boolean; fixed?: boolean }>;
+  types: Record<string, { name: string | null; id: number; w: number; h: number; once?: boolean; fixed?: boolean }>; // id: the game's TYPES number
   wiki: Record<string, string>; // wiki name -> type
   chains: string[][]; // upgrade chains, first level first
   menu: MenuTab[];

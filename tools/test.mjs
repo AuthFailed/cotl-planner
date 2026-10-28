@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { fits, itemAt, encode, decode, cellsFor } from "../src/core.ts";
+import { readSave } from "../src/save.ts";
 
 const byName = { "Farm Plot": { w: 1, h: 1 }, "Long: Thing": { w: 3, h: 1 } };
 const cells = new Set();
@@ -26,6 +27,25 @@ const lands = { tiles: [[0, 0]], expansions: [[[0, -1]], [[-1, 0]], [[1, 0]]] };
 assert.equal(cellsFor(lands, 0).cells.size, 1);
 assert.ok(cellsFor(lands, 2).cells.has("-1,0") && !cellsFor(lands, 2).cells.has("1,0"), "expansions add in order");
 
+// saves: encrypted ("E", key, IV, AES-CBC); MessagePack with LZ4 blocks, or JSON in older versions
+async function encrypt(bytes) {
+  const raw = crypto.getRandomValues(new Uint8Array(32)), key = await crypto.subtle.importKey("raw", raw.slice(0, 16), "AES-CBC", false, ["encrypt"]);
+  return new Uint8Array([0x45, ...raw, ...new Uint8Array(await crypto.subtle.encrypt({ name: "AES-CBC", iv: raw.slice(16) }, key, bytes))]);
+}
+const nils = n => Array(n).fill(0xc0);
+// StructuresData as an array: Type 115 (TEMPLE) at [0], Location 1 (Base) at [30], GridTilePosition at [43], Direction -1 (flipped) at [51]
+const temple = [0xdc, 0, 52, 115, ...nils(29), 1, ...nils(12), 0x92, 7, 14, ...nils(7), 0xff];
+const away = [0xdc, 0, 52, 2, ...nils(29), 3, ...nils(12), 0x92, 0, 0, ...nils(7), 1]; // a bed in another location
+// DataManager: LandPurchased 2 at [1013], BaseStructures at [1117]
+const mp = [0xdc, 0x04, 0x5e, ...nils(1013), 2, ...nils(103), 0x92, ...temple, ...away];
+// one LZ4 block of literals only (token 0xf0, then the length past 15 in 255s and a remainder)
+const extra = mp.length - 15, lz4 = [0xf0, ...Array(Math.floor(extra / 255)).fill(255), extra % 255, ...mp];
+const packed = [0x92, 0xc7, 3, 98, 0xcd, mp.length >> 8, mp.length & 255, 0xc5, lz4.length >> 8, lz4.length & 255, ...lz4];
+assert.deepEqual(await readSave(await encrypt(new Uint8Array(packed))), { structures: [{ type: 115, x: 7, y: 14, flipped: true }], land: 2 }, "MessagePack save");
+const oldSave = { BaseStructures: [{ Type: 115, Location: 1, GridTilePosition: { x: 7, y: 14 }, Direction: 1 }] };
+assert.deepEqual(await readSave(await encrypt(new TextEncoder().encode(JSON.stringify(oldSave)))), { structures: [{ type: 115, x: 7, y: 14, flipped: false }], land: 0 }, "JSON save");
+await assert.rejects(readSave(new Uint8Array([0x45, ...nils(60)])), "garbage is an error, not a crash");
+
 const data = JSON.parse(readFileSync(new URL("../public/data/buildings.json", import.meta.url)));
 assert.ok(data.length > 100 && data.every(b => b.name && b.w > 0 && b.h > 0), "buildings.json sane");
 assert.ok(data.every(b => !b.icon || existsSync(new URL(`../public/${b.icon}`, import.meta.url))), "wiki icons are local files");
@@ -38,6 +58,7 @@ const game = JSON.parse(readFileSync(new URL("../public/data/game.json", import.
 const atlas = JSON.parse(readFileSync(new URL("../public/data/looks/day/sprites.json", import.meta.url)));
 assert.ok(Object.values(game.types).every(t => t.w > 0 && t.w === t.h), "game footprints are square and positive");
 assert.ok(Object.values(game.wiki).every(t => game.types[t]), "every wiki match points at a known type");
+assert.equal(new Set(Object.values(game.types).map(t => t.id)).size, Object.keys(game.types).length, "every type has its own save id");
 assert.ok(Object.keys(atlas.items).every(t => game.types[t]), "atlas only holds known types");
 assert.ok(game.chains.every(c => c.length > 0) && Object.values(game.types).some(t => t.once), "build rules present");
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");

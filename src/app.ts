@@ -3,6 +3,7 @@ import "@fontsource-variable/geist-mono";
 import "@phosphor-icons/web/regular";
 import "@phosphor-icons/web/fill";
 import { rect, fits, itemAt, encode, decode, cellsFor, type Placed, type Cell } from "./core.ts";
+import { readSave } from "./save.ts";
 import type { Atlas, Background, BaseData, Building, GameData, Language, MenuTab, Strings, WikiBuilding } from "./types.ts";
 
 // The game rotates the base grid 45° (data/base.json "rotation") and its cameras look down
@@ -596,6 +597,32 @@ function confirm(title: string, text: string, okLabel: string): Promise<boolean>
   return new Promise(res => d.addEventListener("close", () => res(d.returnValue === "ok"), { once: true }));
 }
 
+// ---------- importing a save ----------
+// The game's base as one undoable step: its land, then every building the planner can put on the grid.
+// Weeds, trees, rubble and the like aren't buildings and are left out quietly, and so is what stands
+// off the grid (the plaza's shrine and chest); buildings that can't go down are counted as skipped.
+const typeOfId = new Map(Object.entries(game.types).map(([T, x]) => [x.id, T]));
+async function importSave(file: File) {
+  let save;
+  try { save = await readSave(new Uint8Array(await file.arrayBuffer())); }
+  catch { toast(t("importFailed")); return; }
+  dropHeld();
+  selected = null;
+  beginStroke();
+  applyLand(Math.min(maxLand, save.land));
+  placed = [];
+  let skipped = 0;
+  for (const s of save.structures) {
+    const T = typeOfId.get(s.type);
+    if (!T) continue;
+    const p: Placed = { name: T, x: s.x, y: s.y, r: s.flipped ? 1 : 0 };
+    if (byType[T] && fits(p, placed, byType, cells)) placed.push(p);
+    else if (fits(p, [], game!.types, cells)) skipped++;
+  }
+  endStroke();
+  toast(t(skipped ? "importedSkipped" : "imported", { n: placed.length, m: skipped }));
+}
+
 // ---------- palette: the game's build menu ----------
 function openSheet(open: boolean) {
   $("sheet").classList.toggle("open", open);
@@ -955,7 +982,7 @@ $("sel-move").onclick = () => { const p = selected; selected = null; if (p) pick
 $("sel-delete").onclick = () => { if (!selected) return; beginStroke(); removeBuilding(selected); endStroke(); };
 $("sheet-toggle").onclick = () => openSheet(!$("sheet").classList.contains("open"));
 // on phones these live in a popup menu, which closes once one is used
-for (const id of ["land", "look", "labels", "clear", "png"])
+for (const id of ["land", "look", "labels", "clear", "import", "png"])
   $(id).addEventListener(id === "land" || id === "look" ? "change" : "click", () => { try { $("more").hidePopover(); } catch { /* no popover support */ } });
 $("clear").onclick = () => {
   if (!placed.some(deletable)) return;
@@ -966,6 +993,14 @@ $("share").onclick = async () => {
   commit();
   try { await navigator.clipboard.writeText(location.href); toast(t("copied")); }
   catch { toast(t("noClipboard")); }
+};
+$("import").onclick = () => $<HTMLDialogElement>("import-dialog").showModal();
+$("import-choose").onclick = () => $<HTMLInputElement>("save-file").click();
+$<HTMLInputElement>("save-file").onchange = e => {
+  const input = e.target as HTMLInputElement, file = input.files?.[0];
+  input.value = ""; // picking the same file again still imports
+  $<HTMLDialogElement>("import-dialog").close();
+  if (file) void importSave(file);
 };
 $("png").onclick = () => {
   // Render the whole base at a fixed scale, independent of the current zoom.

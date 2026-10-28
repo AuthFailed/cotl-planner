@@ -162,6 +162,8 @@
   dialog dd { margin: 0; color: var(--muted); }
   .confirm p { margin: 0 0 16px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
   .confirm .buttons { display: flex; justify-content: flex-end; gap: 8px; }
+  .saves dd { min-width: 0; }
+  .saves code { font: 11.5px/1.5 "Geist Mono Variable", monospace; overflow-wrap: anywhere; user-select: all; }
   kbd { font-family: "Geist Mono Variable", monospace; font-size: 11.5px; padding: 2px 6px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 5px; background: var(--bg); white-space: nowrap; }
 
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
@@ -253,6 +255,7 @@
       <span class="sep"></span>
       <button class="icon-btn" id="labels" aria-pressed="false" data-i18n-tip="names"><i class="ph ph-text-aa"></i><span class="menu-label" data-i18n-short="names"></span></button>
       <button class="icon-btn" id="clear" data-i18n-tip="clear"><i class="ph ph-trash"></i><span class="menu-label" data-i18n="clear"></span></button>
+      <button class="icon-btn" id="import" data-i18n-tip="importSave"><i class="ph ph-upload-simple"></i><span class="menu-label" data-i18n="importSave"></span></button>
       <button class="icon-btn" id="png" data-i18n-tip="png"><i class="ph ph-download-simple"></i><span class="menu-label" data-i18n="png"></span></button>
       <button class="icon-btn desk" id="help" data-i18n-tip="shortcuts"><i class="ph ph-keyboard"></i><span class="menu-label" data-i18n-short="shortcuts"></span></button>
     </div>
@@ -315,6 +318,21 @@
     <button class="icon-btn secondary" value="cancel" data-i18n="cancel">Cancel</button>
     <button class="icon-btn primary" value="ok" id="confirm-ok" autofocus></button>
   </form>
+</dialog>
+
+<dialog id="import-dialog" class="confirm" aria-labelledby="import-title">
+  <h2 id="import-title" data-i18n="importTitle"></h2>
+  <p data-i18n="importText"></p>
+  <dl class="saves">
+    <dt>Windows</dt><dd><code>%USERPROFILE%\AppData\LocalLow\Massive Monster\Cult Of The Lamb\saves</code></dd>
+    <dt>macOS</dt><dd><code>~/Library/Application Support/Massive Monster/Cult Of The Lamb/saves</code></dd>
+    <dt>Steam Deck, Linux</dt><dd><code>~/.local/share/Steam/steamapps/compatdata/1313140/pfx/drive_c/users/steamuser/AppData/LocalLow/Massive Monster/Cult Of The Lamb/saves</code></dd>
+  </dl>
+  <form method="dialog" class="buttons">
+    <button class="icon-btn secondary" value="cancel" data-i18n="cancel">Cancel</button>
+    <button class="icon-btn primary" type="button" id="import-choose" autofocus><i class="ph ph-folder-open"></i><span data-i18n="importChoose"></span></button>
+  </form>
+  <input type="file" id="save-file" accept=".mp,.json" hidden>
 </dialog>
 
 <dialog id="help-dialog" aria-labelledby="help-title">
