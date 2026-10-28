@@ -1,3 +1,7 @@
+import "@fontsource-variable/geist";
+import "@fontsource-variable/geist-mono";
+import "@phosphor-icons/web/regular";
+import "@phosphor-icons/web/fill";
 import { rect, fits, itemAt, encode, decode, cellsFor, type Placed, type Cell } from "./core.ts";
 import type { Atlas, Background, BaseData, Building, GameData, Language, MenuTab, Strings, WikiBuilding } from "./types.ts";
 
