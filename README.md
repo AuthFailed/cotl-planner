@@ -114,7 +114,9 @@ removed). They land in `public/data/game.json` as `once`, `chains` and `fixed`, 
 build menu's tabs and sections as the game's `FollowerCategory`, `FaithCategory`,
 `AestheticCategory` and `MajorDLCCategory` list them, with the localisation term of each
 title. Wiki entries are matched to game types by the game's own English names.
-`public/data/base.json` `defaults` holds the Temple's usual spot.
+`public/data/base.json` `defaults` holds the Temple's usual spot, and `shrine` the cell of the
+Shrine in the middle of the base. The Shrine isn't part of the backdrop: the game upgrades it together
+with the Temple (Cult II–IV), so the planner draws it at the Temple's level.
 
 `public/data/i18n/<code>.json` holds one language: building names (`Structures/<TYPE>`),
 descriptions (`Structures/<TYPE>/Description`, as plain text: colour tags dropped, inline

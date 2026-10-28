@@ -48,10 +48,10 @@ public class PlannerCapture : BaseUnityPlugin
     const float U0 = -33.858737f, U1 = 34.224524f, V0 = -46f, V1 = 15.101617f;
     const float K = 0.70710678f;
 
-    // Fixed structures that belong to the default base and stay in the clean capture. The Temple is
-    // left out: it can be moved and upgraded, so the planner draws it like any other building.
+    // Fixed structures that belong to the default base and stay in the clean capture. The Temple and the
+    // Shrine are left out: they change with the cult's level, so the planner draws them.
     static readonly HashSet<string> Keep = new HashSet<string> {
-        "SHRINE", "SHRINE_II", "SHRINE_III", "SHRINE_IV", "SHRINE_BASE",
+        "SHRINE_BASE",
         "TEMPLE_BASE", "TEMPLE_BASE_EXTENSION1", "TEMPLE_BASE_EXTENSION2", "COLLECTED_RESOURCES_CHEST", "MISSION_SHRINE",
         "DANCING_FIREPIT", "FEAST_TABLE", "RATAU_SHRINE", "PLACEMENT_REGION", "FIRE", "FISHING_SPOT",
     };
@@ -239,6 +239,7 @@ public class PlannerCapture : BaseUnityPlugin
     void DumpStructures()
     {
         var rows = new List<string>();
+        var region = PlacementRegion.Instance;
         foreach (var s in FindObjectsOfType<Structure>())
         {
             var d = s.Structure_Info;
@@ -251,8 +252,10 @@ public class PlannerCapture : BaseUnityPlugin
             }
             catch { }
             rows.Add($"{{\"type\":\"{s.Type}\",\"x\":{d.GridTilePosition.x},\"y\":{d.GridTilePosition.y},\"w\":{d.Bounds.x},\"h\":{d.Bounds.y}," +
-                     $"\"movable\":{Bool(movable)},\"deletable\":{Bool(deletable)},\"obstruction\":{Bool(d.IsObstruction)}}}");
+                     $"\"movable\":{Bool(movable)},\"deletable\":{Bool(deletable)},\"obstruction\":{Bool(d.IsObstruction)}{At(s.transform.position)}}}");
         }
+        // where it stands in grid units (fractional), for structures off the grid, such as the Shrine
+        string At(Vector3 p) { if (!region) return ""; var g = region.transform.InverseTransformPoint(p); return $",\"gx\":{g.x:0.###},\"gy\":{g.y:0.###}"; }
         File.WriteAllText(Path.Combine(outDir, "structures.json"), "[\n" + string.Join(",\n", rows) + "\n]");
         Logger.LogInfo($"structures.json: {rows.Count} structures");
     }
@@ -555,7 +558,7 @@ public class PlannerCapture : BaseUnityPlugin
             if (shader.Contains("StencilLighting_Volumetric") || shader.Contains("VolumetricLighting") || shader.Contains("Additive")) r.gameObject.layer = Glow;
             else if (r is ParticleSystemRenderer || brokenShader || shader.Contains("StencilLighting") // light decals placed on other layers
                 || sortLayer == "Lighting" || sortLayer == "VFX" || sortLayer == "DepthFX" || sortLayer.Contains("UI")
-                || obj.Contains("range") || obj.Contains("radius") || obj.Contains("indicator"))
+                || obj.Contains("range") || obj.Contains("radius") || obj.Contains("indicator") || obj.Contains("twitch"))
                 r.enabled = false;
             else r.gameObject.layer = Body;
         }

@@ -61,6 +61,15 @@ const chainKey = (T: string) => chainOf[T]?.[0] ?? T;
 const tiersOf = (T: string) => (chainOf[T] ?? [T]).filter(X => byType[X]);
 const limitOf = (T: string) => (byType[T].once ? 1 : Infinity);
 const deletable = (p: Placed) => !byType[p.name].fixed;
+// The Shrine in the middle of the base stands off the grid and never moves; the game upgrades it with the
+// Temple (Cult II-IV), so it is drawn at the Temple's level.
+const shrines = (chainOf.SHRINE ?? []).filter(T => atlas?.items[T]);
+for (const T of shrines) byType[T] ??= { type: T, w: game.types[T].w, h: game.types[T].h, once: true, fixed: true };
+function shrine(): Placed | null {
+  const temple = placed.find(p => chainKey(p.name) === "TEMPLE");
+  const T = shrines[temple ? chainOf.TEMPLE.indexOf(temple.name) : 0] ?? shrines.at(-1);
+  return base!.shrine && T ? { name: T, x: base!.shrine.x, y: base!.shrine.y, r: 0 } : null;
+}
 // Paths and floors lie flat; without a render of their own they're drawn on the ground, not standing up.
 const isFloor = (T: string) => /^TILE_|_FLOOR$/.test(T);
 
@@ -330,6 +339,8 @@ function draw(c: Ctx, sz: Size, v: View, live: boolean) {
   // footprints flat on the ground first, then sprites back-to-front so nearer ones overlap
   const hovered = live && !brush && hover ? itemAt(hover.x, hover.y, placed, byType) : null;
   const items: [Placed, Mode][] = placed.map(p => [p, live && p === selected ? "selected" : p === hovered ? (tool === "erase" ? "erase" : "hover") : "normal"]);
+  const s = shrine();
+  if (s) items.push([s, "normal"]);
   if (live && brush && hover) {
     const g = anchored(brush, hover);
     items.push([g, fits(g, placed, byType, cells) ? "ghost" : "blocked"]);
@@ -405,7 +416,7 @@ function drawScene(c: Ctx, sz: Size, v: View, items: [Placed, Mode][], lit: bool
     if (layer.width && layer.height && x1 > x0 && y1 > y0) c.drawImage(layer, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0); // a canvas of size 0 can't be drawn
   }
   const area = bg && hasBg ? [v.s * bg.u0 + v.tx, -v.s * bg.v0 + v.ty, bg.w * v.s / bg.ppu, bg.h * v.s / bg.ppu] as const : null;
-  for (const [p, mode] of items) footprint(c, sz, v, p, mode);
+  for (const [p, mode] of items) if (!shrines.includes(p.name)) footprint(c, sz, v, p, mode); // the Shrine stands off the grid
   let fps = 0;
   for (const [p, mode] of items) fps = Math.max(fps, sprite(c, sz, v, p, mode, lit, time));
   return { area, fps };

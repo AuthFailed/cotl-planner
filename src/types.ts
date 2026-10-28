@@ -4,6 +4,7 @@ import type { Base, Cell } from "./core.ts";
 
 export interface BaseData extends Base {
   defaults?: { type: string; x: number; y: number }[];
+  shrine?: { x: number; y: number }; // where the Shrine stands (grid units); it is off the grid and can't be moved
 }
 
 export interface MenuSection { id: string; term: string; types: string[] }
