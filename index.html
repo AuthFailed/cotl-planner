@@ -136,6 +136,10 @@
   .stats ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 12px; color: var(--muted); }
   .stats li { display: flex; justify-content: space-between; gap: 12px; }
   .stats li b { color: var(--text); font-weight: 500; }
+  .capacity { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .capacity[hidden] { display: none; }
+  .capacity > b { display: block; margin-bottom: 4px; font-size: 12.5px; font-weight: 600; }
+  .stats li.limit, .stats li.limit b { color: var(--accent); }
 
   .legend { top: 62px; inset-inline-end: var(--gap); padding: 10px 12px; max-width: 260px; max-height: calc(100% - 62px - 190px); overflow-y: auto; scrollbar-width: thin; font-size: 12px; }
   .legend[hidden] { display: none; }
@@ -317,6 +321,10 @@
     </div>
     <div class="bar"><i id="st-bar" style="width:0"></i></div>
     <ul id="st-groups"></ul>
+    <div class="capacity" id="st-capacity" hidden>
+      <b id="st-room"></b>
+      <ul id="st-capacity-list"></ul>
+    </div>
   </div>
 
   <div class="float legend" id="legend" hidden role="group" data-i18n-label="rangesLegend">
