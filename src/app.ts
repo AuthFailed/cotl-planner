@@ -499,19 +499,38 @@ function footprint(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode, bare = fals
 }
 
 // The area a building works in (game.ranges), on the ground like the game's own indicator: strong for the
-// building held, hovered or selected, faint for the rest when all ranges are shown.
+// building held, hovered or selected. With all ranges shown, each type has its own colour (the legend says
+// which), so overlapping areas can be told apart.
 function range(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode) {
   const a = game!.ranges?.[p.name];
   if (!a) return;
   const half = a.size / 2, focus = mode !== "normal", bad = mode === "blocked" || mode === "erase";
+  const colour = `rgb(${showRanges ? rangeColour(p.name) : "237 228 211"}`;
   gridSpace(c, sz, v);
   c.beginPath();
   c.rect(p.x + a.at - half, p.y + a.at - half, a.size, a.size);
-  c.fillStyle = bad ? "rgb(224 107 99 / .14)" : `rgb(237 228 211 / ${focus ? .16 : .07})`;
+  c.fillStyle = bad ? "rgb(224 107 99 / .14)" : `${colour} / ${focus ? .18 : .09})`;
   c.fill();
-  c.lineWidth = (focus ? 2 : 1.25) / v.s;
-  c.strokeStyle = bad ? "#e06b63" : `rgb(237 228 211 / ${focus ? .9 : .45})`;
+  c.lineWidth = (focus ? 2.5 : 1.5) / v.s;
+  c.strokeStyle = bad ? "#e06b63" : `${colour} / ${focus || showRanges ? .9 : .45})`;
   c.stroke();
+}
+// Colours for the ranged types on the map, in the order they were first placed (so a new one doesn't
+// repaint the others); past the palette, the first colours come round again.
+const RANGE_COLOURS = ["242 193 78", "94 200 229", "239 111 156", "139 224 122", "180 140 242", "242 137 78", "78 224 181", "233 228 214"];
+let rangeColours: Record<string, string> = {}; // set with the legend; a held building of a new type gets the next colour
+const rangeColour = (T: string) => rangeColours[T] ?? RANGE_COLOURS[Object.keys(rangeColours).length % RANGE_COLOURS.length];
+
+// With all ranges shown: which colour is which building, and how far it reaches.
+function updateLegend() {
+  const types = [...new Set(placed.map(p => p.name))].filter(T => game!.ranges?.[T]);
+  rangeColours = Object.fromEntries(types.map((T, i) => [T, RANGE_COLOURS[i % RANGE_COLOURS.length]]));
+  $("legend").hidden = !showRanges || !types.length;
+  $("legend-list").replaceChildren(...types.map(T => {
+    const swatch = el("i", {}), n = game!.ranges![T].size;
+    swatch.style.background = `rgb(${rangeColour(T)})`;
+    return el("li", {}, swatch, el("span", {}, nameOf(T)), el("b", { className: "num" }, `${n}×${n}`));
+  }));
 }
 
 // The backdrop of the look on screen (as inside lamp light with `lit`), within `within` (CSS pixels;
@@ -789,6 +808,7 @@ function updateStats() {
   for (const p of placed) if (tabOf[p.name]) counts[tabOf[p.name].id] = (counts[tabOf[p.name].id] ?? 0) + 1;
   $("st-groups").replaceChildren(...game!.menu.filter(tab => counts[tab.id]).sort((a, b) => counts[b.id] - counts[a.id])
     .map(tab => el("li", {}, el("span", {}, term(tab.term)), el("b", { className: "num" }, String(counts[tab.id])))));
+  updateLegend();
 }
 
 // "2×2 · level 1 of 3 · one per base"
@@ -1252,6 +1272,7 @@ function toggleRanges() {
   showRanges = !showRanges;
   store.set("ranges", showRanges);
   $("ranges").setAttribute("aria-pressed", String(showRanges));
+  updateLegend();
   requestDraw();
 }
 
