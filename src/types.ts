@@ -15,14 +15,15 @@ export interface GameData {
   menu: MenuTab[];
 }
 
-/** looks/<look>/<images[N]> is the backdrop with N land upgrades; tint[look] = [r, g, b, a] laid over the screen. */
+/** looks/<look>/<images[N]>.avif (.webp without AVIF, .small.webp while loading) is the backdrop with N land upgrades;
+ * tint[look] = [r, g, b, a] laid over the screen. */
 export interface Background {
   ppu: number; w: number; h: number; u0: number; v0: number;
   images: string[]; looks?: string[]; tint?: Record<string, [number, number, number, number]>;
 }
 
-/** items[type] = [x, y, w, h, anchorX, anchorY] in the atlas image. */
-export interface Atlas { ppu: number; items: Record<string, [number, number, number, number, number, number]> }
+/** items[type] = [x, y, w, h, anchorX, anchorY, sheet?] in the atlas image <sheets[sheet ?? 0]>.avif (or .webp). */
+export interface Atlas { ppu: number; sheets: string[]; items: Record<string, [number, number, number, number, number, number, number?]> }
 
 export interface WikiBuilding { name: string; icon?: string }
 

@@ -61,8 +61,12 @@ for (const { code } of json("public/data/i18n/index.json")) {
 const bg = json("public/data/background.json");
 assert.equal(bg.looks[0], "day", "day comes first: the palette's thumbnails use it");
 for (const l of bg.looks) {
-  for (const f of [...bg.images, "sprites.webp"]) readFileSync(new URL(`../public/data/looks/${l}/${f}`, import.meta.url));
-  assert.ok(Object.keys(json(`public/data/looks/${l}/sprites.json`).items).every(T => game.types[T]), `${l}: atlas only holds known types`);
+  const a = json(`public/data/looks/${l}/sprites.json`);
+  // each backdrop and atlas sheet in AVIF and WebP, and a small backdrop to show while the full one loads
+  for (const f of [...bg.images.flatMap(b => [`${b}.small.webp`, `${b}.avif`, `${b}.webp`]), ...a.sheets.flatMap(s => [`${s}.avif`, `${s}.webp`])])
+    readFileSync(new URL(`../public/data/looks/${l}/${f}`, import.meta.url));
+  assert.ok(Object.keys(a.items).every(T => game.types[T]), `${l}: atlas only holds known types`);
+  assert.ok(Object.values(a.items).every(it => (it[6] ?? 0) < a.sheets.length), `${l}: every item on a listed sheet`);
   assert.ok(en.ui[`look${l[0].toUpperCase()}${l.slice(1)}`], `${l}: has a name`);
 }
 console.log("ok");
