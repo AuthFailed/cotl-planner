@@ -14,7 +14,14 @@ export interface GameData {
   wiki: Record<string, string>; // wiki name -> type
   chains: string[][]; // upgrade chains, first level first
   menu: MenuTab[];
+  ranges?: Record<string, Range>;
 }
+
+/**
+ * The area a building works in, as its in-game indicator shows it (tools/capture/ranges_to_data.py): a square
+ * `size` cells across, centred `at` cells along the diagonal from the footprint's first cell.
+ */
+export interface Range { size: number; at: number }
 
 /**
  * looks/<look>/<images[N]> is the backdrop with N land upgrades (w x h pixels at ppu, its top-left corner at

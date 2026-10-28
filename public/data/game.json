@@ -3262,5 +3262,91 @@
 }
 ]
 }
-]
+],
+"ranges": {
+"FARM_PLOT_SIGN": {
+"size": 5,
+"at": 0.0
+},
+"FARM_STATION": {
+"size": 6,
+"at": 0.49
+},
+"FARM_STATION_II": {
+"size": 6,
+"at": 0.49
+},
+"FOOD_STORAGE": {
+"size": 7,
+"at": 0.49
+},
+"FOOD_STORAGE_2": {
+"size": 12,
+"at": 0.49
+},
+"FURNACE_1": {
+"size": 3,
+"at": 0.6
+},
+"FURNACE_2": {
+"size": 6,
+"at": 0.6
+},
+"FURNACE_3": {
+"size": 10,
+"at": 1.31
+},
+"HARVEST_TOTEM": {
+"size": 7,
+"at": 0.0
+},
+"HARVEST_TOTEM_2": {
+"size": 7,
+"at": 0.0
+},
+"LIGHTNING_ROD": {
+"size": 10,
+"at": 0.0
+},
+"LIGHTNING_ROD_2": {
+"size": 15,
+"at": 0.0
+},
+"PROPAGANDA_SPEAKER": {
+"size": 8,
+"at": 0.0
+},
+"PROXIMITY_FURNACE": {
+"size": 15,
+"at": 0.6
+},
+"SCARECROW": {
+"size": 9,
+"at": 0.0
+},
+"SCARECROW_2": {
+"size": 11,
+"at": 0.0
+},
+"SHRINE_DISCIPLE_COLLECTION": {
+"size": 11,
+"at": 0.6
+},
+"SHRINE_PASSIVE": {
+"size": 4,
+"at": 0.6
+},
+"SHRINE_PASSIVE_II": {
+"size": 6,
+"at": 0.6
+},
+"SHRINE_PASSIVE_III": {
+"size": 8,
+"at": 0.6
+},
+"WOLF_TRAP": {
+"size": 7,
+"at": 0.0
+}
+}
 }
