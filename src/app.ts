@@ -1,7 +1,7 @@
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 import "./icons/icons.css";
-import { rect, fits, itemAt, encode, decode, cellsFor, reach, cellsBetween, type Placed, type Cell } from "./core.ts";
+import { rect, fits, itemAt, encode, decode, cellsFor, reach, cellsBetween, flipGroup, withinLimits, overlaps, type Placed, type Cell, type Rect } from "./core.ts";
 import { readSave } from "./save.ts";
 import type { Atlas, Background, BaseData, Building, FloorRules, GameData, Language, MenuTab, Strings, WikiBuilding } from "./types.ts";
 
@@ -18,11 +18,13 @@ type Size = { w: number; h: number; dpr: number };
 type Mode = "normal" | "hover" | "erase" | "selected" | "ghost" | "blocked";
 type Brush = { name: string; r: 0 | 1; from?: Placed; at?: number; grab?: CellXY };
 type CellXY = { x: number; y: number };
+type Stamp = { items: Placed[]; was?: Placed[] }; // a held group, relative to the cell under the pointer; `was` = the layout before it was picked up to move
 type Tool = "select" | "erase" | "measure";
 type Gesture =
   | { kind: "pan"; px: number; py: number; tx: number; ty: number; still: boolean }
   | { kind: "press"; p: Placed | undefined; px: number; py: number }
   | { kind: "pinch"; d: number; mx: number; my: number }
+  | { kind: "box"; a: CellXY }
   | { kind: "paint" | "erase" | "drag" | "aim" | "measure" };
 
 // Every id the script touches exists in index.html; the type parameter says what kind of element it is.
@@ -300,6 +302,9 @@ let tool: Tool = "select";
 let ruler: { a: CellXY; b: CellXY } | null = null; // the measure tool's last box, corner cells a and b
 let brush: Brush | null = null; // while holding a building; `from`/`at` = where a moved one came from, `grab` = the cell of it held
 let selected: Placed | null = null; // placed building whose level picker is open
+let picked: Placed[] = []; // two or more buildings selected together (Shift), moved, flipped, copied and deleted as one
+let stamp: Stamp | null = null; // while holding a group being moved or pasted
+let clip: Placed[] = []; // the copied group, relative to its middle cell
 let hover: CellXY | null = null; // cell under the pointer
 let view: View = { s: 20, tx: 0, ty: 0 }, fitScale = 20, userView = false; // userView: panned/zoomed by hand, so stop auto-fitting
 let size: Size = { w: 0, h: 0, dpr: 1 };
@@ -409,14 +414,18 @@ function draw(c: Ctx, sz: Size, v: View, live: boolean) {
   c.fillRect(0, 0, sz.w, sz.h);
 
   // footprints flat on the ground first, then sprites back-to-front so nearer ones overlap
-  const hovered = live && !brush && hover ? itemAt(hover.x, hover.y, placed, byType) : null;
-  const items: [Placed, Mode][] = placed.map(p => [p, live && p === selected ? "selected" : p === hovered ? (tool === "erase" ? "erase" : "hover") : "normal"]);
+  const hovered = live && !brush && !stamp && hover ? itemAt(hover.x, hover.y, placed, byType) : null;
+  const items: [Placed, Mode][] = placed.map(p => [p, live && (p === selected || picked.includes(p)) ? "selected" : p === hovered ? (tool === "erase" ? "erase" : "hover") : "normal"]);
   const s = shrine();
   if (s) items.push([s, "normal"]);
   spots = live && brush ? spotsFor(brush) : null;
   if (live && brush && hover) {
     const g = anchored(brush, hover);
     items.push([g, fits(g, placed, byType, cells) ? "ghost" : "blocked"]);
+  }
+  if (live && stamp && hover) {
+    const g = stampAt(stamp, hover), ok = g.every(p => fits(p, placed, byType, cells));
+    for (const p of g) items.push([p, ok ? "ghost" : "blocked"]);
   }
   const depth = (p: Placed) => p.x + p.y; // larger x + y sits further up the screen, i.e. further back
   items.sort((a, b) => depth(b[0]) - depth(a[0]));
@@ -464,6 +473,7 @@ function draw(c: Ctx, sz: Size, v: View, live: boolean) {
   }
   if (showLabels) for (const [p, mode] of items) if (mode !== "ghost" && mode !== "blocked") label(c, sz, v, p);
   if (live && ruler) measure(c, sz, v, ruler.a, ruler.b);
+  if (live && gesture?.kind === "box" && hover) measure(c, sz, v, gesture.a, hover);
   if (reuse === false) placeSelectionCard();
   // next frame of the fastest animation on screen
   if (fps && live) animTimer ||= window.setTimeout(() => { animTimer = 0; nextFrame(); }, 1000 / Math.min(MAX_FPS, fps));
@@ -781,7 +791,7 @@ function label(c: Ctx, sz: Size, v: View, p: Placed) {
 // ---------- state changes ----------
 // History entries hold the layout and the land level together, so undo can bring back land too.
 const snapshot = () => JSON.stringify({ placed, land });
-function restore(json: string) { const s = JSON.parse(json) as { placed: Placed[]; land: number }; placed = s.placed; selected = null; applyLand(s.land); }
+function restore(json: string) { const s = JSON.parse(json) as { placed: Placed[]; land: number }; placed = s.placed; selected = null; picked = []; applyLand(s.land); }
 function beginStroke() { strokeBefore ??= snapshot(); }
 function endStroke() {
   if (strokeBefore !== null && strokeBefore !== snapshot()) {
@@ -794,6 +804,7 @@ function endStroke() {
 }
 function commit() {
   if (selected && !placed.includes(selected)) selected = null;
+  picked = picked.filter(p => placed.includes(p));
   const hash = encode(placed, land);
   history.replaceState(null, "", hash ? "#" + hash : location.pathname + location.search);
   const open = layouts.find(l => l.name === current);
@@ -801,7 +812,7 @@ function commit() {
   $("layout-name").textContent = current ?? t("layouts");
   $<HTMLButtonElement>("undo").disabled = !undoStack.length;
   $<HTMLButtonElement>("redo").disabled = !redoStack.length;
-  $("hint").hidden = placed.some(deletable) || !!brush || !!selected;
+  $("hint").hidden = placed.some(deletable) || !!brush || !!stamp || !!selected || !!picked.length;
   updateStats();
   updateInspector();
   updateSelectionCard();
@@ -880,14 +891,92 @@ function markTiles() {
 function setBrush(b: Brush | null) {
   dropHeld(); // a building that was being moved goes back first
   brush = b;
-  if (b) selected = null;
+  stamp = null;
+  if (b) { selected = null; picked = []; }
   if (b && tool !== "select") setTool("select");
   markTiles();
   cursor();
   commit();
 }
+// ---------- groups ----------
+// A pasted group leaves out what's over a one-per-base limit; a moved one is the same buildings.
+function stampAt(s: Stamp, c: CellXY) {
+  const ps = s.items.map(p => ({ ...p, x: p.x + c.x, y: p.y + c.y }));
+  return s.was ? ps : withinLimits(ps, placed, chainKey, limitOf);
+}
+const around = (ps: Placed[], c: CellXY) => ps.map(p => ({ ...p, x: p.x - c.x, y: p.y - c.y }));
+function bounds(ps: Placed[]): Rect {
+  const rs = ps.map(p => rect(p, byType[p.name])), x = Math.min(...rs.map(r => r.x)), y = Math.min(...rs.map(r => r.y));
+  return { x, y, w: Math.max(...rs.map(r => r.x + r.w)) - x, h: Math.max(...rs.map(r => r.y + r.h)) - y };
+}
+const middle = (r: Rect) => ({ x: r.x + Math.floor((r.w - 1) / 2), y: r.y + Math.floor((r.h - 1) / 2) });
+// The selection: one building opens its level picker, more are a group.
+function pick(ps: Placed[]) {
+  const u = [...new Set(ps)];
+  selected = u.length === 1 ? u[0] : null;
+  picked = u.length > 1 ? u : [];
+  commit();
+}
+const selection = () => (selected ? [selected] : picked);
+function pickUpGroup(by: CellXY) {
+  beginStroke();
+  const was = [...placed];
+  placed = placed.filter(p => !picked.includes(p));
+  stamp = { items: around(picked, by), was };
+  picked = [];
+  cursor();
+  commit();
+}
+// Puts the held group down at c: all of it fits or none goes down. A pasted one stays in hand for the next stamp.
+function placeStamp(c: CellXY): boolean {
+  if (!stamp) return false;
+  const cands = stampAt(stamp, c);
+  if (!cands.length || !cands.every(p => fits(p, placed, byType, cells))) {
+    toast(t(cands.length ? "groupNoFit" : "pasteLimit", { n: stamp.items.length }));
+    return false;
+  }
+  if (!stamp.was) {
+    if (cands.length < stamp.items.length) toast(t("pasteLimit", { n: stamp.items.length - cands.length }));
+    beginStroke();
+  }
+  placed.push(...cands);
+  if (stamp.was) { stamp = null; picked = cands; }
+  endStroke();
+  cursor();
+  return true;
+}
+function copy() {
+  const ps = selection();
+  if (!ps.length) return false;
+  clip = around(ps, middle(bounds(ps)));
+  toast(t("copiedGroup", { n: ps.length }));
+  return true;
+}
+function paste() {
+  if (!clip.length) return;
+  setBrush(null);
+  selected = null; picked = [];
+  stamp = { items: clip };
+  cursor();
+  commit();
+}
+function flipPicked() {
+  const others = placed.filter(p => !picked.includes(p)), next = flipGroup(picked);
+  if (!next.every(p => fits(p, others, byType, cells))) { toast(t("groupNoFit")); return; }
+  beginStroke();
+  placed = [...others, ...next];
+  picked = next;
+  endStroke();
+}
+function deletePicked() {
+  beginStroke();
+  for (const p of picked) removeBuilding(p);
+  endStroke();
+}
+
 // Put a building that's mid-move back where it was.
 function dropHeld() {
+  if (stamp?.was) { placed = stamp.was; stamp = null; endStroke(); }
   if (!brush?.from) return;
   placed.splice(brush.at ?? placed.length, 0, brush.from);
   brush = null;
@@ -903,13 +992,13 @@ function pickUp(p: Placed, by?: CellXY) {
 function setTool(next: Tool) {
   tool = next;
   ruler = null;
-  if (next !== "select") { dropHeld(); brush = null; selected = null; markTiles(); }
+  if (next !== "select") { dropHeld(); brush = stamp = null; selected = null; picked = []; markTiles(); }
   for (const id of ["select", "erase", "measure"]) $(`tool-${id}`).setAttribute("aria-pressed", String(next === id));
   cursor();
   commit();
 }
 function cursor() {
-  canvas.className = gesture?.kind === "pan" ? "panning" : spaceHeld ? "pan" : tool === "select" ? (brush ? "" : "pan") : tool;
+  canvas.className = gesture?.kind === "pan" ? "panning" : spaceHeld ? "pan" : tool === "select" ? (brush || stamp ? "" : "pan") : tool;
 }
 
 // ---------- panels ----------
@@ -957,24 +1046,43 @@ function meta(T: string, r: { w: number; h: number }, extra?: string | null) {
     limitOf(T) === 1 && t("onePerBase"), extra].filter(Boolean).join(" · ");
 }
 function updateInspector() {
-  const p = brush ?? (hover && !selected ? itemAt(hover.x, hover.y, placed, byType) : undefined);
+  const p = brush ?? stamp?.items[0] ?? (hover && !selected && !picked.length ? itemAt(hover.x, hover.y, placed, byType) : undefined);
   const box = $("inspector");
   box.hidden = !p;
-  box.classList.toggle("holding", !!brush);
+  box.classList.toggle("holding", !!(brush || stamp));
+  $("ins-actions").hidden = !(brush || stamp);
   if (!p) return;
+  if (stamp) {
+    if (box.dataset.type !== p.name) { box.dataset.type = p.name; $("ins-art").replaceChildren(thumb(p.name, 52)); }
+    $("ins-name").textContent = t("nPicked", { n: stamp.items.length });
+    $("ins-meta").textContent = t(stamp.was ? "moving" : "placing");
+    $("ins-cost").replaceChildren();
+    $("ins-desc").textContent = "";
+    return;
+  }
   const T = p.name;
   if (box.dataset.type !== T) { box.dataset.type = T; $("ins-art").replaceChildren(thumb(T, 52)); }
   $("ins-name").textContent = nameOf(T);
   $("ins-meta").textContent = meta(T, rect({ r: p.r, x: 0, y: 0 }, byType[T]), brush && t(brush.from ? "moving" : "placing"));
   showCost($("ins-cost"), T);
   $("ins-desc").textContent = descOf(T);
-  $("ins-actions").hidden = !brush;
 }
 
 // Level picker for the selected building: every level of its upgrade chain, plus flip/move/delete.
 function updateSelectionCard() {
-  const card = $("selection");
-  card.hidden = !selected;
+  const card = $("selection"), del = $<HTMLButtonElement>("sel-delete");
+  card.hidden = !selected && !picked.length;
+  if (picked.length) {
+    $("sel-name").textContent = t("nPicked", { n: picked.length });
+    const r = bounds(picked);
+    $("sel-meta").textContent = `${r.w}×${r.h}`;
+    $("sel-cost").replaceChildren();
+    $("sel-desc").textContent = "";
+    $("sel-tiers").hidden = true;
+    del.disabled = !picked.some(deletable);
+    del.title = t("deleteKey");
+    return placeSelectionCard();
+  }
   if (!selected) return;
   const T = selected.name, tiers = tiersOf(T);
   $("sel-name").textContent = nameOf(T);
@@ -988,19 +1096,18 @@ function updateSelectionCard() {
     b.onclick = () => setLevel(X);
     return b;
   }));
-  const del = $<HTMLButtonElement>("sel-delete");
   del.disabled = !deletable(selected);
   del.title = t(deletable(selected) ? "deleteKey" : "cantDelete");
   placeSelectionCard();
 }
 function placeSelectionCard() {
-  if (!selected) return;
+  if (!selected && !picked.length) return;
   const card = $("selection");
   if (phone.matches) { card.style.left = card.style.top = ""; card.classList.remove("below"); return; } // docked at the bottom
-  const r = rect(selected, byType[selected.name]);
+  const r = bounds(selection());
   const [cx] = toScreen(r.x - .5 + r.w / 2, r.y - .5 + r.h / 2);
   const [, back] = toScreen(r.x - .5 + r.w, r.y - .5 + r.h); // the footprint's top corner on screen
-  const a = art(selected.name);
+  const a = selected && art(selected.name);
   const top = a ? toScreen(r.x, r.y)[1] - a.item[5] * view.s / a.ppu : back - view.s; // the sprite's top edge
   const h = card.offsetHeight, half = card.offsetWidth / 2;
   // above the sprite, or below the footprint when the toolbar leaves no room above
@@ -1022,6 +1129,7 @@ function setLevel(T: string) {
 }
 function select(p: Placed | null | undefined) {
   selected = p ?? null;
+  picked = [];
   commit();
 }
 
@@ -1312,8 +1420,16 @@ canvas.addEventListener("pointerdown", e => {
   const c = cellAt(px, py);
   hover = c;
   const under = itemAt(c.x, c.y, placed, byType);
-  if (e.button === 1 || spaceHeld || (e.button === 0 && tool === "select" && !brush && !under)) {
-    gesture = { kind: "pan", px, py, tx: view.tx, ty: view.ty, still: true };
+  if (e.shiftKey && e.button === 0 && !spaceHeld && tool === "select" && !brush && !stamp) {
+    // Shift-drag selects with a box; Shift-click adds a building to the selection or takes it out
+    gesture = { kind: "box", a: c };
+    return requestDraw();
+  }
+  if (e.button === 1 || spaceHeld || (e.button === 0 && tool === "select" && !brush && !stamp && !under)) {
+    const g: Gesture = gesture = { kind: "pan", px, py, tx: view.tx, ty: view.ty, still: true };
+    // on a touch screen, a long press on the ground starts a selection box instead
+    if (e.pointerType === "touch" && tool === "select" && !brush && !stamp)
+      setTimeout(() => { if (gesture === g && g.still) { gesture = { kind: "box", a: c }; cursor(); requestDraw(); } }, 450);
     return cursor();
   }
   if (e.button !== 0) return;
@@ -1325,9 +1441,12 @@ canvas.addEventListener("pointerdown", e => {
   if (tool === "erase") {
     gesture = { kind: "erase" };
     beginStroke(); eraseAt(c);
-  } else if (brush && e.pointerType === "touch") {
+  } else if ((brush || stamp) && e.pointerType === "touch") {
     // a finger hides what's under it: the ghost follows it, and the building goes down when it lifts
     gesture = { kind: "aim" };
+  } else if (stamp) {
+    placeStamp(c);
+    return;
   } else if (brush?.from) {
     // dropping a building being moved: one click, no row painting
     if (tryPlace(c)) { brush = null; markTiles(); endStroke(); }
@@ -1361,7 +1480,8 @@ canvas.addEventListener("pointermove", e => {
   if (gesture?.kind === "press" && Math.hypot(px - gesture.px, py - gesture.py) > (e.pointerType === "touch" ? 8 : 5)) {
     const { p, px: gx, py: gy } = gesture;
     gesture = { kind: "drag" };
-    if (p) pickUp(p, cellAt(gx, gy));
+    if (p && picked.includes(p)) pickUpGroup(cellAt(gx, gy));
+    else if (p) pickUp(p, cellAt(gx, gy));
   }
   if (!moved) return;
   const passed = from ? cellsBetween(from, c) : [c];
@@ -1381,12 +1501,20 @@ const endGesture = (e: PointerEvent) => {
   const g = gesture;
   gesture = null;
   if (g.kind === "press") select(g.p === selected ? null : g.p);
+  else if (g.kind === "drag" && stamp) { if (!hover || !placeStamp(hover)) dropHeld(); }
+  else if (g.kind === "box") {
+    const b = hover ?? g.a, now = selection(), under = itemAt(b.x, b.y, placed, byType);
+    const r = { x: Math.min(g.a.x, b.x), y: Math.min(g.a.y, b.y), w: Math.abs(g.a.x - b.x) + 1, h: Math.abs(g.a.y - b.y) + 1 };
+    if (r.w * r.h === 1 && under) pick(now.includes(under) ? now.filter(p => p !== under) : [...now, under]);
+    else pick([...now, ...placed.filter(p => overlaps(r, rect(p, byType[p.name])))]);
+  }
   else if (g.kind === "drag") { if (hover && tryPlace(hover)) { brush = null; markTiles(); endStroke(); } else dropHeld(); }
+  else if (g.kind === "aim" && hover && stamp) placeStamp(hover);
   else if (g.kind === "aim" && hover && brush) {
     if (!brush.from) { beginStroke(); tryPlace(hover); endStroke(); }
     else if (tryPlace(hover)) { brush = null; markTiles(); endStroke(); }
   }
-  else if (g.kind === "pan") { if (g.still && selected) select(null); }
+  else if (g.kind === "pan") { if (g.still && (selected || picked.length)) select(null); }
   else if (g.kind === "measure") { /* the box stays until the next one */ }
   else endStroke();
   cursor();
@@ -1450,6 +1578,8 @@ document.addEventListener("keydown", e => {
   const k = e.key.toLowerCase();
   if ((e.metaKey || e.ctrlKey) && k === "z") { e.preventDefault(); return e.shiftKey ? redo() : undo(); }
   if ((e.metaKey || e.ctrlKey) && k === "y") { e.preventDefault(); return redo(); }
+  if ((e.metaKey || e.ctrlKey) && k === "c") { if (copy()) e.preventDefault(); return; }
+  if ((e.metaKey || e.ctrlKey) && k === "v") { if (clip.length) { e.preventDefault(); paste(); } return; }
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (k === " ") { e.preventDefault(); if (!spaceHeld) { spaceHeld = true; cursor(); } }
   else if (k === "r") rotate();
@@ -1462,7 +1592,8 @@ document.addEventListener("keydown", e => {
   else if (k === "+" || k === "=") zoomAt(size.w / 2, size.h / 2, 1.25);
   else if (k === "-") zoomAt(size.w / 2, size.h / 2, .8);
   else if (k === "?") $<HTMLDialogElement>("help-dialog").showModal();
-  else if (k === "escape") { selected = null; setBrush(null); }
+  else if (k === "escape") { selected = null; picked = []; setBrush(null); }
+  else if ((k === "delete" || k === "backspace") && picked.length) deletePicked();
   else if (k === "delete" || k === "backspace") {
     const p = selected ?? (hover && itemAt(hover.x, hover.y, placed, byType));
     if (p) { beginStroke(); removeBuilding(p); endStroke(); }
@@ -1472,6 +1603,8 @@ document.addEventListener("keyup", e => { if (e.key === " ") { spaceHeld = false
 
 function rotate() {
   if (brush) { brush.r = brush.r ? 0 : 1; brush.grab = undefined; updateInspector(); requestDraw(); }
+  else if (stamp) { stamp.items = flipGroup(stamp.items, { x: 0, y: 0 }); requestDraw(); }
+  else if (picked.length) flipPicked();
   else if (selected) { beginStroke(); const i = placed.indexOf(selected); placed[i] = selected = { ...selected, r: selected.r ? 0 : 1 }; endStroke(); }
 }
 function toggleLabels() {
@@ -1505,8 +1638,15 @@ $("fit").onclick = fit;
 $("ins-flip").onclick = rotate;
 $("ins-cancel").onclick = () => setBrush(null);
 $("sel-flip").onclick = rotate;
-$("sel-move").onclick = () => { const p = selected; selected = null; if (p) pickUp(p); };
-$("sel-delete").onclick = () => { if (!selected) return; beginStroke(); removeBuilding(selected); endStroke(); };
+$("sel-move").onclick = () => {
+  if (picked.length) return pickUpGroup(middle(bounds(picked)));
+  const p = selected; selected = null; if (p) pickUp(p);
+};
+$("sel-copy").onclick = () => { if (copy()) paste(); };
+$("sel-delete").onclick = () => {
+  if (picked.length) return deletePicked();
+  if (!selected) return; beginStroke(); removeBuilding(selected); endStroke();
+};
 $("sheet-toggle").onclick = () => openSheet(!$("sheet").classList.contains("open"));
 // a menu closes once one of its entries is used (the view settings are a menu on narrow screens only)
 const closeMenu = (menu: HTMLElement) => { try { if (menu.matches(":popover-open")) menu.hidePopover(); } catch { /* no popover support */ } };
