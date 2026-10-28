@@ -798,6 +798,19 @@ function cursor() {
 }
 
 // ---------- panels ----------
+// Followers a building sleeps (Structures_Bed.SlotCount) and toilet uses before it's emptied
+// (Structures_Outhouse.Capacity); a follower goes once per meal.
+const BEDS: Record<string, number> = { BED: 1, BED_2: 1, BED_3: 1, SHARED_HOUSE: 3, LEADER_TENT: 1 };
+const TOILETS: Record<string, number> = { OUTHOUSE: 5, OUTHOUSE_2: 15 };
+function updateCapacity() {
+  const sum = (by: Record<string, number>) => placed.reduce((n, p) => n + (by[p.name] ?? 0), 0);
+  const rows = [{ key: "capBeds", n: sum(BEDS) }, { key: "capToilets", n: sum(TOILETS), hint: "capToiletsHint" }];
+  const room = Math.min(...rows.map(r => r.n));
+  $("st-capacity").hidden = rows.every(r => !r.n);
+  $("st-room").textContent = t("capSupports", { n: room });
+  $("st-capacity-list").replaceChildren(...rows.map(r => el("li", { className: r.n === room ? "limit" : "", title: r.hint ? t(r.hint) : "" },
+    el("span", {}, t(r.key), r.n === room ? ` · ${t("capLimit")}` : ""), el("b", { className: "num" }, String(r.n)))));
+}
 function updateStats() {
   const used = placed.reduce((n, p) => n + byType[p.name].w * byType[p.name].h, 0);
   $("st-count").textContent = String(placed.length);
@@ -808,6 +821,7 @@ function updateStats() {
   for (const p of placed) if (tabOf[p.name]) counts[tabOf[p.name].id] = (counts[tabOf[p.name].id] ?? 0) + 1;
   $("st-groups").replaceChildren(...game!.menu.filter(tab => counts[tab.id]).sort((a, b) => counts[b.id] - counts[a.id])
     .map(tab => el("li", {}, el("span", {}, term(tab.term)), el("b", { className: "num" }, String(counts[tab.id])))));
+  updateCapacity();
   updateLegend();
 }
 
