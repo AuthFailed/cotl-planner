@@ -30,7 +30,9 @@ building, drop it on the grid, share the layout as a link. Live at https://map.c
   interface text from `tools/i18n/ui.json`
 - Works on phones: the building list is a bottom sheet, one finger places or pans, two
   fingers pinch to zoom
-- Overlap and buildable-ground checks, rotate, move, delete
+- Overlap and buildable-ground checks, rotate, move, delete; while you hold a building, every cell
+  it fits on is tinted, and the stats show how many cells are still free; a measure tool (M) shows
+  how many cells across a space is
 - Effect ranges as the game's own indicators draw them (farmer station, scarecrows, totems, speakers,
   lightning rods, furnaces...): for the building held, hovered or selected, or all at once, each type in
   its own colour with a legend of names and sizes

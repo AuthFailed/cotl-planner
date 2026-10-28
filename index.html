@@ -86,7 +86,7 @@
   /* Map */
   main { position: relative; min-width: 0; min-height: 0; }
   #map { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
-  #map.pan { cursor: grab; } #map.panning { cursor: grabbing; } #map.erase { cursor: not-allowed; }
+  #map.pan { cursor: grab; } #map.panning { cursor: grabbing; } #map.erase { cursor: not-allowed; } #map.measure { cursor: crosshair; }
   #fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   .float { position: absolute; background: rgb(28 23 25 / .92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); }
   .toolbar { top: var(--gap); inset-inline-start: var(--gap); display: flex; align-items: center; gap: 2px; padding: 4px; }
@@ -250,6 +250,7 @@
   <div class="float toolbar" role="toolbar" data-i18n-label="tools">
     <button class="icon-btn" id="tool-select" aria-pressed="true" data-i18n-tip="moveTool"><i class="ph ph-cursor"></i></button>
     <button class="icon-btn" id="tool-erase" aria-pressed="false" data-i18n-tip="erase"><i class="ph ph-eraser"></i></button>
+    <button class="icon-btn" id="tool-measure" aria-pressed="false" data-i18n-tip="measure"><i class="ph ph-ruler"></i></button>
     <button class="icon-btn desk" id="rotate" data-i18n-tip="flipKey"><i class="ph ph-arrows-clockwise"></i></button>
     <span class="sep"></span>
     <button class="icon-btn" id="undo" data-i18n-tip="undo" disabled><i class="ph ph-arrow-counter-clockwise"></i></button>
@@ -380,6 +381,7 @@
     <dt><kbd data-i18n="keyRight">Right-click</kbd></dt><dd data-i18n="helpRight"></dd>
     <dt><kbd>R</kbd></dt><dd data-i18n="helpR"></dd>
     <dt><kbd>V</kbd> <kbd>E</kbd></dt><dd data-i18n="helpVE"></dd>
+    <dt><kbd>M</kbd></dt><dd data-i18n="helpM"></dd>
     <dt><kbd>Ctrl Z</kbd></dt><dd data-i18n="helpUndo"></dd>
     <dt><kbd data-i18n="keyScroll">Scroll</kbd> <kbd>F</kbd></dt><dd data-i18n="helpZoom"></dd>
     <dt><kbd data-i18n="keySpace">Space</kbd></dt><dd data-i18n="helpSpace"></dd>

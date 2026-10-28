@@ -119,6 +119,9 @@
 .ph.ph-plus:before {
   content: "\e3d4";
 }
+.ph.ph-ruler:before {
+  content: "\e6b8";
+}
 .ph.ph-sliders-horizontal:before {
   content: "\e434";
 }
@@ -271,6 +274,9 @@
 }
 .ph-fill.ph-plus:before {
   content: "\e3d4";
+}
+.ph-fill.ph-ruler:before {
+  content: "\e6b8";
 }
 .ph-fill.ph-sliders-horizontal:before {
   content: "\e434";
