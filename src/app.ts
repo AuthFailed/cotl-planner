@@ -1239,6 +1239,33 @@ function renderLayouts() {
   $("layouts-empty").hidden = layouts.length > 0;
 }
 
+// ---------- starter templates ----------
+// Ready-made layouts (data/templates.json, share hashes made with the planner). Loading one replaces the
+// map as one undoable step, like importing a save.
+type Template = { id: string; hash: string };
+let templates: Template[] | null = null;
+const tplKey = (tp: Template) => `tpl${tp.id[0].toUpperCase()}${tp.id.slice(1)}`;
+async function openTemplates() {
+  templates ??= await load<Template[]>("data/templates.json");
+  if (!templates) return toast(t("noTemplates"));
+  $("templates-list").replaceChildren(...templates.map(tp => {
+    const land = fromHash(tp.hash, 0).land;
+    return el("li", {}, el("button", { className: "icon-btn", onclick: () => loadTemplate(tp) },
+      el("b", {}, t(tplKey(tp))), el("span", {}, t(`${tplKey(tp)}Text`)), el("span", {}, t(`land${land}`))));
+  }));
+  $<HTMLDialogElement>("templates-dialog").showModal();
+}
+function loadTemplate(tp: Template) {
+  const s = fromHash(tp.hash, 0);
+  dropHeld();
+  beginStroke();
+  applyLand(s.land);
+  placed = s.placed;
+  endStroke();
+  $<HTMLDialogElement>("templates-dialog").close();
+  toast(t("templateLoaded", { name: t(tplKey(tp)) }));
+}
+
 // ---------- palette: the game's build menu ----------
 function openSheet(open: boolean) {
   $("sheet").classList.toggle("open", open);
@@ -1669,6 +1696,7 @@ $("share").onclick = async () => {
 };
 $("layouts").onclick = () => { renderLayouts(); $<HTMLDialogElement>("layouts-dialog").showModal(); };
 $("layouts-save").onclick = saveAs;
+$("templates-open").onclick = $("hint-templates").onclick = openTemplates;
 $("name-cancel").onclick = () => $<HTMLDialogElement>("name-dialog").close();
 $("import").onclick = () => $<HTMLDialogElement>("import-dialog").showModal();
 $("import-choose").onclick = () => $<HTMLInputElement>("save-file").click();

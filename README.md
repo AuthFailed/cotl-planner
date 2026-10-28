@@ -39,6 +39,9 @@ building, drop it on the grid, share the layout as a link. Live at https://map.c
   its own colour with a legend of names and sizes
 - The whole layout lives in the URL — "Copy link" is your save file
 - Named layouts kept in the browser (open, rename, duplicate, delete); the open one saves as you go
+- Starter templates to begin from (compact farm, decoration showcase, winter-ready base), each one
+  undoable step; they are share hashes in `public/data/templates.json`, named in `tools/i18n/ui.json`
+  (`tpl<Id>`, `tpl<Id>Text`), and the test checks every building still fits
 - Import your real base from the game's save file (⋯ menu → Import save): buildings with their
   levels and flips, and the land you've bought; the file is read in the browser, never uploaded
 - Export to PNG
