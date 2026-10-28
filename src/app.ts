@@ -121,11 +121,29 @@ const avif = await new Promise<boolean>(res => Object.assign(new Image(), {
 const detail = (level: number) => (avif ? level : 3);
 const levelled = (name: string, level: number) => (level > 1 ? `${name}@${level}` : name);
 type Scene = {
-  name: string; atlas: Atlas | null; lights: Atlas | null; pictures: Map<string, HTMLImageElement>; small: Map<string, HTMLImageElement>;
+  name: string; atlas: Atlas | null; lights: Atlas | null; pictures: Map<string, Picture>; small: Map<string, Picture>;
 };
 const scenes = new Map<string, Scene>();
-const ready = (img?: HTMLImageElement | null) => !!img?.complete && !!img.naturalWidth;
-const picture = (path: string) => Object.assign(new Image(), { onload: requestDraw, src: `${path}.${avif ? "avif" : "webp"}${DATA_VERSION}` });
+// A picture is decoded once, off the main thread, into a bitmap that stays decoded: drawn straight from an
+// <img>, the browser drops big decoded pictures under memory pressure and decodes them again mid-frame.
+// Bitmaps not drawn in the last SWEEP full redraws are freed and fetched again from the cache when next
+// needed. (Redraws, not time: an animation frame draws the ground from its layer, not from its pictures.)
+type Picture = { bitmap: ImageBitmap | null; loaded: Promise<ImageBitmap | null>; used: number };
+function picture(src: string): Picture {
+  const img = Object.assign(new Image(), { src }), p: Picture = { bitmap: null, loaded: Promise.resolve(null), used: redraws };
+  p.loaded = new Promise((res, rej) => Object.assign(img, { onload: res, onerror: rej }))
+    .then(() => createImageBitmap(img))
+    .then(b => { p.bitmap = b; requestDraw(); return b; }, () => null);
+  return p;
+}
+const use = (p?: Picture) => { if (p) p.used = redraws; return p?.bitmap ?? null; };
+const SWEEP = 600;
+let redraws = 0;
+function sweep() {
+  if (++redraws % (SWEEP / 4)) return;
+  for (const sc of scenes.values()) for (const map of [sc.pictures, sc.small])
+    for (const [name, p] of map) if (p.bitmap && redraws - p.used > SWEEP) { p.bitmap.close(); map.delete(name); }
+}
 function scene(name: string): Scene {
   let sc = scenes.get(name);
   if (!sc) {
@@ -141,10 +159,10 @@ function scene(name: string): Scene {
 // time it's asked for.
 function pic(sc: Scene, name: string) {
   let img = sc.pictures.get(name);
-  if (!img) sc.pictures.set(name, img = picture(`data/looks/${sc.name}/${name}`));
+  if (!img) sc.pictures.set(name, img = picture(`data/looks/${sc.name}/${name}.${avif ? "avif" : "webp"}${DATA_VERSION}`));
   return img;
 }
-const extra = (sc: Scene, name: string) => { const img = pic(sc, name); return ready(img) ? img : null; };
+const extra = (sc: Scene, name: string) => use(pic(sc, name));
 // Sheet i of a look's atlas at the textures' detail.
 const sheet = (sc: Scene, i: number) => pic(sc, levelled(sc.atlas!.sheets[i], detail(quality.textures)));
 // A look's backdrop for a land level, while its tiles load (and with no tiles, the whole picture).
@@ -152,8 +170,8 @@ function smallBackdrop(name: string, level: number) {
   if (!bg) return null;
   const sc = scene(name), path = `data/looks/${name}/${bg.images[Math.min(level, bg.images.length - 1)]}`;
   let img = sc.small.get(path);
-  if (!img) sc.small.set(path, img = Object.assign(new Image(), { onload: requestDraw, src: `${path}.small.webp${DATA_VERSION}` }));
-  return ready(img) ? img : null;
+  if (!img) sc.small.set(path, img = picture(`${path}.small.webp${DATA_VERSION}`));
+  return use(img);
 }
 // A building's render in the look on screen (as inside lamp light with `lit`), or the day one while
 // that loads, at the textures' detail. At `time` (ms) an animated one also brings the part that moves as
@@ -161,8 +179,8 @@ function smallBackdrop(name: string, level: number) {
 function art(T: string, lit = false, time?: number) {
   for (const sc of [scene(shown), scene("day")]) {
     const full = sc.atlas?.items[T], i = full?.[6] ?? 0, k = detail(quality.textures);
-    const image = full && (lit ? extra(sc, levelled(`${sc.atlas!.sheets[i]}-lit`, k)) : sheet(sc, i));
-    if (!full || !ready(image)) { if (lit) return null; continue; }
+    const image = full && (lit ? extra(sc, levelled(`${sc.atlas!.sheets[i]}-lit`, k)) : use(sheet(sc, i)));
+    if (!full || !image) { if (lit) return null; continue; }
     const item = scaled(full, k);
     const anim = sc.atlas!.anim, frames = time === undefined ? undefined : anim?.frames[T], ka = detail(quality.animations);
     const moving = frames && anim!.items[`${T}#${Math.floor(time! / 1000 * frames[1]) % frames[0]}`];
@@ -170,7 +188,7 @@ function art(T: string, lit = false, time?: number) {
     const patch = moving && movingImage
       ? { image: movingImage, item: scaled(moving, ka), ppu: anim!.ppu / ka, box: anim!.box[T].map(n => n / k) }
       : null;
-    return { image: image!, item, ppu: sc.atlas!.ppu / k, fps: frames?.[1] ?? 0, patch };
+    return { image, item, ppu: sc.atlas!.ppu / k, fps: frames?.[1] ?? 0, patch };
   }
   return null;
 }
@@ -247,11 +265,11 @@ function thumb(T: string, size = 44): HTMLElement {
     const image = sheet(scene("day"), a[6] ?? 0), d = detail(quality.textures); // the sheet at 1/d of full size
     const px = Math.round(size * Math.min(2, devicePixelRatio || 1));
     const c = el("canvas", { className: "thumb", width: px, height: px });
-    const paint = () => {
+    const paint = (bitmap: ImageBitmap | null) => {
       const [x, y, w, h] = scaled(a, d), k = Math.min(px / w, px / h, (px / 40) * d);
-      c.getContext("2d")!.drawImage(image, x, y, w, h, (px - w * k) / 2, (px - h * k) / 2, w * k, h * k);
+      if (bitmap) c.getContext("2d")!.drawImage(bitmap, x, y, w, h, (px - w * k) / 2, (px - h * k) / 2, w * k, h * k);
     };
-    if (ready(image)) paint(); else image.addEventListener("load", paint, { once: true });
+    if (image.bitmap) paint(image.bitmap); else void image.loaded.then(paint);
     return c;
   }
   const blank = () => el("i", { className: "thumb ph ph-image" });
@@ -283,8 +301,9 @@ const initials = (name: string) => name.split(/\s+/).map(s => s[0]).join("").sli
 
 // ---------- drawing ----------
 type Ctx = CanvasRenderingContext2D;
-let frame = 0;
-function requestDraw() { frame ||= requestAnimationFrame(() => { frame = 0; draw(ctx, size, view, true); }); }
+let frame = 0, changed = true; // changed: something besides the animations' time since the last frame
+function requestDraw() { changed = true; nextFrame(); }
+function nextFrame() { frame ||= requestAnimationFrame(() => { frame = 0; draw(ctx, size, view, true); }); }
 
 const gridSpace = (c: Ctx, sz: Size, v: View) => c.setTransform(sz.dpr * v.s * K, -sz.dpr * v.s * K * V, -sz.dpr * v.s * K, -sz.dpr * v.s * K * V, sz.dpr * v.tx, sz.dpr * v.ty);
 const screenSpace = (c: Ctx, sz: Size) => c.setTransform(sz.dpr, 0, 0, sz.dpr, 0, 0);
@@ -293,10 +312,17 @@ const screenSpace = (c: Ctx, sz: Size) => c.setTransform(sz.dpr, 0, 0, sz.dpr, 0
 // second LUT. The scene is drawn again from the lit art into `litLayer`, cut to the lamps' light (their
 // masks added up in `maskLayer`) and laid over: normal × (1 − light) + lit × light.
 const litLayer = document.createElement("canvas"), maskLayer = document.createElement("canvas");
+// The ground (backdrop and grid) and the lamps' light change with the view, the layout, the look or a
+// picture loading, never from one animation frame to the next: on screen they're drawn into layers of
+// their own (plain and lit ground; maskLayer) and an animation frame copies them from there.
+const groundLayers = [document.createElement("canvas"), document.createElement("canvas")], groundHasBg = [false, false];
 let animTimer = 0;
 const MAX_FPS = 30; // redraws per second at most while an animated building is on screen
 
 function draw(c: Ctx, sz: Size, v: View, live: boolean) {
+  const reuse = live ? !changed : undefined; // undefined: an export, drawn from scratch and leaving no layers
+  changed = !live; // an export draws into maskLayer at its own size
+  if (reuse === false) sweep();
   screenSpace(c, sz);
   c.fillStyle = "#141012";
   c.fillRect(0, 0, sz.w, sz.h);
@@ -311,7 +337,7 @@ function draw(c: Ctx, sz: Size, v: View, live: boolean) {
   const depth = (p: Placed) => p.x + p.y; // larger x + y sits further up the screen, i.e. further back
   items.sort((a, b) => depth(b[0]) - depth(a[0]));
   const time = live && !calm.matches ? performance.now() : undefined; // animations play on screen, not in exports
-  const { area, fps } = drawScene(c, sz, v, items, false, time);
+  const { area, fps } = drawScene(c, sz, v, items, false, time, undefined, reuse);
 
   // only where the lamps' light reaches (device pixels), so the second pass costs what's lit
   const lit = items.flatMap(([p]) => { const r = lightRect(sz, v, p); return r ? [r] : []; });
@@ -328,12 +354,14 @@ function draw(c: Ctx, sz: Size, v: View, live: boolean) {
       lc.beginPath();
       lc.rect(x0, y0, x1 - x0, y1 - y0);
       lc.clip();
-      drawScene(lc, sz, v, items, true, time, [x0 / sz.dpr, y0 / sz.dpr, x1 / sz.dpr, y1 / sz.dpr]);
-      mc.setTransform(1, 0, 0, 1, 0, 0);
-      mc.clearRect(x0, y0, x1 - x0, y1 - y0);
-      mc.globalCompositeOperation = "lighter"; // the game adds its lights up in the mask
-      for (const [p] of items) light(mc, sz, v, p, "mask");
-      mc.globalCompositeOperation = "source-over";
+      drawScene(lc, sz, v, items, true, time, [x0 / sz.dpr, y0 / sz.dpr, x1 / sz.dpr, y1 / sz.dpr], reuse);
+      if (!reuse) {
+        mc.setTransform(1, 0, 0, 1, 0, 0);
+        mc.clearRect(x0, y0, x1 - x0, y1 - y0);
+        mc.globalCompositeOperation = "lighter"; // the game adds its lights up in the mask
+        for (const [p] of items) light(mc, sz, v, p, "mask");
+        mc.globalCompositeOperation = "source-over";
+      }
       lc.setTransform(1, 0, 0, 1, 0, 0);
       lc.globalCompositeOperation = "destination-in";
       lc.drawImage(maskLayer, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
@@ -351,17 +379,42 @@ function draw(c: Ctx, sz: Size, v: View, live: boolean) {
     c.fillRect(...area);
   }
   if (showLabels) for (const [p, mode] of items) if (mode !== "ghost" && mode !== "blocked") label(c, sz, v, p);
-  if (live) placeSelectionCard();
+  if (reuse === false) placeSelectionCard();
   // next frame of the fastest animation on screen
-  if (fps && live) animTimer ||= window.setTimeout(() => { animTimer = 0; requestDraw(); }, 1000 / Math.min(MAX_FPS, fps));
+  if (fps && live) animTimer ||= window.setTimeout(() => { animTimer = 0; nextFrame(); }, 1000 / Math.min(MAX_FPS, fps));
 }
 
 // The base and its buildings, with the art graded as inside lamp light when `lit`. Returns the backdrop's
-// area on screen and the frame rate of the fastest animation in view (0: none).
-function drawScene(c: Ctx, sz: Size, v: View, items: [Placed, Mode][], lit: boolean, time?: number, within?: Box) {
+// area on screen and the frame rate of the fastest animation in view (0: none). With `reuse` set, the
+// ground comes from its layer (true) or is drawn into it first (false).
+function drawScene(c: Ctx, sz: Size, v: View, items: [Placed, Mode][], lit: boolean, time?: number, within?: Box, reuse?: boolean) {
+  let hasBg: boolean;
+  if (reuse === undefined) hasBg = drawGround(c, sz, v, lit, within);
+  else {
+    const layer = groundLayers[+lit], W = Math.round(sz.w * sz.dpr), H = Math.round(sz.h * sz.dpr);
+    if (!reuse) {
+      if (layer.width !== W || layer.height !== H) Object.assign(layer, { width: W, height: H });
+      const g = layer.getContext("2d")!;
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.clearRect(0, 0, W, H);
+      groundHasBg[+lit] = drawGround(g, sz, v, lit, within);
+    }
+    hasBg = groundHasBg[+lit];
+    const [x0, y0, x1, y1] = (within ?? [0, 0, sz.w, sz.h]).map(n => Math.round(n * sz.dpr));
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    if (layer.width && layer.height && x1 > x0 && y1 > y0) c.drawImage(layer, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0); // a canvas of size 0 can't be drawn
+  }
+  const area = bg && hasBg ? [v.s * bg.u0 + v.tx, -v.s * bg.v0 + v.ty, bg.w * v.s / bg.ppu, bg.h * v.s / bg.ppu] as const : null;
+  for (const [p, mode] of items) footprint(c, sz, v, p, mode);
+  let fps = 0;
+  for (const [p, mode] of items) fps = Math.max(fps, sprite(c, sz, v, p, mode, lit, time));
+  return { area, fps };
+}
+
+// The backdrop and the grid over it; returns whether there's a backdrop.
+function drawGround(c: Ctx, sz: Size, v: View, lit: boolean, within?: Box) {
   screenSpace(c, sz);
   const hasBg = drawBackdrop(c, sz, v, lit, within);
-  const area = bg && hasBg ? [v.s * bg.u0 + v.tx, -v.s * bg.v0 + v.ty, bg.w * v.s / bg.ppu, bg.h * v.s / bg.ppu] as const : null;
 
   // ground: over the art, inset rounded green outlines like the game's build-mode tiles;
   // without art, plain filled cells
@@ -375,11 +428,7 @@ function drawScene(c: Ctx, sz: Size, v: View, items: [Placed, Mode][], lit: bool
   c.lineWidth = (hasBg ? 1.5 : 1) / v.s;
   c.strokeStyle = hasBg ? `rgb(72 176 96 / ${.75 * glow})` : "rgb(20 16 18 / .45)";
   c.stroke();
-
-  for (const [p, mode] of items) footprint(c, sz, v, p, mode);
-  let fps = 0;
-  for (const [p, mode] of items) fps = Math.max(fps, sprite(c, sz, v, p, mode, lit, time));
-  return { area, fps };
+  return hasBg;
 }
 
 function halo(c: Ctx, text: string, x: number, y: number) {
@@ -413,7 +462,7 @@ function footprint(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode) {
 type Box = [number, number, number, number];
 function drawBackdrop(c: Ctx, sz: Size, v: View, lit: boolean, within: Box = [0, 0, sz.w, sz.h]) {
   if (!bg) return false;
-  if (look !== shown && smallBackdrop(look, land) && scene(look).atlas && ready(sheet(scene(look), 0))) shown = look;
+  if (look !== shown && smallBackdrop(look, land) && scene(look).atlas && use(sheet(scene(look), 0))) shown = look;
   const sc = scene(shown), name = `${lit ? "lit-" : ""}${bg.images[Math.min(land, bg.images.length - 1)]}`;
   const x0 = v.s * bg.u0 + v.tx, y0 = -v.s * bg.v0 + v.ty, k = v.s / bg.ppu; // screen pixels per picture pixel
   let drawn = false;
@@ -431,7 +480,7 @@ function drawBackdrop(c: Ctx, sz: Size, v: View, lit: boolean, within: Box = [0,
   for (let r = r0; r <= r1; r++)
     for (let col = c0; col <= c1; col++) {
       const tile = `${name}/${col}_${r}`;
-      const img = extra(sc, levelled(tile, level)) ?? [1, 2, 3].map(l => sc.pictures.get(levelled(tile, l))).find(ready);
+      const img = extra(sc, levelled(tile, level)) ?? use([1, 2, 3].map(l => sc.pictures.get(levelled(tile, l))).find(p => p?.bitmap));
       if (!img) continue;
       c.drawImage(img, x0 + (col * t.size - t.border) * k, y0 + (r * t.size - t.border) * k, (t.size + 2 * t.border) * k, (t.size + 2 * t.border) * k);
       drawn = true;
@@ -1198,7 +1247,7 @@ for (const key of ["textures", "animations"] as const) {
   select.onchange = () => {
     quality[key] = +select.value;
     store.set(key, quality[key]);
-    for (const sc of scenes.values()) sc.pictures.clear(); // the other detail's pictures go
+    for (const sc of scenes.values()) { for (const p of sc.pictures.values()) p.bitmap?.close(); sc.pictures.clear(); } // the other detail's pictures go
     requestDraw();
   };
 }
