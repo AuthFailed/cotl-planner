@@ -94,49 +94,56 @@ const nameOf = (T: string) => L.names[T] || english.names[T] || wikiOf[T]?.name 
 const descOf = (T: string) => L.desc[T] || english.desc[T] || "";
 
 // ---------- looks: the base as the game draws it by weather and time of day ----------
-// data/looks/<look>/ holds a backdrop per number of land upgrades bought (background-N.webp) and the
-// buildings' atlas (sprites.webp + sprites.json), all rendered by the game itself (tools/capture).
-// A look loads the first time it's picked; the palette always uses the day atlas.
+// data/looks/<look>/ holds a backdrop per number of land upgrades bought (background-N) and the
+// buildings' atlas (sprites.json and its sheets), all rendered by the game itself (tools/capture).
+// A look loads the first time it's picked; the palette always uses the day atlas. Each backdrop
+// shows a small version first, and the atlas's second sheet (upgrade levels) loads only when asked for.
 const LOOK_ICONS: Record<string, string> = { day: "ph-sun", night: "ph-moon-stars", rain: "ph-cloud-rain", bloodmoon: "ph-moon", winter: "ph-snowflake", blizzard: "ph-cloud-snow" };
 const GRID: Record<string, number> = { night: .4, bloodmoon: .4 }; // build-grid strength where the scene is dark
 const looks = bg?.looks ?? ["day"];
 let look = store.get("look", "day");
 if (!looks.includes(look)) look = looks[0];
 let shown = look; // the look on screen: a newly picked one takes over once its art has loaded
-type Scene = { atlas: Atlas | null; image: HTMLImageElement; ready: boolean; backdrops: Map<string, HTMLImageElement> };
+type Scene = { name: string; atlas: Atlas | null; sheets: HTMLImageElement[]; backdrops: Map<string, { small: HTMLImageElement; full: HTMLImageElement }> };
 const scenes = new Map<string, Scene>();
+const ready = (img?: HTMLImageElement) => !!img?.complete && !!img.naturalWidth;
+// AVIF where the browser has it, WebP otherwise (an AVIF it can't decode fails to load).
+function picture(path: string) {
+  const img = Object.assign(new Image(), { onload: requestDraw });
+  img.onerror = () => { if (img.src.endsWith(".avif")) img.src = `${path}.webp`; };
+  img.src = `${path}.avif`;
+  return img;
+}
 function scene(name: string): Scene {
   let sc = scenes.get(name);
   if (!sc) {
-    const s: Scene = { atlas: name === "day" ? atlas : null, image: new Image(), ready: false, backdrops: new Map() };
-    s.image.onload = () => { s.ready = true; requestDraw(); };
-    if (s.atlas) s.image.src = `data/looks/${name}/sprites.webp`;
-    else void load<Atlas>(`data/looks/${name}/sprites.json`).then(a => { s.atlas = a; if (a) s.image.src = `data/looks/${name}/sprites.webp`; });
+    const s: Scene = { name, atlas: name === "day" ? atlas : null, sheets: [], backdrops: new Map() };
+    if (s.atlas) sheet(s, 0);
+    else void load<Atlas>(`data/looks/${name}/sprites.json`).then(a => { s.atlas = a; if (a) sheet(s, 0); });
     scenes.set(name, sc = s);
   }
   return sc;
 }
-function backdropOf(name: string, level: number) {
+// Sheet i of a look's atlas, fetched the first time it's asked for.
+const sheet = (sc: Scene, i: number) => (sc.sheets[i] ??= picture(`data/looks/${sc.name}/${sc.atlas!.sheets[i]}`));
+// A look's backdrop for a land level: the full image once loaded, the small one until then (unless `full`).
+function backdropOf(name: string, level: number, full = false) {
   if (!bg) return null;
-  const sc = scene(name), src = `data/looks/${name}/${bg.images[Math.min(level, bg.images.length - 1)]}`;
-  let img = sc.backdrops.get(src);
-  if (!img) {
-    img = Object.assign(new Image(), { onload: requestDraw });
-    img.src = src;
-    sc.backdrops.set(src, img);
-  }
-  return img.complete && img.naturalWidth ? img : null;
+  const sc = scene(name), path = `data/looks/${name}/${bg.images[Math.min(level, bg.images.length - 1)]}`;
+  let b = sc.backdrops.get(path);
+  if (!b) sc.backdrops.set(path, b = { small: Object.assign(new Image(), { onload: requestDraw, src: `${path}.small.webp` }), full: picture(path) });
+  return ready(b.full) ? b.full : !full && ready(b.small) ? b.small : null;
 }
 function backdrop() {
-  if (backdropOf(look, land) && scene(look).ready) shown = look;
+  if (backdropOf(look, land, true) && ready(scene(look).sheets[0])) shown = look;
   // while another land level's image loads, keep showing whichever one is ready
-  return backdropOf(shown, land) ?? [...scene(shown).backdrops.values()].find(i => i.complete && i.naturalWidth) ?? null;
+  return backdropOf(shown, land) ?? [...scene(shown).backdrops.values()].find(b => ready(b.full))?.full ?? null;
 }
 // A building's render in the look on screen, or the day one while that loads.
 function art(T: string) {
   for (const sc of [scene(shown), scene("day")]) {
-    const item = sc.ready ? sc.atlas?.items[T] : undefined;
-    if (item && sc.atlas) return { image: sc.image, item, ppu: sc.atlas.ppu };
+    const item = sc.atlas?.items[T], image = item && sheet(sc, item[6] ?? 0);
+    if (item && ready(image)) return { image: image!, item, ppu: sc.atlas!.ppu };
   }
   return null;
 }
@@ -200,15 +207,16 @@ function anchored(b: Brush, c: CellXY): Placed {
 // A building as the game draws it, shrunk into a square box (`size` CSS pixels, for resolution);
 // the wiki's build-menu icon when the game render is missing.
 function thumb(T: string, size = 44): HTMLElement {
-  const day = scene("day"), a = atlas?.items[T];
+  const a = atlas?.items[T];
   if (a) {
+    const image = sheet(scene("day"), a[6] ?? 0);
     const px = Math.round(size * Math.min(2, devicePixelRatio || 1));
     const c = el("canvas", { className: "thumb", width: px, height: px });
     const paint = () => {
       const [x, y, w, h] = a, k = Math.min(px / w, px / h, px / 40);
-      c.getContext("2d")!.drawImage(day.image, x, y, w, h, (px - w * k) / 2, (px - h * k) / 2, w * k, h * k);
+      c.getContext("2d")!.drawImage(image, x, y, w, h, (px - w * k) / 2, (px - h * k) / 2, w * k, h * k);
     };
-    if (day.ready) paint(); else day.image.addEventListener("load", paint, { once: true });
+    if (ready(image)) paint(); else image.addEventListener("load", paint, { once: true });
     return c;
   }
   const blank = () => el("i", { className: "thumb ph ph-image" });

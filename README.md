@@ -127,16 +127,18 @@ not drawn, and buildings without plain sprites fall back to the wiki icon. In-ga
 
 ## Building renders
 
-`public/data/looks/<look>/sprites.webp` holds every buildable structure as the game draws it: the capture
+`public/data/looks/<look>/sprites.json` and its sheets hold every buildable structure as the game draws it: the capture
 plugin's Buildings job loads each building prefab through Addressables, strips its gameplay
 scripts (keeping Spine renderers and switching off light sprites, range indicators and
 effects), places it on open ground in the base, and renders it alone over black and over
 white to recover exact transparency. `tools/capture/pack_sprites.html` packs the results
-into the atlas; each sprite keeps its anchor, the centre of the footprint's first cell.
+into the atlas; each sprite keeps its anchor, the centre of the footprint's first cell. The atlas
+has two sheets: `sprites` with the build menu's buildings and the Temple (what a first visit draws)
+and `sprites-2` with the upgrade levels, which the page fetches only once one is on screen.
 
 ## Background art
 
-`public/data/looks/<look>/background-N.webp` (N = land upgrades bought) is rendered by the game itself. `tools/capture/PlannerCapture.cs`
+`public/data/looks/<look>/background-N` (N = land upgrades bought) is rendered by the game itself. `tools/capture/PlannerCapture.cs`
 is a BepInEx 5 plugin that continues a save, switches saving off, hides the UI, player,
 followers, placed buildings and obstacles, and renders the base with the game's own
 camera, shaders and colour grading, looking down at 45° without perspective (the
@@ -175,12 +177,17 @@ The snow looks come back with a see-through vertical seam on maps with land upgr
 seams and fills them from the ground beside them, only on the rows where the band is darker.
 Then:
 
+pack each look's buildings with `pack_sprites.html?look=<look>&data=<where public/data is served>`
+(it reads `game.json` and `base.json` to know what goes on the first sheet; `save()` in the console
+writes `<look>/sprites.png`, `sprites-2.png` and `sprites.json` into the capture), then:
+
 ```bash
-tools/capture/looks_to_data.sh <capture dir>   # backdrops -> public/data/looks/<look>/, looks in background.json
+tools/capture/looks_to_data.sh <capture dir>   # backdrops and atlases -> public/data/looks/<look>/, looks in background.json
 ```
 
-and pack each look's buildings with `pack_sprites.html?look=<look>` into
-`public/data/looks/<look>/sprites.webp` + `sprites.json`. The game's weather tint (a colour it lays over
+It needs `cwebp` and `avifenc`, and writes every image twice, AVIF and WebP (the page asks for AVIF
+and falls back to WebP where the browser can't decode it), plus `background-N.small.webp`, 512 wide,
+which the page draws until the full backdrop has loaded. The game's weather tint (a colour it lays over
 the screen) is listed in `background.json` and drawn by the planner, which also animates the
 falling rain and snow (left out of captures, where they'd freeze into dots).
 
