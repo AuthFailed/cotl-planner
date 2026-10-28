@@ -86,6 +86,10 @@ for (const { code } of json("public/data/i18n/index.json")) {
 // every look has its art (every backdrop tile and sheet at full, ½ and ⅓ in AVIF, the ⅓ ones also in
 // WebP for browsers without AVIF, and the small backdrops), and a name in the page's strings
 const bg = json("public/data/background.json");
+const floorRules = json("public/data/floors.json");
+assert.ok(Object.keys(floorRules).every(T => game.types[T]), "floor rules for known types");
+assert.ok(Object.values(floorRules).every(f => f.rules.every(r => r.need.every(([dx, dy, c]) => Math.abs(dx) <= 1 && Math.abs(dy) <= 1 && (c === 1 || c === 2)))),
+  "floor rules look at the 8 neighbours");
 assert.equal(bg.looks[0], "day", "day comes first: the palette's thumbnails use it");
 assert.ok(!bg.tile || bg.tile.cols * bg.tile.size >= bg.w && bg.tile.rows * bg.tile.size >= bg.h, "backdrop tiles cover the backdrop");
 for (const l of bg.looks) {
@@ -94,7 +98,12 @@ for (const l of bg.looks) {
   const lights = existsSync(new URL(`../public/data/looks/${l}/lights.json`, import.meta.url)) ? json(`public/data/looks/${l}/lights.json`) : null;
   if (lights) assert.ok(Object.keys(lights.items).every(k => /^(mask|glow):/.test(k) && game.types[k.slice(5)]), `${l}: lights of known types`);
   assert.ok(en.ui[`look${l[0].toUpperCase()}${l.slice(1)}`], `${l}: has a name`);
-  const sheets = [...a.sheets, ...Object.keys(a.anim?.frames ?? {}).map(T => `anim/${T}`)];
+  // every tile a floor's rules can put down (each sprite and turn they name, and the default), drawn in this look
+  const floors = json(`public/data/looks/${l}/floors.json`);
+  const picks = Object.entries(floorRules).flatMap(([T, f]) => [...(f.default < 0 ? [] : [`${T}.${f.default}.1,0,0,1`]), ...f.rules.flatMap(r => r.pick
+    ? r.pick.s.map((s, i) => `${T}.${s}.${r.pick.ms[r.pick.m[i]]}`) : [`${T}.${r.s}.${r.m}`])]);
+  assert.deepEqual([...new Set(picks.filter(k => !floors.items[k]))], [], `${l}: every floor tile`);
+  const sheets = [...a.sheets, ...floors.sheets, ...Object.keys(a.anim?.frames ?? {}).map(T => `anim/${T}`)];
   const lightSheets = lights ? [...new Set(Object.keys(lights.items).map(k => `lights/${k.slice(5)}`))] : [];
   const tiles = bg.tile ? bg.images.flatMap(b => Array.from({ length: bg.tile.cols * bg.tile.rows }, (_, i) => `${b}/${i % bg.tile.cols}_${i / bg.tile.cols | 0}`)) : bg.images;
   const pictures = [...sheets, ...lightSheets, ...tiles, ...(lit ? [...sheets.map(s => `${s}-lit`), ...tiles.map(t => `lit-${t}`)] : [])];

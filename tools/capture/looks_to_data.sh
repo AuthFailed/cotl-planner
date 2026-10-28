@@ -5,12 +5,12 @@
 # Backdrops: the capture's tiles (landN/<col>_<row>.png, capture.json "tiles", each with a border of its
 # neighbours' pixels) are cut into square tiles background-N/<col>_<row> with the same border, at full
 # detail and at ½ and ⅓ (@2, @3); lit/landN the same into lit-background-N/ for looks where lamps light
-# the ground. Pack each look first with pack_sprites.html (?look=<look>, &set=lights and &set=small, with
-# the same &scale): every sheet it writes to <look>/packed/ (sprites*.png, lights/*.png, anim/*.png, with
-# @2 and @3) is encoded here to the same place in public/data/looks/<look>/, packed/small/landN.png
-# becomes background-N.small.webp (shown while the tiles load), and its sprites.json and lights.json are
-# copied. <ppu> sets the backdrops' detail (the capture's, 200 px per unit, without it): the site keeps
-# everything in the repo, under GitHub Pages' 1 GB, at 128.
+# the ground. Pack each look first with pack_sprites.html (?look=<look>, &set=lights, &set=floors and
+# &set=small, with the same &scale): every sheet it writes to <look>/packed/ (sprites*.png, floors*.png,
+# lights/*.png, anim/*.png, with @2 and @3) is encoded here to the same place in public/data/looks/<look>/,
+# packed/small/landN.png becomes background-N.small.webp (shown while the tiles load), and its
+# sprites.json, lights.json and floors.json are copied. <ppu> sets the backdrops' detail (the capture's,
+# 200 px per unit, without it): the site keeps everything in the repo, under GitHub Pages' 1 GB, at 128.
 # Every picture comes as AVIF; the ⅓ ones also as WebP, which browsers without AVIF get.
 # Usage: tools/capture/looks_to_data.sh <capture dir> [ppu]   (needs cwebp, dwebp, avifenc)
 set -euo pipefail
@@ -46,8 +46,8 @@ jobs=$(mktemp)
 looks=() lit=()
 for dir in "$CAP"/*/; do
   look=$(basename "$dir")
-  [ -d "$dir/land0" ] || continue
-  looks+=("$look")
+  [ -d "$dir/land0" ] || [ -d "$dir/packed" ] || continue
+  [ -d "$dir/land0" ] && looks+=("$look") # a capture without Backgrounds only brings sheets
   out="$DATA/looks/$look"
   mkdir -p "$out"
   for n in 0 1 2 3; do
@@ -72,11 +72,12 @@ for dir in "$CAP"/*/; do
     name=${png#"$dir/packed/"}; name=${name%.png}
     echo "--encode $png $out/$name" >> "$jobs"
   done
-  for f in sprites.json lights.json; do [ -f "$dir/packed/$f" ] && cp "$dir/packed/$f" "$out/"; done
+  for f in sprites.json lights.json floors.json; do [ -f "$dir/packed/$f" ] && cp "$dir/packed/$f" "$out/"; done
 done
 echo "encoding $(wc -l < "$jobs") pictures…"
 xargs -P "$(sysctl -n hw.ncpu 2>/dev/null || nproc)" -L 1 "$0" < "$jobs"
 rm "$jobs"
+[ ${#looks[@]} -gt 0 ] || exit 0 # background.json lists the looks with backdrops
 for look in "${looks[@]}"; do echo "$look: $(du -sh "$DATA/looks/$look" | cut -f1)"; done
 python3 - "$DATA/background.json" "$CW" "$CH" "$PPU" "$OUT_PPU" "$S" "$B" "$cols" "$rows" "${lit[*]:-}" "${looks[@]}" <<'PY'
 import json, sys

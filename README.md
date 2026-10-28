@@ -150,9 +150,23 @@ art's own resolution: the plugin's Density job measures it). `tools/capture/pack
 the results into the atlas; each sprite keeps its anchor, the centre of the footprint's first cell.
 The atlas has two sheets: `sprites` with the build menu's buildings and the Temple (what a first
 visit draws) and `sprites-2` with the upgrade levels, which the page fetches only once one is on screen.
+Buildings captured later on their own (`Types` set) go on further sheets: `pack_sprites.html` packs
+them as usual, then `python3 tools/capture/add_buildings.py <capture dir>` renames those sheets to the
+next free `sprites-N` of each look and merges their items into the look's `sprites.json` and
+`lights.json`. Some placement objects (the farm plot, the tabernacle) don't name what they build; the
+plugin then loads the structure's own prefab (`StructuresData.PrefabPath`), and gives a farm plot the
+soil it would load when it wakes up. Parts drawn like the ground (`_StencilRef` 1, which only passes
+where the ground has marked the stencil) are drawn with the reference cleared.
 Every sheet also comes at ½ and ⅓ (`@2`, `@3`), with sizes and places in steps of 6 so the same
 coordinates, divided by 2 or 3, fit them exactly.
 
+- **Paths and floors** aren't prefabs: the game puts them down as rule tiles on `PathTileManager`'s
+  tilemaps, one per floor, each tile's sprite and turn chosen by which of its 8 neighbours hold the
+  same floor. The Floors job writes those rules (`floors.json` at the capture's root, which goes to
+  `public/data/floors.json`; in the planner's grid, since the tilemaps line up with it cell for cell) and renders every tile they can put down on a copy of the floor's
+  own tilemap, so with its material and the look's light, anchored like a building
+  (`floors/<TYPE>.<sprite>.<matrix>.png`). `pack_sprites.html?set=floors` packs them into
+  `floors.png` and `floors.json`; the planner picks each floor's tile from the rules as the game does.
 - **Animation**: a building with an idle loop (Spine, an Animator, or a shader that moves it,
   like flags in the wind) is rendered once per frame over exactly one loop of its longest part,
   the game's clock stepped by `Time.captureDeltaTime` so all of it moves together. This game's
@@ -202,7 +216,7 @@ from `public/data/base.json`).
 ### Weather and time of day
 
 With `Looks = day,night,rain,bloodmoon,winter,blizzard` in the plugin's config
-(`BepInEx/config/chrsnv.cotlplanner.capture.cfg`, section `[Jobs]`), the Buildings and
+(`BepInEx/config/chrsnv.cotlplanner.capture.cfg`, section `[Jobs]`), the Buildings, Floors and
 Backgrounds jobs run once per look, each into its own folder. Before each one the plugin
 switches the game in memory: the clock (the game's light follows the day phase, and its clock
 only runs forward, so afternoon looks go first), the season (winter, with what the game fires on
@@ -228,8 +242,8 @@ writes into it) and `data/game.json` and `data/base.json` next to it, pack each 
 `pack_sprites.html?look=<look>&scale=0.64` (the buildings: `save()` in the console writes
 `<look>/packed/sprites.png`, `sprites-2.png`, their `-lit` copies, `anim/<TYPE>.png`, all at ½ and
 ⅓ too, and `sprites.json`), `&set=lights` (each building's light, `lights/<TYPE>.png`, and
-`lights.json`) and `&set=small` (`small/landN.png`, each backdrop 512 wide, drawn while its tiles
-load), then:
+`lights.json`), `&set=floors` (`floors.png`, `floors.json`) and `&set=small` (`small/landN.png`,
+each backdrop 512 wide, drawn while its tiles load), then:
 
 ```bash
 tools/capture/looks_to_data.sh <capture dir> 128   # -> public/data/looks/<look>/, looks and tiles in background.json
@@ -271,7 +285,6 @@ node tools/test.mjs
 ## Not done yet
 
 - The DLC shrine room
-- 16 menu entries (mostly paths) still use wiki icons
 - Follower reach areas (farmer station, propaganda speakers)
 
 ## Legal

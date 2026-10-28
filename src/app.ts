@@ -3,7 +3,7 @@ import "@fontsource-variable/geist-mono";
 import "./icons/icons.css";
 import { rect, fits, itemAt, encode, decode, cellsFor, type Placed, type Cell } from "./core.ts";
 import { readSave } from "./save.ts";
-import type { Atlas, Background, BaseData, Building, GameData, Language, MenuTab, Strings, WikiBuilding } from "./types.ts";
+import type { Atlas, Background, BaseData, Building, FloorRules, GameData, Language, MenuTab, Strings, WikiBuilding } from "./types.ts";
 
 // The game rotates the base grid 45° (data/base.json "rotation") and its cameras look down
 // at ~45°, which flattens the ground vertically by about cos 45°. So a cell (x, y) lands
@@ -33,9 +33,10 @@ const DATA_VERSION = import.meta.env.VITE_DATA ? `?v=${import.meta.env.VITE_DATA
 const load = <T>(u: string): Promise<T | null> => fetch(u + DATA_VERSION).then(r => (r.ok ? r.json() : null)).catch(() => null);
 const phone = matchMedia("(max-width: 767px)");
 
-const [base, game, bg, atlas, wiki, langs, en] = await Promise.all([
+const [base, game, bg, atlas, dayFloors, floorRules, wiki, langs, en] = await Promise.all([
   load<BaseData>("data/base.json"), load<GameData>("data/game.json"), load<Background>("data/background.json"),
-  load<Atlas>("data/looks/day/sprites.json"), load<WikiBuilding[]>("data/buildings.json"),
+  load<Atlas>("data/looks/day/sprites.json"), load<Atlas>("data/looks/day/floors.json"), load<FloorRules>("data/floors.json"),
+  load<WikiBuilding[]>("data/buildings.json"),
   load<Language[]>("data/i18n/index.json"), load<Strings>("data/i18n/en.json"),
 ]);
 if (!base || !game) throw new Error("planner data missing");
@@ -70,8 +71,20 @@ function shrine(): Placed | null {
   const T = shrines[temple ? chainOf.TEMPLE.indexOf(temple.name) : 0] ?? shrines.at(-1);
   return base!.shrine && T ? { name: T, x: base!.shrine.x, y: base!.shrine.y, r: 0 } : null;
 }
-// Paths and floors lie flat; without a render of their own they're drawn on the ground, not standing up.
-const isFloor = (T: string) => /^TILE_|_FLOOR$/.test(T);
+// Paths and floors lie flat, drawn on the ground under everything that stands.
+const isFloor = (T: string) => !!floorRules?.[T] || /^TILE_|_FLOOR$/.test(T);
+// The tile the game's rule tile puts down for floor T at (x, y), given the floors around it (`ground`: "x,y" -> type).
+function floorTile(T: string, x: number, y: number, ground: Map<string, string>) {
+  const f = floorRules?.[T];
+  if (!f) return null;
+  for (const r of f.rules) {
+    if (!r.need.every(([dx, dy, c]) => (ground.get(`${x + dx},${y + dy}`) === T) === (c === 1))) continue;
+    if (!r.pick) return `${T}.${r.s}.${r.m}`;
+    const i = (y - r.pick.y0) * r.pick.w + x - r.pick.x0; // the pick covers the base and all its land
+    return `${T}.${r.pick.s[i] ?? r.pick.s[0]}.${r.pick.ms[r.pick.m[i] ?? 0]}`;
+  }
+  return f.default < 0 ? null : `${T}.${f.default}.1,0,0,1`;
+}
 
 // ---------- text: the game's own translations plus the planner's strings ----------
 const english: Strings = en ?? { ui: {}, terms: {}, names: {}, desc: {} };
@@ -130,7 +143,7 @@ const avif = await new Promise<boolean>(res => Object.assign(new Image(), {
 const detail = (level: number) => (avif ? level : 3);
 const levelled = (name: string, level: number) => (level > 1 ? `${name}@${level}` : name);
 type Scene = {
-  name: string; atlas: Atlas | null; lights: Atlas | null; pictures: Map<string, Picture>; small: Map<string, Picture>;
+  name: string; atlas: Atlas | null; lights: Atlas | null; floors: Atlas | null; pictures: Map<string, Picture>; small: Map<string, Picture>;
 };
 const scenes = new Map<string, Scene>();
 // A picture is decoded once, off the main thread, into a bitmap that stays decoded: drawn straight from an
@@ -156,10 +169,11 @@ function sweep() {
 function scene(name: string): Scene {
   let sc = scenes.get(name);
   if (!sc) {
-    const s: Scene = { name, atlas: name === "day" ? atlas : null, lights: null, pictures: new Map(), small: new Map() };
+    const s: Scene = { name, atlas: name === "day" ? atlas : null, lights: null, floors: name === "day" ? dayFloors : null, pictures: new Map(), small: new Map() };
     if (s.atlas) sheet(s, 0);
     else void load<Atlas>(`data/looks/${name}/sprites.json`).then(a => { s.atlas = a; if (a) sheet(s, 0); });
     void load<Atlas>(`data/looks/${name}/lights.json`).then(a => { s.lights = a; requestDraw(); });
+    if (name !== "day") void load<Atlas>(`data/looks/${name}/floors.json`).then(a => { s.floors = a; requestDraw(); });
     scenes.set(name, sc = s);
   }
   return sc;
@@ -204,6 +218,17 @@ function art(T: string, lit = false, time?: number) {
 // An atlas item ([x, y, w, h, anchorX, anchorY]) in the same picture at 1/k of its size.
 type Item6 = [number, number, number, number, number, number];
 const scaled = (it: readonly (number | undefined)[], k: number) => it.slice(0, 6).map(n => n! / k) as Item6;
+// A floor tile (a floorTile key) in the look on screen (as inside lamp light with `lit`), or the day one while
+// that loads, at the textures' detail.
+function floorArt(key: string, lit = false) {
+  for (const sc of [scene(shown), scene("day")]) {
+    const full = sc.floors?.items[key], k = detail(quality.textures);
+    const image = full && extra(sc, levelled(lit ? "floors-lit" : "floors", k));
+    if (!full || !image) { if (lit) return null; continue; }
+    return { image, item: scaled(full, k), ppu: sc.floors!.ppu / k };
+  }
+  return null;
+}
 // The light a building casts ("mask") or adds ("glow") in the look on screen.
 function lightOf(T: string, kind: "mask" | "glow") {
   const sc = scene(shown), item = sc.lights?.items[`${kind}:${T}`], k = detail(quality.textures), img = item && extra(sc, levelled(`lights/${T}`, k));
@@ -269,9 +294,9 @@ function anchored(b: Brush, c: CellXY): Placed {
 // A building as the game draws it, shrunk into a square box (`size` CSS pixels, for resolution);
 // the wiki's build-menu icon when the game render is missing.
 function thumb(T: string, size = 44): HTMLElement {
-  const a = atlas?.items[T];
+  const tile = floorTile(T, 0, 0, new Map()), a = tile ? dayFloors?.items[tile] : atlas?.items[T]; // a floor: one tile alone
   if (a) {
-    const image = sheet(scene("day"), a[6] ?? 0), d = detail(quality.textures); // the sheet at 1/d of full size
+    const d = detail(quality.textures), image = tile ? pic(scene("day"), levelled("floors", d)) : sheet(scene("day"), a[6] ?? 0); // the sheet at 1/d of full size
     const px = Math.round(size * Math.min(2, devicePixelRatio || 1));
     const c = el("canvas", { className: "thumb", width: px, height: px });
     const paint = (bitmap: ImageBitmap | null) => {
@@ -416,7 +441,12 @@ function drawScene(c: Ctx, sz: Size, v: View, items: [Placed, Mode][], lit: bool
     if (layer.width && layer.height && x1 > x0 && y1 > y0) c.drawImage(layer, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0); // a canvas of size 0 can't be drawn
   }
   const area = bg && hasBg ? [v.s * bg.u0 + v.tx, -v.s * bg.v0 + v.ty, bg.w * v.s / bg.ppu, bg.h * v.s / bg.ppu] as const : null;
-  for (const [p, mode] of items) if (!shrines.includes(p.name)) footprint(c, sz, v, p, mode); // the Shrine stands off the grid
+  const ground = new Map(items.filter(([p]) => isFloor(p.name)).map(([p]) => [`${p.x},${p.y}`, p.name]));
+  for (const [p, mode] of items) {
+    if (shrines.includes(p.name)) continue; // the Shrine stands off the grid
+    const tiled = floor(c, sz, v, p, mode, lit, ground);
+    if (!tiled || mode !== "normal") footprint(c, sz, v, p, mode, tiled);
+  }
   let fps = 0;
   for (const [p, mode] of items) fps = Math.max(fps, sprite(c, sz, v, p, mode, lit, time));
   return { area, fps };
@@ -453,10 +483,11 @@ function halo(c: Ctx, text: string, x: number, y: number) {
 
 const FILL: Partial<Record<Mode, string>> = { ghost: "rgb(143 179 108 / .55)", blocked: "rgb(200 66 59 / .55)", erase: "rgb(200 66 59 / .5)", selected: "rgb(200 66 59 / .25)" };
 const LINE: Partial<Record<Mode, string>> = { ghost: "#b9d896", blocked: "#e06b63", erase: "#e06b63", hover: "#ede4d3", selected: "#e06b63" };
-function footprint(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode) {
+// `bare`: over a floor's own tile, only the marks of a mode (hover, selection), no tint of its own.
+function footprint(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode, bare = false) {
   const T = p.name, r = rect(p, byType[T]), hue = hueOf(T);
   gridSpace(c, sz, v);
-  c.fillStyle = FILL[mode] ?? `hsl(${hue} 30% 24% / .45)`;
+  c.fillStyle = FILL[mode] ?? (bare ? "transparent" : `hsl(${hue} 30% 24% / .45)`);
   c.fillRect(r.x - .5, r.y - .5, r.w, r.h);
   const flat = isFloor(T) && !atlas?.items[T] && icon(T);
   if (flat) c.drawImage(flat, r.x - .5, r.y - .5, r.w, r.h);
@@ -529,6 +560,18 @@ function sprite(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode, lit = false, t
   }
   if (!isFloor(T)) wikiIcon(c, sz, v, r, p, mode);
   return 0;
+}
+
+// A floor as the game tiles it, flat on the ground, anchored like a sprite; false when there's no tile for it.
+function floor(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode, lit: boolean, ground: Map<string, string>) {
+  const key = floorTile(p.name, p.x, p.y, ground), a = key && (floorArt(key, lit) ?? (lit ? floorArt(key) : null));
+  if (!a) return false;
+  const [x, y, w, h, ax, ay] = a.item, k = v.s / a.ppu, [px, py] = toScreen(p.x, p.y, v);
+  screenSpace(c, sz);
+  if (mode === "ghost" || mode === "blocked") c.globalAlpha = .75;
+  c.drawImage(a.image, x, y, w, h, px - ax * k, py - ay * k, w * k, h * k);
+  c.globalAlpha = 1;
+  return true;
 }
 
 // A building's light, anchored like its sprite: its mask (into the lamp-light layer) or its additive glow.

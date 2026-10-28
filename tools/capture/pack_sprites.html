@@ -19,6 +19,8 @@
 // places are multiples of 6, so the same items, divided by 2 or 3, fit those exactly.
 // ?set=lights packs lights/ (lamp light masks and additive glows, lights.json) into a sheet per building,
 // lights/<TYPE>.png, fetched only when it's on the map; lights.json items["mask:<TYPE>"] are in it.
+// ?set=floors packs floors/ (every path and floor tile, keyed "<TYPE>.<sprite>.<matrix>", and floors-lit/)
+// into one sheet, floors.png (and floors-lit.png), with floors.json in the layout of sprites.json.
 // ?set=small draws each backdrop's tiles (landN/<col>_<row>.png, capture.json "tiles") into a 512-wide
 // picture, packed/small/landN.png, which the page shows while the tiles load.
 // Everything goes to <look>/packed/, laid out as in public/data/looks/<look>/: tools/capture/looks_to_data.sh
@@ -28,8 +30,8 @@
 const params = new URLSearchParams(location.search);
 const scale = +(params.get("scale") || 1), dir = params.get("look") ? `${params.get("look")}/` : "";
 const data = params.get("data") || "data";
-const set = params.get("set"), lights = set === "lights";
-const src = lights ? "lights" : "buildings";
+const set = params.get("set"), lights = set === "lights", floors = set === "floors";
+const src = lights ? "lights" : floors ? "floors" : "buildings";
 const loadImage = url => new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = url; });
 const canvas = (w, h) => Object.assign(document.createElement("canvas"), { width: w, height: h });
 const putPng = async (path, cv) => fetch(`/bg/${dir}packed/${path}.png`, { method: "PUT", body: await new Promise(r => cv.toBlob(r, "image/png")) });
@@ -59,7 +61,7 @@ const file = key => encodeURIComponent(key.replace(":", "-")) + ".png"; // "mask
 const art = {}; // key -> { im, lit, w, h, ax, ay } at the renders' own size
 let n = 0;
 await Promise.all(Object.entries(meta.items).map(async ([key, [ax, ay, w, h]]) => {
-  const [im, lit] = await Promise.all([loadImage(`${dir}${src}/${file(key)}`), lights ? null : loadImage(`${dir}buildings-lit/${file(key)}`)]);
+  const [im, lit] = await Promise.all([loadImage(`${dir}${src}/${file(key)}`), lights ? null : loadImage(`${dir}${src}-lit/${file(key)}`)]);
   if (im) art[key] = { im, lit, w, h, ax, ay };
   log(`loaded ${++n}`);
 }));
@@ -135,6 +137,11 @@ if (lights) {
     Object.assign(items, p.items);
   }
   out = { name: "lights", json: { ppu: meta.ppu * scale, items } };
+} else if (floors) {
+  const p = pack(art, 0);
+  files.floors = p.sheet;
+  if (p.lit) files["floors-lit"] = p.lit;
+  out = { name: "floors", json: { ppu: meta.ppu * scale, sheets: ["floors"], items: p.items } };
 } else {
   const game = await (await fetch(`${data}/game.json`)).json(), base = await (await fetch(`${data}/base.json`)).json();
   const first = new Set([...game.menu.flatMap(tab => tab.sections.flatMap(s => s.types)), ...(base.defaults ?? []).map(d => d.type)]);
