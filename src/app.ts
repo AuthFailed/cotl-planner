@@ -897,7 +897,8 @@ function updateStats() {
   const used = placed.reduce((n, p) => n + byType[p.name].w * byType[p.name].h, 0);
   $("st-count").textContent = String(placed.length);
   $("st-cells").textContent = String(used);
-  $("st-cells-of").textContent = `${t("statsCells", { n: cells.size })} · ${t("statsFree", { n: cells.size - used })}`;
+  $("st-cells-of").textContent = t("statsCells", { n: cells.size });
+  $("st-bar").parentElement!.title = t("statsFree", { n: cells.size - used });
   $("st-bar").style.width = `${Math.min(100, used / cells.size * 100)}%`;
   const counts: Record<string, number> = {};
   for (const p of placed) if (tabOf[p.name]) counts[tabOf[p.name].id] = (counts[tabOf[p.name].id] ?? 0) + 1;
@@ -1056,10 +1057,8 @@ function renderTabs() {
 }
 
 function tile(T: string) {
-  const name = nameOf(T), tiers = tiersOf(T).length;
-  const b = el("button", { className: "tile" },
-    thumb(T), el("span", {}, name), el("small", { className: "num" }, `${byType[T].w}×${byType[T].h}`));
-  if (tiers > 1) b.prepend(el("span", { className: "tiers num", title: t("levelsHint", { n: tiers }) }, el("i", { className: "ph ph-stack" }), String(tiers)));
+  const b = el("button", { className: "tile" }, thumb(T, 40),
+    el("span", { className: "name" }, el("b", {}, nameOf(T)), el("small", {}, meta(T, byType[T]))));
   b.dataset.type = T;
   b.setAttribute("aria-pressed", String(brush?.name === T));
   b.onclick = () => {
@@ -1343,7 +1342,7 @@ function zoomAt(px: number, py: number, f: number) {
   requestDraw();
 }
 function fit() {
-  view = fitView(size.w, size.h, Math.min(90, size.w / 10, size.h / 10));
+  view = fitView(size.w, size.h, Math.min(40, size.w / 20, size.h / 20)); // the islands float over the edges anyway
   fitScale = view.s;
   userView = false;
   $("zoom").textContent = "100%";
@@ -1413,9 +1412,15 @@ $("sel-flip").onclick = rotate;
 $("sel-move").onclick = () => { const p = selected; selected = null; if (p) pickUp(p); };
 $("sel-delete").onclick = () => { if (!selected) return; beginStroke(); removeBuilding(selected); endStroke(); };
 $("sheet-toggle").onclick = () => openSheet(!$("sheet").classList.contains("open"));
-// on phones these live in a popup menu, which closes once one is used
-for (const id of ["land", "look", "labels", "ranges", "clear", "import", "png"])
-  $(id).addEventListener(id === "land" || id === "look" ? "change" : "click", () => { try { $("more").hidePopover(); } catch { /* no popover support */ } });
+// a menu closes once one of its entries is used (the view settings are a menu on narrow screens only)
+const closeMenu = (menu: HTMLElement) => { try { if (menu.matches(":popover-open")) menu.hidePopover(); } catch { /* no popover support */ } };
+for (const id of ["more", "file"]) {
+  $(id).addEventListener("change", () => closeMenu($(id)));
+  $(id).addEventListener("click", e => { if (e.target instanceof Element && e.target.closest("button")) closeMenu($(id)); });
+}
+const foldStats = (open: boolean) => { $("stats-toggle").setAttribute("aria-expanded", String(open)); store.set("stats", open); };
+$("stats-toggle").onclick = () => foldStats($("stats-toggle").getAttribute("aria-expanded") !== "true");
+foldStats(store.get("stats", true));
 $("clear").onclick = () => {
   if (!placed.some(deletable)) return;
   dropHeld(); beginStroke(); placed = placed.filter(p => !deletable(p)); endStroke();
@@ -1460,7 +1465,7 @@ lookSelect.value = look;
 lookSelect.onchange = () => { look = lookSelect.value; store.set("look", look); lookIcon(); weather(); requestDraw(); };
 // picture quality: the most detail this viewer wants for the textures and for the animations. Its
 // panel opens on its own, not inside the menu the button may sit in, which closes.
-$("quality-open").onclick = () => { try { $("more").hidePopover(); $("quality").showPopover(); } catch { /* no popover support */ } };
+$("quality-open").onclick = () => { try { $("quality").showPopover(); } catch { /* no popover support */ } };
 for (const key of ["textures", "animations"] as const) {
   const select = $<HTMLSelectElement>(key);
   select.value = String(quality[key]);
