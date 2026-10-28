@@ -94,58 +94,91 @@ const nameOf = (T: string) => L.names[T] || english.names[T] || wikiOf[T]?.name 
 const descOf = (T: string) => L.desc[T] || english.desc[T] || "";
 
 // ---------- looks: the base as the game draws it by weather and time of day ----------
-// data/looks/<look>/ holds a backdrop per number of land upgrades bought (background-N) and the
-// buildings' atlas (sprites.json and its sheets), all rendered by the game itself (tools/capture).
-// A look loads the first time it's picked; the palette always uses the day atlas. Each backdrop
-// shows a small version first, and the atlas's second sheet (upgrade levels) loads only when asked for.
+// looks/<look>/ holds a backdrop per number of land upgrades bought (background-N), the buildings'
+// atlas (sprites.json and its sheets; each idle animation in a sheet of its own, anim/<TYPE>) and their
+// lights (lights.json; each building's in a sheet of its own, lights/<TYPE>), all rendered by the game
+// itself (tools/capture) at the art's own resolution. Where lamps light the ground (bg.lit), the backdrop
+// and every sheet also come graded as inside lamp light (lit-background-N, <sheet>-lit).
+// A look loads the first time it's picked; the palette always uses the day atlas. Each backdrop shows a
+// small version first, then the tiles on screen at the detail the zoom needs; the rest (upgrade levels,
+// lit art, animations, lights) loads only when it's needed. The viewer can cap the detail of the
+// textures and the animations at ½ or ⅓ (quality).
 const LOOK_ICONS: Record<string, string> = { day: "ph-sun", night: "ph-moon-stars", rain: "ph-cloud-rain", bloodmoon: "ph-moon", winter: "ph-snowflake", blizzard: "ph-cloud-snow" };
 const GRID: Record<string, number> = { night: .4, bloodmoon: .4 }; // build-grid strength where the scene is dark
 const looks = bg?.looks ?? ["day"];
 let look = store.get("look", "day");
 if (!looks.includes(look)) look = looks[0];
 let shown = look; // the look on screen: a newly picked one takes over once its art has loaded
-type Scene = { name: string; atlas: Atlas | null; sheets: HTMLImageElement[]; backdrops: Map<string, { small: HTMLImageElement; full: HTMLImageElement }> };
+// 1: full detail, 2: half, 3: a third, for the textures (backdrops, buildings, lights) and the animations
+const quality = { textures: store.get("textures", 1), animations: store.get("animations", 1) };
+// Pictures are AVIF; the ⅓ ones also come as WebP, which a browser without AVIF gets for everything.
+const avif = await new Promise<boolean>(res => Object.assign(new Image(), {
+  onload: () => res(true), onerror: () => res(false),
+  src: "data:image/avif;base64,AAAAHGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZgAAAOltZXRhAAAAAAAAACFoZGxyAAAAAAAAAABwaWN0AAAAAAAAAAAAAAAAAAAAAA5waXRtAAAAAAABAAAAHmlsb2MAAAAARAAAAQABAAAAAQAAAQ0AAAAbAAAAKGlpbmYAAAAAAAEAAAAaaW5mZQIAAAAAAQAAYXYwMUNvbG9yAAAAAGhpcHJwAAAASWlwY28AAAAUaXNwZQAAAAAAAAABAAAAAQAAAA5waXhpAAAAAAEIAAAADGF2MUOBABwAAAAAE2NvbHJuY2x4AAEADQAGgAAAABdpcG1hAAAAAAAAAAEAAQQBAoMEAAAAI21kYXQSAAoHGAAGmAhoNTIOGUYhh55oJJBBGibPQLU=",
+}));
+const detail = (level: number) => (avif ? level : 3);
+const levelled = (name: string, level: number) => (level > 1 ? `${name}@${level}` : name);
+type Scene = {
+  name: string; atlas: Atlas | null; lights: Atlas | null; pictures: Map<string, HTMLImageElement>; small: Map<string, HTMLImageElement>;
+};
 const scenes = new Map<string, Scene>();
-const ready = (img?: HTMLImageElement) => !!img?.complete && !!img.naturalWidth;
-// AVIF where the browser has it, WebP otherwise (an AVIF it can't decode fails to load).
-function picture(path: string) {
-  const img = Object.assign(new Image(), { onload: requestDraw });
-  img.onerror = () => { if (img.src.endsWith(".avif")) img.src = `${path}.webp`; };
-  img.src = `${path}.avif`;
-  return img;
-}
+const ready = (img?: HTMLImageElement | null) => !!img?.complete && !!img.naturalWidth;
+const picture = (path: string) => Object.assign(new Image(), { onload: requestDraw, src: `${path}.${avif ? "avif" : "webp"}` });
 function scene(name: string): Scene {
   let sc = scenes.get(name);
   if (!sc) {
-    const s: Scene = { name, atlas: name === "day" ? atlas : null, sheets: [], backdrops: new Map() };
+    const s: Scene = { name, atlas: name === "day" ? atlas : null, lights: null, pictures: new Map(), small: new Map() };
     if (s.atlas) sheet(s, 0);
     else void load<Atlas>(`data/looks/${name}/sprites.json`).then(a => { s.atlas = a; if (a) sheet(s, 0); });
+    void load<Atlas>(`data/looks/${name}/lights.json`).then(a => { s.lights = a; requestDraw(); });
     scenes.set(name, sc = s);
   }
   return sc;
 }
-// Sheet i of a look's atlas, fetched the first time it's asked for.
-const sheet = (sc: Scene, i: number) => (sc.sheets[i] ??= picture(`data/looks/${sc.name}/${sc.atlas!.sheets[i]}`));
-// A look's backdrop for a land level: the full image once loaded, the small one until then (unless `full`).
-function backdropOf(name: string, level: number, full = false) {
+// A picture of a look (a sheet, lit art, an animation, the lights, a backdrop tile), fetched the first
+// time it's asked for.
+function pic(sc: Scene, name: string) {
+  let img = sc.pictures.get(name);
+  if (!img) sc.pictures.set(name, img = picture(`data/looks/${sc.name}/${name}`));
+  return img;
+}
+const extra = (sc: Scene, name: string) => { const img = pic(sc, name); return ready(img) ? img : null; };
+// Sheet i of a look's atlas at the textures' detail.
+const sheet = (sc: Scene, i: number) => pic(sc, levelled(sc.atlas!.sheets[i], detail(quality.textures)));
+// A look's backdrop for a land level, while its tiles load (and with no tiles, the whole picture).
+function smallBackdrop(name: string, level: number) {
   if (!bg) return null;
   const sc = scene(name), path = `data/looks/${name}/${bg.images[Math.min(level, bg.images.length - 1)]}`;
-  let b = sc.backdrops.get(path);
-  if (!b) sc.backdrops.set(path, b = { small: Object.assign(new Image(), { onload: requestDraw, src: `${path}.small.webp` }), full: picture(path) });
-  return ready(b.full) ? b.full : !full && ready(b.small) ? b.small : null;
+  let img = sc.small.get(path);
+  if (!img) sc.small.set(path, img = Object.assign(new Image(), { onload: requestDraw, src: `${path}.small.webp` }));
+  return ready(img) ? img : null;
 }
-function backdrop() {
-  if (backdropOf(look, land, true) && ready(scene(look).sheets[0])) shown = look;
-  // while another land level's image loads, keep showing whichever one is ready
-  return backdropOf(shown, land) ?? [...scene(shown).backdrops.values()].find(b => ready(b.full))?.full ?? null;
-}
-// A building's render in the look on screen, or the day one while that loads.
-function art(T: string) {
+// A building's render in the look on screen (as inside lamp light with `lit`), or the day one while
+// that loads, at the textures' detail. At `time` (ms) an animated one also brings the part that moves as
+// it is then (`patch`), at the animations' detail, once that's loaded.
+function art(T: string, lit = false, time?: number) {
   for (const sc of [scene(shown), scene("day")]) {
-    const item = sc.atlas?.items[T], image = item && sheet(sc, item[6] ?? 0);
-    if (item && ready(image)) return { image: image!, item, ppu: sc.atlas!.ppu };
+    const full = sc.atlas?.items[T], i = full?.[6] ?? 0, k = detail(quality.textures);
+    const image = full && (lit ? extra(sc, levelled(`${sc.atlas!.sheets[i]}-lit`, k)) : sheet(sc, i));
+    if (!full || !ready(image)) { if (lit) return null; continue; }
+    const item = scaled(full, k);
+    const anim = sc.atlas!.anim, frames = time === undefined ? undefined : anim?.frames[T], ka = detail(quality.animations);
+    const moving = frames && anim!.items[`${T}#${Math.floor(time! / 1000 * frames[1]) % frames[0]}`];
+    const movingImage = moving ? extra(sc, levelled(`anim/${T}${lit ? "-lit" : ""}`, ka)) : null;
+    const patch = moving && movingImage
+      ? { image: movingImage, item: scaled(moving, ka), ppu: anim!.ppu / ka, box: anim!.box[T].map(n => n / k) }
+      : null;
+    return { image: image!, item, ppu: sc.atlas!.ppu / k, fps: frames?.[1] ?? 0, patch };
   }
   return null;
+}
+// An atlas item ([x, y, w, h, anchorX, anchorY]) in the same picture at 1/k of its size.
+type Item6 = [number, number, number, number, number, number];
+const scaled = (it: readonly (number | undefined)[], k: number) => it.slice(0, 6).map(n => n! / k) as Item6;
+// The light a building casts ("mask") or adds ("glow") in the look on screen.
+function lightOf(T: string, kind: "mask" | "glow") {
+  const sc = scene(shown), item = sc.lights?.items[`${kind}:${T}`], k = detail(quality.textures), img = item && extra(sc, levelled(`lights/${T}`, k));
+  return item && img ? { image: img, item: scaled(item, k), ppu: sc.lights!.ppu / k } : null;
 }
 
 // ---------- layout state ----------
@@ -254,16 +287,79 @@ function requestDraw() { frame ||= requestAnimationFrame(() => { frame = 0; draw
 const gridSpace = (c: Ctx, sz: Size, v: View) => c.setTransform(sz.dpr * v.s * K, -sz.dpr * v.s * K * V, -sz.dpr * v.s * K, -sz.dpr * v.s * K * V, sz.dpr * v.tx, sz.dpr * v.ty);
 const screenSpace = (c: Ctx, sz: Size) => c.setTransform(sz.dpr, 0, 0, sz.dpr, 0, 0);
 
+// Lamp light, as the game does it: inside the light a building casts, the scene is graded with the look's
+// second LUT. The scene is drawn again from the lit art into `litLayer`, cut to the lamps' light (their
+// masks added up in `maskLayer`) and laid over: normal × (1 − light) + lit × light.
+const litLayer = document.createElement("canvas"), maskLayer = document.createElement("canvas");
+let animTimer = 0;
+const MAX_FPS = 30; // redraws per second at most while an animated building is on screen
+
 function draw(c: Ctx, sz: Size, v: View, live: boolean) {
   screenSpace(c, sz);
   c.fillStyle = "#141012";
   c.fillRect(0, 0, sz.w, sz.h);
 
-  // backdrop: image pixel (X, Y) sits at u = u0 + X/ppu, v = v0 - Y/ppu relative to grid origin
-  const bgImage = backdrop();
-  const area = bg && bgImage ? [v.s * bg.u0 + v.tx, -v.s * bg.v0 + v.ty, bg.w * v.s / bg.ppu, bg.h * v.s / bg.ppu] as const : null;
-  if (area && bgImage) c.drawImage(bgImage, ...area);
-  const hasBg = !!bgImage;
+  // footprints flat on the ground first, then sprites back-to-front so nearer ones overlap
+  const hovered = live && !brush && hover ? itemAt(hover.x, hover.y, placed, byType) : null;
+  const items: [Placed, Mode][] = placed.map(p => [p, live && p === selected ? "selected" : p === hovered ? (tool === "erase" ? "erase" : "hover") : "normal"]);
+  if (live && brush && hover) {
+    const g = anchored(brush, hover);
+    items.push([g, fits(g, placed, byType, cells) ? "ghost" : "blocked"]);
+  }
+  const depth = (p: Placed) => p.x + p.y; // larger x + y sits further up the screen, i.e. further back
+  items.sort((a, b) => depth(b[0]) - depth(a[0]));
+  const time = live && !calm.matches ? performance.now() : undefined; // animations play on screen, not in exports
+  const { area, fps } = drawScene(c, sz, v, items, false, time);
+
+  // only where the lamps' light reaches (device pixels), so the second pass costs what's lit
+  const lit = items.flatMap(([p]) => { const r = lightRect(sz, v, p); return r ? [r] : []; });
+  if (lit.length && bg?.lit?.includes(shown)) {
+    const W = Math.round(sz.w * sz.dpr), H = Math.round(sz.h * sz.dpr);
+    const x0 = Math.max(0, Math.floor(Math.min(...lit.map(r => r[0])))), y0 = Math.max(0, Math.floor(Math.min(...lit.map(r => r[1]))));
+    const x1 = Math.min(W, Math.ceil(Math.max(...lit.map(r => r[2])))), y1 = Math.min(H, Math.ceil(Math.max(...lit.map(r => r[3]))));
+    if (x1 > x0 && y1 > y0) {
+      for (const layer of [litLayer, maskLayer]) if (layer.width !== W || layer.height !== H) Object.assign(layer, { width: W, height: H });
+      const lc = litLayer.getContext("2d")!, mc = maskLayer.getContext("2d")!;
+      lc.save();
+      lc.setTransform(1, 0, 0, 1, 0, 0);
+      lc.clearRect(x0, y0, x1 - x0, y1 - y0);
+      lc.beginPath();
+      lc.rect(x0, y0, x1 - x0, y1 - y0);
+      lc.clip();
+      drawScene(lc, sz, v, items, true, time, [x0 / sz.dpr, y0 / sz.dpr, x1 / sz.dpr, y1 / sz.dpr]);
+      mc.setTransform(1, 0, 0, 1, 0, 0);
+      mc.clearRect(x0, y0, x1 - x0, y1 - y0);
+      mc.globalCompositeOperation = "lighter"; // the game adds its lights up in the mask
+      for (const [p] of items) light(mc, sz, v, p, "mask");
+      mc.globalCompositeOperation = "source-over";
+      lc.setTransform(1, 0, 0, 1, 0, 0);
+      lc.globalCompositeOperation = "destination-in";
+      lc.drawImage(maskLayer, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+      lc.restore();
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.drawImage(litLayer, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+    }
+  }
+
+  // the game's weather tint, a colour it lays over the screen; here over the scene, not the empty margin
+  const tint = bg?.tint?.[shown];
+  if (tint && area) {
+    screenSpace(c, sz);
+    c.fillStyle = `rgb(${tint.slice(0, 3).map(x => Math.round(x * 255)).join(" ")} / ${tint[3]})`;
+    c.fillRect(...area);
+  }
+  if (showLabels) for (const [p, mode] of items) if (mode !== "ghost" && mode !== "blocked") label(c, sz, v, p);
+  if (live) placeSelectionCard();
+  // next frame of the fastest animation on screen
+  if (fps && live) animTimer ||= window.setTimeout(() => { animTimer = 0; requestDraw(); }, 1000 / Math.min(MAX_FPS, fps));
+}
+
+// The base and its buildings, with the art graded as inside lamp light when `lit`. Returns the backdrop's
+// area on screen and the frame rate of the fastest animation in view (0: none).
+function drawScene(c: Ctx, sz: Size, v: View, items: [Placed, Mode][], lit: boolean, time?: number, within?: Box) {
+  screenSpace(c, sz);
+  const hasBg = drawBackdrop(c, sz, v, lit, within);
+  const area = bg && hasBg ? [v.s * bg.u0 + v.tx, -v.s * bg.v0 + v.ty, bg.w * v.s / bg.ppu, bg.h * v.s / bg.ppu] as const : null;
 
   // ground: over the art, inset rounded green outlines like the game's build-mode tiles;
   // without art, plain filled cells
@@ -278,25 +374,10 @@ function draw(c: Ctx, sz: Size, v: View, live: boolean) {
   c.strokeStyle = hasBg ? `rgb(72 176 96 / ${.75 * glow})` : "rgb(20 16 18 / .45)";
   c.stroke();
 
-  // footprints flat on the ground first, then sprites back-to-front so nearer ones overlap
-  const hovered = live && !brush && hover ? itemAt(hover.x, hover.y, placed, byType) : null;
-  const items: [Placed, Mode][] = placed.map(p => [p, live && p === selected ? "selected" : p === hovered ? (tool === "erase" ? "erase" : "hover") : "normal"]);
-  if (live && brush && hover) {
-    const g = anchored(brush, hover);
-    items.push([g, fits(g, placed, byType, cells) ? "ghost" : "blocked"]);
-  }
   for (const [p, mode] of items) footprint(c, sz, v, p, mode);
-  const depth = (p: Placed) => p.x + p.y; // larger x + y sits further up the screen, i.e. further back
-  for (const [p, mode] of items.sort((a, b) => depth(b[0]) - depth(a[0]))) sprite(c, sz, v, p, mode);
-  // the game's weather tint, a colour it lays over the screen; here over the scene, not the empty margin
-  const tint = bg?.tint?.[shown];
-  if (tint && area) {
-    screenSpace(c, sz);
-    c.fillStyle = `rgb(${tint.slice(0, 3).map(x => Math.round(x * 255)).join(" ")} / ${tint[3]})`;
-    c.fillRect(...area);
-  }
-  if (showLabels) for (const [p, mode] of items) if (mode !== "ghost" && mode !== "blocked") label(c, sz, v, p);
-  if (live) placeSelectionCard();
+  let fps = 0;
+  for (const [p, mode] of items) fps = Math.max(fps, sprite(c, sz, v, p, mode, lit, time));
+  return { area, fps };
 }
 
 function halo(c: Ctx, text: string, x: number, y: number) {
@@ -322,9 +403,44 @@ function footprint(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode) {
   c.strokeRect(r.x - .5 + .5 / v.s, r.y - .5 + .5 / v.s, r.w - 1 / v.s, r.h - 1 / v.s);
 }
 
-function sprite(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode) {
+// The backdrop of the look on screen (as inside lamp light with `lit`), within `within` (CSS pixels;
+// the screen without it): picture pixel (X, Y) sits at u = u0 + X/ppu, v = v0 - Y/ppu from the grid's
+// origin. First the small picture, then over it the tiles at the detail the zoom needs (a picture pixel
+// per device pixel at least), never finer than the textures' detail; while one loads, the same tile at a
+// detail already there. Returns whether anything was drawn.
+type Box = [number, number, number, number];
+function drawBackdrop(c: Ctx, sz: Size, v: View, lit: boolean, within: Box = [0, 0, sz.w, sz.h]) {
+  if (!bg) return false;
+  if (look !== shown && smallBackdrop(look, land) && scene(look).atlas && ready(sheet(scene(look), 0))) shown = look;
+  const sc = scene(shown), name = `${lit ? "lit-" : ""}${bg.images[Math.min(land, bg.images.length - 1)]}`;
+  const x0 = v.s * bg.u0 + v.tx, y0 = -v.s * bg.v0 + v.ty, k = v.s / bg.ppu; // screen pixels per picture pixel
+  let drawn = false;
+  const small = lit ? null : smallBackdrop(shown, land);
+  if (small) { c.drawImage(small, x0, y0, bg.w * k, bg.h * k); drawn = true; }
+  const t = bg.tile;
+  if (!t) {
+    const img = extra(sc, name);
+    if (img) { c.drawImage(img, x0, y0, bg.w * k, bg.h * k); drawn = true; }
+    return drawn;
+  }
+  const need = k * sz.dpr, level = detail(Math.max(quality.textures, need > 1 / 2 ? 1 : need > 1 / 3 ? 2 : 3));
+  const span = (a: number, b: number, o: number, n: number) => [Math.max(0, Math.floor((a - o) / k / t.size)), Math.min(n - 1, Math.floor((b - o) / k / t.size))];
+  const [c0, c1] = span(within[0], within[2], x0, t.cols), [r0, r1] = span(within[1], within[3], y0, t.rows);
+  for (let r = r0; r <= r1; r++)
+    for (let col = c0; col <= c1; col++) {
+      const tile = `${name}/${col}_${r}`;
+      const img = extra(sc, levelled(tile, level)) ?? [1, 2, 3].map(l => sc.pictures.get(levelled(tile, l))).find(ready);
+      if (!img) continue;
+      c.drawImage(img, x0 + (col * t.size - t.border) * k, y0 + (r * t.size - t.border) * k, (t.size + 2 * t.border) * k, (t.size + 2 * t.border) * k);
+      drawn = true;
+    }
+  return drawn;
+}
+
+// Draws a building; returns its animation's frame rate if it's animated and in view, else 0.
+function sprite(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode, lit = false, time?: number) {
   const T = p.name, r = rect(p, byType[T]);
-  const a = art(T);
+  const a = art(T, lit, time) ?? (lit ? art(T, false, time) : null);
   if (a) {
     // the game's own render: anchored at the centre of the footprint's first cell, same projection as the map
     const [x, y, w, h, ax, ay] = a.item, k = v.s / a.ppu;
@@ -333,11 +449,48 @@ function sprite(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode) {
     c.translate(px, py);
     if (p.r) c.scale(-1, 1); // the game's "rotate" mirrors the building
     if (mode === "ghost" || mode === "blocked") c.globalAlpha = .75;
-    c.drawImage(a.image, x, y, w, h, -ax * k, -ay * k, w * k, h * k);
+    if (a.patch) {
+      // the still frame without the part that moves, then that part as it is now
+      const [x0, y0, x1, y1] = a.patch.box, [qx, qy, qw, qh, qax, qay] = a.patch.item, q = v.s / a.patch.ppu;
+      c.save();
+      c.beginPath();
+      c.rect(-ax * k, -ay * k, w * k, h * k);
+      c.rect(x0 * k, y0 * k, (x1 - x0) * k, (y1 - y0) * k);
+      c.clip("evenodd");
+      c.drawImage(a.image, x, y, w, h, -ax * k, -ay * k, w * k, h * k);
+      c.restore();
+      c.drawImage(a.patch.image, qx, qy, qw, qh, -qax * q, -qay * q, qw * q, qh * q);
+    } else c.drawImage(a.image, x, y, w, h, -ax * k, -ay * k, w * k, h * k);
     c.globalAlpha = 1;
-    return;
+    light(c, sz, v, p, "glow");
+    return Math.abs(px - sz.w / 2) < sz.w / 2 + w * k && Math.abs(py - sz.h / 2) < sz.h / 2 + h * k ? a.fps : 0;
   }
   if (!isFloor(T)) wikiIcon(c, sz, v, r, p, mode);
+  return 0;
+}
+
+// A building's light, anchored like its sprite: its mask (into the lamp-light layer) or its additive glow.
+function light(c: Ctx, sz: Size, v: View, p: Placed, kind: "mask" | "glow") {
+  const l = lightOf(p.name, kind);
+  if (!l) return;
+  const r = rect(p, byType[p.name]), [x, y, w, h, ax, ay] = l.item, k = v.s / l.ppu;
+  const [px, py] = toScreen(r.x, r.y, v);
+  screenSpace(c, sz);
+  c.translate(px, py);
+  if (p.r) c.scale(-1, 1);
+  const op = c.globalCompositeOperation;
+  if (kind === "glow") c.globalCompositeOperation = "lighter";
+  c.drawImage(l.image, x, y, w, h, -ax * k, -ay * k, w * k, h * k);
+  c.globalCompositeOperation = op;
+}
+
+// Where a building's light mask lands, in device pixels: [x0, y0, x1, y1]; null if it casts none.
+function lightRect(sz: Size, v: View, p: Placed) {
+  const l = lightOf(p.name, "mask");
+  if (!l) return null;
+  const r = rect(p, byType[p.name]), [, , w, h, ax, ay] = l.item, k = v.s / l.ppu;
+  const [px, py] = toScreen(r.x, r.y, v), left = p.r ? px - (w - ax) * k : px - ax * k;
+  return [left * sz.dpr, (py - ay * k) * sz.dpr, (left + w * k) * sz.dpr, (py + (h - ay) * k) * sz.dpr];
 }
 
 // Fallback for buildings without extracted art: the wiki's build-menu icon, upright, feet near the front corner.
@@ -796,7 +949,7 @@ function weather() {
   };
   fxFrame = requestAnimationFrame(tick);
 }
-calm.addEventListener("change", weather);
+calm.addEventListener("change", () => { weather(); requestDraw(); });
 
 // ---------- input ----------
 const local = (e: MouseEvent): [number, number] => { const b = canvas.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
@@ -1034,6 +1187,19 @@ const lookIcon = () => ($("look-icon").className = `ph ${LOOK_ICONS[look] ?? "ph
 lookSelect.replaceChildren(...looks.map(l => el("option", { value: l })));
 lookSelect.value = look;
 lookSelect.onchange = () => { look = lookSelect.value; store.set("look", look); lookIcon(); weather(); requestDraw(); };
+// picture quality: the most detail this viewer wants for the textures and for the animations. Its
+// panel opens on its own, not inside the menu the button may sit in, which closes.
+$("quality-open").onclick = () => { try { $("more").hidePopover(); $("quality").showPopover(); } catch { /* no popover support */ } };
+for (const key of ["textures", "animations"] as const) {
+  const select = $<HTMLSelectElement>(key);
+  select.value = String(quality[key]);
+  select.onchange = () => {
+    quality[key] = +select.value;
+    store.set(key, quality[key]);
+    for (const sc of scenes.values()) sc.pictures.clear(); // the other detail's pictures go
+    requestDraw();
+  };
+}
 lookIcon();
 if (looks.length < 2) lookSelect.closest("label")!.style.display = "none";
 langSelect.replaceChildren(...languages.map(l => el("option", { value: l.code, textContent: native(l.code) })));

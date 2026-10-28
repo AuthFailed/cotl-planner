@@ -8,56 +8,172 @@
 // atlas, two sheets: sprites.png with what a first visit draws (the build menu's buildings and the
 // default Temple) and sprites-2.png with the rest (upgrade levels), fetched only when needed.
 // sprites.json: items[type] = [x, y, w, h, anchorX, anchorY, sheet (omitted for the first)].
-// tools/capture/looks_to_data.sh encodes the sheets and copies them into public/data/looks/<look>/.
+// Where the plugin also wrote buildings-lit/ (the look's grading inside lamp light), each sheet gets a
+// -lit copy in the same layout.
+// An animated building keeps its first frame on the sheets, and its idle loop gets a sheet of its own,
+// anim/<TYPE>.png (and -lit), fetched only when it's on the map: anim.frames[type] = [count, fps],
+// anim.box[type] = [x0, y0, x1, y1] (the part that moves, from the anchor, in atlas pixels) and
+// anim.items["<TYPE>#<i>"] that part of frame i, with a 2 px border of what stays still around it so
+// its edge blends.
+// Every sheet also comes at ½ and ⅓ (<name>@2.png, @3.png) for viewers who ask for less detail: sizes and
+// places are multiples of 6, so the same items, divided by 2 or 3, fit those exactly.
+// ?set=lights packs lights/ (lamp light masks and additive glows, lights.json) into a sheet per building,
+// lights/<TYPE>.png, fetched only when it's on the map; lights.json items["mask:<TYPE>"] are in it.
+// ?set=small draws each backdrop's tiles (landN/<col>_<row>.png, capture.json "tiles") into a 512-wide
+// picture, packed/small/landN.png, which the page shows while the tiles load.
+// Everything goes to <look>/packed/, laid out as in public/data/looks/<look>/: tools/capture/looks_to_data.sh
+// encodes the sheets and copies them there.
 // ?scale=0.75 shrinks everything (and the anchors) to keep the atlas small; ?look=night packs the
-// renders in night/buildings/ and saves night/sprites.*; ?data= is where public/data is served (game.json, base.json).
+// renders in night/ and saves night/*; ?data= is where public/data is served (game.json, base.json).
 const params = new URLSearchParams(location.search);
 const scale = +(params.get("scale") || 1), dir = params.get("look") ? `${params.get("look")}/` : "";
 const data = params.get("data") || "data";
-const log = t => (document.getElementById("log").textContent = t);
-const meta = await (await fetch(`${dir}buildings/buildings.json`)).json();
-const game = await (await fetch(`${data}/game.json`)).json(), base = await (await fetch(`${data}/base.json`)).json();
-const first = new Set([...game.menu.flatMap(tab => tab.sections.flatMap(s => s.types)), ...(base.defaults ?? []).map(d => d.type)]);
-const crops = [];
-let n = 0;
-await Promise.all(Object.entries(meta.items).map(([type, [ax, ay, w, h]]) => new Promise(res => {
-  const im = new Image();
-  im.onload = () => {
-    const cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
-    crops.push({ type, im, w: cw, h: ch, ax: ax * scale, ay: ay * scale });
-    log(`loaded ${++n}`);
-    res();
+const set = params.get("set"), lights = set === "lights";
+const src = lights ? "lights" : "buildings";
+const loadImage = url => new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = url; });
+const canvas = (w, h) => Object.assign(document.createElement("canvas"), { width: w, height: h });
+const putPng = async (path, cv) => fetch(`/bg/${dir}packed/${path}.png`, { method: "PUT", body: await new Promise(r => cv.toBlob(r, "image/png")) });
+if (set === "small") {
+  const t = (await (await fetch("capture.json")).json()).tiles, sw = 512, k = sw / t.w;
+  const [TW, TH] = t.tile;
+  window.save = async () => {
+    for (let n = 0; n < 4; n++) {
+      const cv = canvas(sw, Math.round(t.h * k)), g = cv.getContext("2d");
+      g.imageSmoothingQuality = "high";
+      for (let r = 0; r < t.rows; r++)
+        for (let c = 0; c < t.cols; c++) {
+          const im = await loadImage(`${dir}land${n}/${c}_${r}.png`);
+          if (im) g.drawImage(im, t.border, t.border, TW, TH, c * TW * k, r * TH * k, TW * k, TH * k);
+        }
+      await putPng(`small/land${n}`, cv);
+      document.body.append(cv);
+    }
+    return "ok";
   };
-  im.onerror = () => res();
-  im.src = `${dir}buildings/${encodeURIComponent(type)}.png`;
-})));
+  document.getElementById("log").textContent = "ready: save()";
+  throw "small"; // nothing else to do on this page
+}
+const log = t => (document.getElementById("log").textContent = t);
+const meta = await (await fetch(`${dir}${src}/${src}.json`)).json();
+const file = key => encodeURIComponent(key.replace(":", "-")) + ".png"; // "mask:T" is saved as mask-T.png
+const art = {}; // key -> { im, lit, w, h, ax, ay } at the renders' own size
+let n = 0;
+await Promise.all(Object.entries(meta.items).map(async ([key, [ax, ay, w, h]]) => {
+  const [im, lit] = await Promise.all([loadImage(`${dir}${src}/${file(key)}`), lights ? null : loadImage(`${dir}buildings-lit/${file(key)}`)]);
+  if (im) art[key] = { im, lit, w, h, ax, ay };
+  log(`loaded ${++n}`);
+}));
 
-// shelf packing, tallest first, one canvas per sheet
-const ATW = 4096, GAP = 2, items = {};
-const sheets = [crops.filter(c => first.has(c.type)), crops.filter(c => !first.has(c.type))].map((list, i) => {
-  list.sort((a, b) => b.h - a.h);
+// Animated buildings: the frames, lined up by their anchors, differ only where something moves.
+const M = 2, frames = {}, box = {}, anims = {}, stalled = [];
+for (const [type, [count, fps]] of Object.entries(meta.anim ?? {})) {
+  const fs = Array.from({ length: count }, (_, i) => art[`${type}#${i}`]);
+  for (let i = 0; i < count; i++) delete art[`${type}#${i}`];
+  if (fs.some(f => !f)) continue;
+  // the frames' common box, relative to the anchor, with room for the border
+  const X0 = Math.min(...fs.map(f => -f.ax)) - M, Y0 = Math.min(...fs.map(f => -f.ay)) - M;
+  const W = Math.ceil(Math.max(...fs.map(f => f.w - f.ax)) - X0) + M, H = Math.ceil(Math.max(...fs.map(f => f.h - f.ay)) - Y0) + M;
+  const lay = pick => fs.map(f => {
+    const c = canvas(W, H);
+    c.getContext("2d", { willReadFrequently: true }).drawImage(pick(f), Math.round(-f.ax - X0), Math.round(-f.ay - Y0));
+    return c;
+  });
+  const normal = lay(f => f.im), lit = fs.every(f => f.lit) ? lay(f => f.lit) : null;
+  const px = normal.map(c => c.getContext("2d").getImageData(0, 0, W, H).data);
+  let x0 = W, y0 = H, x1 = -1, y1 = -1;
+  for (let p = 0; p < W * H; p++)
+    if (px.some(d => d[4 * p] !== px[0][4 * p] || d[4 * p + 1] !== px[0][4 * p + 1] || d[4 * p + 2] !== px[0][4 * p + 2] || d[4 * p + 3] !== px[0][4 * p + 3])) {
+      const x = p % W, y = p / W | 0;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+  if (x1 < 0) continue; // nothing moves after all
+  // a loop that ends in a run of identical frames: the game stopped its clock (a menu) partway through
+  const same = (a, b) => { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false; return true; };
+  let tail = 0;
+  for (let i = count - 1; i > 0 && same(px[i], px[i - 1]); i--) tail++;
+  if (tail >= Math.max(3, count / 4)) stalled.push(type);
+  // the still frame is the first one, so the loop starts from what's drawn when nothing moves
+  art[type] = { im: normal[0], lit: lit?.[0] ?? null, w: W, h: H, ax: -X0, ay: -Y0 };
+  const R = { x: x0 - M, y: y0 - M, w: x1 - x0 + 1 + 2 * M, h: y1 - y0 + 1 + 2 * M };
+  const cut = c => { const o = canvas(R.w, R.h); o.getContext("2d").drawImage(c, R.x, R.y, R.w, R.h, 0, 0, R.w, R.h); return o; };
+  anims[type] = Object.fromEntries(Array.from({ length: count }, (_, i) => [`${type}#${i}`, { im: cut(normal[i]), lit: lit && cut(lit[i]), w: R.w, h: R.h, ax: -X0 - R.x, ay: -Y0 - R.y }]));
+  frames[type] = [count, fps];
+  box[type] = [x0 + X0, y0 + Y0, x1 + 1 + X0, y1 + 1 + Y0].map(v => +(v * scale).toFixed(1));
+}
+
+// shelf packing, tallest first, into a sheet at most 4092 wide (and its lit copy); sizes and places in
+// steps of 6 (a crop is padded to the next step), so ½ and ⅓ of every number stay whole
+const ATW = 4092, GAP = 6, up6 = n => Math.ceil(n / 6) * 6;
+function pack(entries, sheet) {
+  const crops = Object.entries(entries).map(([key, a]) => ({
+    key, im: a.im, lit: a.lit, iw: Math.max(1, Math.round(a.w * scale)), ih: Math.max(1, Math.round(a.h * scale)), ax: a.ax * scale, ay: a.ay * scale,
+  })).map(c => ({ ...c, w: up6(c.iw), h: up6(c.ih) })).sort((a, b) => b.h - a.h);
   let x = 0, y = 0, rowH = 0;
-  for (const c of list) {
+  for (const c of crops) {
     if (x + c.w > ATW) { x = 0; y += rowH + GAP; rowH = 0; }
     c.x = x; c.y = y; x += c.w + GAP; rowH = Math.max(rowH, c.h);
-    items[c.type] = [c.x, c.y, c.w, c.h, +c.ax.toFixed(1), +c.ay.toFixed(1), ...(i ? [i] : [])];
   }
-  const atlas = document.body.appendChild(Object.assign(document.createElement("canvas"), { width: ATW, height: y + rowH }));
-  atlas.style.maxWidth = "100%";
-  const g = atlas.getContext("2d");
+  const width = Math.min(ATW, Math.max(6, ...crops.map(c => c.x + c.w)));
+  const draw = pick => {
+    const cv = canvas(width, Math.max(6, y + rowH)), g = cv.getContext("2d");
+    g.imageSmoothingQuality = "high";
+    for (const c of crops) g.drawImage(pick(c), c.x, c.y, c.iw, c.ih);
+    return cv;
+  };
+  return {
+    sheet: draw(c => c.im), lit: crops.some(c => c.lit) ? draw(c => c.lit ?? c.im) : null,
+    items: Object.fromEntries(crops.map(c => [c.key, [c.x, c.y, c.w, c.h, +c.ax.toFixed(1), +c.ay.toFixed(1), ...(sheet ? [sheet] : [])]])),
+  };
+}
+const files = {}; // name -> canvas, saved as <look>/<name>.png
+let out;
+if (lights) {
+  const items = {};
+  for (const T of new Set(Object.keys(art).map(k => k.slice(k.indexOf(":") + 1)))) {
+    const p = pack(Object.fromEntries(Object.entries(art).filter(([k]) => k.endsWith(`:${T}`))), 0);
+    files[`lights/${T}`] = p.sheet;
+    Object.assign(items, p.items);
+  }
+  out = { name: "lights", json: { ppu: meta.ppu * scale, items } };
+} else {
+  const game = await (await fetch(`${data}/game.json`)).json(), base = await (await fetch(`${data}/base.json`)).json();
+  const first = new Set([...game.menu.flatMap(tab => tab.sections.flatMap(s => s.types)), ...(base.defaults ?? []).map(d => d.type)]);
+  const pick = keep => Object.fromEntries(Object.entries(art).filter(([T]) => keep(first.has(T))));
+  const sheets = [pack(pick(f => f), 0), pack(pick(f => !f), 1)], names = ["sprites", "sprites-2"];
+  sheets.forEach((p, i) => { files[names[i]] = p.sheet; if (p.lit) files[`${names[i]}-lit`] = p.lit; });
+  const json = { ppu: meta.ppu * scale, sheets: names, items: Object.assign({}, ...sheets.map(p => p.items)) };
+  if (Object.keys(frames).length) {
+    const items = {};
+    for (const [T, a] of Object.entries(anims)) {
+      const p = pack(a, 0);
+      files[`anim/${T}`] = p.sheet;
+      if (p.lit) files[`anim/${T}-lit`] = p.lit;
+      Object.assign(items, p.items);
+    }
+    json.anim = { ppu: meta.ppu * scale, frames, box, items };
+  }
+  out = { name: "sprites", json };
+}
+for (const [name, cv] of Object.entries(files)) {
+  cv.style.maxWidth = "100%";
+  document.body.append(Object.assign(document.createElement("div"), { textContent: `${name} ${cv.width}x${cv.height}` }), cv);
+}
+log(`${Object.keys(out.json.items).length} ${src} (${Object.keys(frames).length} animated), ${Object.keys(files).length} sheets: ${Object.entries(files).filter(([k]) => !k.includes("/")).map(([k, c]) => `${k} ${c.width}x${c.height}`).join(", ")}`);
+for (const [k, c] of Object.entries(files)) if (c.height > 16383) log(`${k} too tall for WebP: ${c.height}px; use ?scale`);
+if (stalled.length) log(`${document.getElementById("log").textContent}; frames stand still in ${stalled.join(", ")}: capture those again`);
+// lossless here, and at ½ and ⅓; looks_to_data.sh makes the AVIF and WebP files
+const shrink = (cv, k) => {
+  const o = canvas(cv.width / k, cv.height / k), g = o.getContext("2d");
   g.imageSmoothingQuality = "high";
-  for (const c of list) g.drawImage(c.im, c.x, c.y, c.w, c.h);
-  return atlas;
-});
-const out = { ppu: meta.ppu * scale, sheets: ["sprites", "sprites-2"], items };
-log(`${crops.length} buildings (${Object.values(items).filter(v => !v[6]).length} on the first sheet), sheets ${sheets.map(a => a.height).join(" + ")} px tall at ${out.ppu} px/unit`);
-// lossless here; looks_to_data.sh makes the AVIF and WebP files
+  g.drawImage(cv, 0, 0, o.width, o.height);
+  return o;
+};
 window.save = async () => {
-  for (const [i, atlas] of sheets.entries()) {
-    const blob = await new Promise(r => atlas.toBlob(r, "image/png"));
-    await fetch(`/bg/${dir}${out.sheets[i]}.png`, { method: "PUT", body: blob });
+  for (const [name, cv] of Object.entries(files)) {
+    await putPng(name, cv);
+    for (const k of [2, 3]) await putPng(`${name}@${k}`, shrink(cv, k));
   }
-  await fetch(`/bg/${dir}sprites.json`, { method: "PUT", body: JSON.stringify(out) });
-  return { count: crops.length, heights: sheets.map(a => a.height) };
+  await fetch(`/bg/${dir}packed/${out.name}.json`, { method: "PUT", body: JSON.stringify(out.json) });
+  return { sheets: Object.keys(files).length, items: Object.keys(out.json.items).length };
 };
 </script>

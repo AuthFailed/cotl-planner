@@ -15,15 +15,34 @@ export interface GameData {
   menu: MenuTab[];
 }
 
-/** looks/<look>/<images[N]>.avif (.webp without AVIF, .small.webp while loading) is the backdrop with N land upgrades;
- * tint[look] = [r, g, b, a] laid over the screen. */
+/**
+ * looks/<look>/<images[N]> is the backdrop with N land upgrades (w x h pixels at ppu, its top-left corner at
+ * u0, v0 from the grid's origin): <images[N]>.small.webp while loading, then either one picture
+ * (<images[N]>.avif, .webp without AVIF) or, with `tile`, cols x rows tiles <images[N]>/<col>_<row> of
+ * size x size pixels with a border of their neighbours' pixels all round, also at ½ and ⅓ (@2, @3).
+ * In the `lit` looks, lit-<images[N]> is the same backdrop graded as the game grades it inside lamp light.
+ * tint[look] = [r, g, b, a] is laid over the screen.
+ */
 export interface Background {
   ppu: number; w: number; h: number; u0: number; v0: number;
-  images: string[]; looks?: string[]; tint?: Record<string, [number, number, number, number]>;
+  tile?: { size: number; border: number; cols: number; rows: number };
+  images: string[]; looks?: string[]; lit?: string[]; tint?: Record<string, [number, number, number, number]>;
 }
 
-/** items[type] = [x, y, w, h, anchorX, anchorY, sheet?] in the atlas image <sheets[sheet ?? 0]>.avif (or .webp). */
-export interface Atlas { ppu: number; sheets: string[]; items: Record<string, [number, number, number, number, number, number, number?]> }
+type Item = [number, number, number, number, number, number, number?];
+/**
+ * items[key] = [x, y, w, h, anchorX, anchorY, sheet?] in the atlas image <sheets[sheet ?? 0]>.avif (or .webp), and
+ * divided by 2 or 3 in the same picture at ½ or ⅓ (<sheet>@2, @3); in
+ * looks where lamps light the ground, <sheet>-lit has the same layout graded as inside lamp light. In sprites.json a
+ * key is a type, in lights.json "mask:<type>" is the light a building casts (alpha = how lit) and "glow:<type>" its
+ * additive light. `anim` lists the idle animations: frames[type] = [count, fps], box[type] = the part that moves
+ * ([x0, y0, x1, y1] from the anchor, in the atlas's pixels), items["<type>#<i>"] that part of frame i (with a margin
+ * of what stays still) in the sheet anim/<type> (and anim/<type>-lit), at anim.ppu.
+ */
+export interface Atlas {
+  ppu: number; sheets: string[]; items: Record<string, Item>;
+  anim?: { ppu: number; frames: Record<string, [number, number]>; box: Record<string, [number, number, number, number]>; items: Record<string, Item> };
+}
 
 export interface WikiBuilding { name: string; icon?: string }
 

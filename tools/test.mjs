@@ -59,7 +59,12 @@ const atlas = JSON.parse(readFileSync(new URL("../public/data/looks/day/sprites.
 assert.ok(Object.values(game.types).every(t => t.w > 0 && t.w === t.h), "game footprints are square and positive");
 assert.ok(Object.values(game.wiki).every(t => game.types[t]), "every wiki match points at a known type");
 assert.equal(new Set(Object.values(game.types).map(t => t.id)).size, Object.keys(game.types).length, "every type has its own save id");
-assert.ok(Object.keys(atlas.items).every(t => game.types[t]), "atlas only holds known types");
+// an atlas holds known types on its listed sheets, and every frame of each animated one ("<type>#<i>" in anim.items)
+const sane = a => Object.keys(a.items).every(T => game.types[T]) && Object.values(a.items).every(it => (it[6] ?? 0) < a.sheets.length)
+  && Object.entries(a.anim?.frames ?? {}).every(([T, [n, fps]]) => a.items[T] && a.anim.box[T] && fps > 0
+    && Array.from({ length: n }, (_, i) => a.anim.items[`${T}#${i}`]).every(Boolean))
+  && Object.keys(a.anim?.items ?? {}).every(k => +k.split("#")[1] < a.anim.frames[k.split("#")[0]]?.[0]);
+assert.ok(sane(atlas), "atlas only holds known types on its sheets, and whole animations");
 assert.ok(game.chains.every(c => c.length > 0) && Object.values(game.types).some(t => t.once), "build rules present");
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const json = path => JSON.parse(read(path));
@@ -78,16 +83,22 @@ for (const { code } of json("public/data/i18n/index.json")) {
   assert.ok(Object.entries(d.ui).every(([k, s]) => vars(s) === vars(en.ui[k])), `${code}: same {placeholders} as English`);
   assert.ok(Object.values(d.desc).every(s => !/[<>]/.test(s)), `${code}: descriptions are plain text`);
 }
-// every look has its art, and a name in the page's strings
+// every look has its art (every backdrop tile and sheet at full, ½ and ⅓ in AVIF, the ⅓ ones also in
+// WebP for browsers without AVIF, and the small backdrops), and a name in the page's strings
 const bg = json("public/data/background.json");
 assert.equal(bg.looks[0], "day", "day comes first: the palette's thumbnails use it");
+assert.ok(!bg.tile || bg.tile.cols * bg.tile.size >= bg.w && bg.tile.rows * bg.tile.size >= bg.h, "backdrop tiles cover the backdrop");
 for (const l of bg.looks) {
-  const a = json(`public/data/looks/${l}/sprites.json`);
-  // each backdrop and atlas sheet in AVIF and WebP, and a small backdrop to show while the full one loads
-  for (const f of [...bg.images.flatMap(b => [`${b}.small.webp`, `${b}.avif`, `${b}.webp`]), ...a.sheets.flatMap(s => [`${s}.avif`, `${s}.webp`])])
-    readFileSync(new URL(`../public/data/looks/${l}/${f}`, import.meta.url));
-  assert.ok(Object.keys(a.items).every(T => game.types[T]), `${l}: atlas only holds known types`);
-  assert.ok(Object.values(a.items).every(it => (it[6] ?? 0) < a.sheets.length), `${l}: every item on a listed sheet`);
+  const a = json(`public/data/looks/${l}/sprites.json`), lit = bg.lit?.includes(l);
+  assert.ok(sane(a), `${l}: atlas only holds known types on its sheets, and whole animations`);
+  const lights = existsSync(new URL(`../public/data/looks/${l}/lights.json`, import.meta.url)) ? json(`public/data/looks/${l}/lights.json`) : null;
+  if (lights) assert.ok(Object.keys(lights.items).every(k => /^(mask|glow):/.test(k) && game.types[k.slice(5)]), `${l}: lights of known types`);
   assert.ok(en.ui[`look${l[0].toUpperCase()}${l.slice(1)}`], `${l}: has a name`);
+  const sheets = [...a.sheets, ...Object.keys(a.anim?.frames ?? {}).map(T => `anim/${T}`)];
+  const lightSheets = lights ? [...new Set(Object.keys(lights.items).map(k => `lights/${k.slice(5)}`))] : [];
+  const tiles = bg.tile ? bg.images.flatMap(b => Array.from({ length: bg.tile.cols * bg.tile.rows }, (_, i) => `${b}/${i % bg.tile.cols}_${i / bg.tile.cols | 0}`)) : bg.images;
+  const pictures = [...sheets, ...lightSheets, ...tiles, ...(lit ? [...sheets.map(s => `${s}-lit`), ...tiles.map(t => `lit-${t}`)] : [])];
+  for (const f of [...bg.images.map(b => `${b}.small.webp`), ...pictures.flatMap(p => [`${p}.avif`, `${p}@2.avif`, `${p}@3.avif`, `${p}@3.webp`])])
+    assert.ok(existsSync(new URL(`../public/data/looks/${l}/${f}`, import.meta.url)), `${l}: ${f}`);
 }
 console.log("ok");
