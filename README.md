@@ -82,6 +82,9 @@ python3 tools/scrape_wiki.py > public/data/buildings.json
 node tools/vendor_icons.mjs   # copies the icons still shown into public/data/icons/ (needs cwebp)
 ```
 
+The interface icons in `src/icons/` are Phosphor cut down to the ones the page uses; after using a new
+one, run `uv run --with fonttools --with brotli tools/subset_icons.py` (`npm test` fails until then).
+
 Sizes, names and the building list now come from the game (`public/data/game.json`, below). The
 wiki data is still used for two things: build-menu icons for the few buildings without a
 game render, and reading share links made before layouts were keyed by the game's type
