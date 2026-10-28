@@ -31,7 +31,7 @@
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
-  body { margin: 0; height: 100dvh; background: var(--bg); color: var(--text); font: 14px/1.45 "Geist Variable", system-ui, sans-serif; display: grid; grid-template-columns: 340px 1fr; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  body { margin: 0; height: 100dvh; background: var(--bg); color: var(--text); font: 14px/1.45 "Geist Variable", system-ui, sans-serif; display: grid; grid-template-columns: 320px 1fr; overflow: hidden; -webkit-font-smoothing: antialiased; }
   button, input, select { font: inherit; color: inherit; }
   button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -42,45 +42,42 @@
   /* Sidebar (a bottom sheet on phones) */
   aside { background: var(--surface); border-inline-end: 1px solid var(--line); display: grid; grid-template-rows: auto auto auto auto 1fr; min-height: 0; }
   .grabber { display: none; }
-  .brand { padding: 18px 18px 14px; display: flex; align-items: center; gap: 10px; }
-  .brand i { color: var(--accent); font-size: 22px; }
-  .brand h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
-  .brand p { margin: 0; color: var(--muted); font-size: 12px; }
-  .lang { display: flex; align-items: center; gap: 8px; margin: 0 var(--gap) 10px; color: var(--muted); }
-  .lang i { font-size: 16px; }
-  .lang select { flex: 1; height: 34px; padding: 0 8px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-ctl); font-size: 13px; }
-  .search { margin: 0 var(--gap) 12px; position: relative; }
+  .brand { padding: 14px var(--gap) 12px; display: flex; align-items: center; gap: 8px; }
+  .brand i { color: var(--accent); font-size: 18px; }
+  .brand h1 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+  .search { margin: 0 var(--gap) 8px; position: relative; }
   .search i { position: absolute; inset-inline-start: 11px; top: 50%; translate: 0 -50%; color: var(--faint); pointer-events: none; }
   .search input { width: 100%; height: 38px; padding-inline: 34px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-ctl); transition: border-color .2s var(--ease); }
   .search input::placeholder { color: var(--faint); }
   .search input:focus { border-color: var(--line-strong); outline: none; }
-  .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin: 0 var(--gap) 6px; padding: 3px; background: var(--bg); border-radius: var(--r-ctl); }
-  .tabs button { min-width: 0; min-height: 46px; padding: 5px 3px 4px; display: grid; justify-items: center; align-content: center; gap: 2px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 11px; font-weight: 500; line-height: 1.15; transition: background .2s var(--ease), color .2s var(--ease); }
-  .tabs button i { font-size: 18px; }
-  .tabs button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* two by two, icon beside the name, so whole category names fit; a row of four on phones */
+  .tabs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; margin: 0 var(--gap) 4px; padding: 3px; background: var(--bg); border-radius: var(--r-ctl); }
+  .tabs button { min-width: 0; min-height: 34px; padding: 4px 6px; display: flex; align-items: center; gap: 6px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 12px; font-weight: 500; line-height: 1.15; text-align: start; transition: background .2s var(--ease), color .2s var(--ease); }
+  .tabs button i { font-size: 18px; flex: none; }
+  .tabs button span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tabs button:hover { color: var(--text); }
   .tabs button[aria-selected="true"] { background: var(--raised); color: var(--text); }
   .tabs button[aria-selected="true"] i { color: var(--accent); }
   .palette { overflow-y: auto; overscroll-behavior: contain; padding: 0 var(--gap) 24px; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
-  .palette h2 { font-size: 12px; font-weight: 500; color: var(--muted); margin: 16px 2px 8px; display: flex; justify-content: space-between; gap: 8px; }
-  .palette h2 span { color: var(--faint); }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
-  .tile { position: relative; display: grid; justify-items: center; gap: 4px; padding: 12px 4px 8px; background: var(--bg); border: 1px solid transparent; border-radius: var(--r-tile); text-align: center; transition: border-color .15s var(--ease), background .15s var(--ease), transform .15s var(--ease); }
-  .tile:hover { border-color: var(--line-strong); background: var(--raised); }
-  .tile:active { transform: scale(.97); }
-  .tile[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
-  .thumb { display: block; width: 44px; height: 44px; object-fit: contain; }
-  i.thumb { display: grid; place-items: center; font-size: 26px; color: var(--faint); }
-  .tile span { font-size: 11.5px; line-height: 1.25; max-width: 100%; hyphens: auto; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.5em; }
-  .tile small { position: absolute; top: 5px; inset-inline-end: 6px; font-size: 10px; color: var(--faint); }
-  .tile .tiers { position: absolute; top: 5px; inset-inline-start: 6px; font-size: 10px; color: var(--faint); display: flex; align-items: center; gap: 2px; }
-  .tile .tiers i { font-size: 11px; }
-  .recent { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
-  .recent .tile { flex: 0 0 60px; padding: 7px 4px; }
-  .recent .thumb { width: 36px; height: 36px; }
-  .recent .tile span, .recent .tile small, .recent .tile .tiers { display: none; }
+  /* section titles stay in view while their list scrolls */
+  .palette h2 { position: sticky; top: 0; z-index: 1; margin: 0 -2px; padding: 12px 4px 6px; background: var(--surface); font-size: 12px; font-weight: 600; color: var(--text); display: flex; justify-content: space-between; gap: 8px; }
+  .palette h2 span { color: var(--faint); font-weight: 500; }
+  .grid { display: grid; gap: 1px; }
+  .tile { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 50px; padding: 5px 8px 5px 5px; border: 0; border-radius: var(--r-ctl); background: none; text-align: start; transition: background .15s var(--ease); }
+  .tile:hover { background: var(--raised); }
+  .tile:active { background: var(--line); }
+  .tile[aria-pressed="true"] { background: var(--accent-soft); box-shadow: inset 0 0 0 1px rgb(200 66 59 / .55); }
+  .thumb { display: block; width: 40px; height: 40px; object-fit: contain; }
+  .tile .thumb { flex: none; padding: 2px; border-radius: 6px; background: var(--bg); }
+  i.thumb { display: grid; place-items: center; font-size: 22px; color: var(--faint); }
+  .tile .name { display: grid; min-width: 0; }
+  .tile .name b { font-size: 13px; font-weight: 500; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tile .name small { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .recent { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .recent .tile { flex: none; width: auto; min-height: 0; padding: 3px; }
+  .recent .name { display: none; }
   .empty-search { color: var(--muted); padding: 24px 4px; text-align: center; }
-  .skeleton { height: 92px; border-radius: var(--r-tile); background: linear-gradient(90deg, var(--bg) 0%, var(--raised) 50%, var(--bg) 100%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+  .skeleton { height: 50px; border-radius: var(--r-tile); background: linear-gradient(90deg, var(--bg) 0%, var(--raised) 50%, var(--bg) 100%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
   @keyframes shimmer { to { background-position: -200% 0; } }
 
   /* Map */
@@ -89,27 +86,38 @@
   #map.pan { cursor: grab; } #map.panning { cursor: grabbing; } #map.erase { cursor: not-allowed; } #map.measure { cursor: crosshair; }
   #fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   .float { position: absolute; background: rgb(28 23 25 / .92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); }
-  .toolbar { top: var(--gap); inset-inline-start: var(--gap); display: flex; align-items: center; gap: 2px; padding: 4px; }
-  .toolbar.right { inset-inline: auto var(--gap); }
+  .toolbar, .view { display: flex; align-items: center; gap: 2px; padding: 4px; }
+  .toolbar.right { top: var(--gap); inset-inline-end: var(--gap); }
+  .dock { bottom: var(--gap); left: 50%; translate: -50% 0; z-index: 4; }
+  .dock .label { font-weight: 500; }
+  .view:not(:popover-open) { position: absolute; inset: var(--gap) auto auto var(--gap); margin: 0; color: var(--text); }
+  :dir(rtl) .view:not(:popover-open) { inset: var(--gap) var(--gap) auto auto; }
+  .view-btn { display: none; }
+  .menu-label { display: none; }
+  /* menus drop down under the right island */
+  .menu:popover-open, .view:popover-open { position: fixed; inset: 62px var(--gap) auto auto; margin: 0; padding: 6px; min-width: 240px; display: grid; gap: 2px; background: rgb(28 23 25 / .97); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); }
+  :dir(rtl) :is(.menu, .view):popover-open { inset: 62px auto auto var(--gap); }
+  :is(.menu, .view:popover-open) .menu-label { display: inline; }
+  :is(.menu, .view:popover-open) :is(.icon-btn, .land) { height: 44px; justify-content: flex-start; padding: 0 12px; gap: 10px; color: var(--text); }
+  :is(.menu, .view:popover-open) .land select { flex: 1; padding: 0; }
+  .view:popover-open .sep { display: none; }
+  .menu .danger:hover:not(:disabled) { color: var(--accent); }
   .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; flex: none; }
   .icon-btn { height: 34px; min-width: 34px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: var(--r-ctl); background: none; color: var(--muted); font-size: 13px; white-space: nowrap; transition: background .15s var(--ease), color .15s var(--ease), transform .1s var(--ease); }
   .icon-btn i { font-size: 18px; }
   .icon-btn:hover:not(:disabled) { background: var(--raised); color: var(--text); }
   .icon-btn:active:not(:disabled) { transform: translateY(1px); }
   .icon-btn:disabled { opacity: .35; cursor: default; }
-  .icon-btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--text); }
+  .icon-btn[aria-pressed="true"] { background: var(--raised); color: var(--text); box-shadow: inset 0 0 0 1px var(--line-strong); }
   .icon-btn[aria-pressed="true"] i { color: var(--accent); }
   .icon-btn.primary { background: var(--accent); color: #fff7f2; padding: 0 12px; }
   .icon-btn.primary:hover { background: #d6514a; color: #fff7f2; }
   .icon-btn.secondary { border: 1px solid var(--line); color: var(--text); padding: 0 12px; }
-  .more-btn, .menu-label { display: none; }
-  .more { display: contents; } /* inline in the toolbar; a popup menu on phones */
   .land { display: inline-flex; align-items: center; gap: 4px; height: 34px; padding: 0 4px 0 8px; border-radius: var(--r-ctl); color: var(--muted); transition: background .15s var(--ease); }
   .land:hover { background: var(--raised); color: var(--text); }
   .land i { font-size: 18px; }
-  .land select { appearance: none; border: 0; background: none; font-size: 13px; padding: 0 6px; height: 100%; cursor: pointer; }
+  .land select { field-sizing: content; appearance: none; border: 0; background: none; font-size: 13px; padding: 0 6px; height: 100%; cursor: pointer; }
   .land select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-  .quality:popover-open { position: fixed; inset: auto; top: 62px; inset-inline-start: calc(340px + var(--gap)); margin: 0; padding: 6px; min-width: 240px; display: grid; gap: 2px; background: rgb(28 23 25 / .97); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); }
   .quality .land { height: 44px; justify-content: space-between; padding: 0 4px 0 12px; color: var(--text); }
   .land option { background: var(--surface); }
   .zoom { min-width: 48px; text-align: center; font-size: 12px; color: var(--muted); }
@@ -122,20 +130,26 @@
   .item img { width: 18px; height: 18px; object-fit: contain; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-  .inspector { inset-inline-start: var(--gap); bottom: var(--gap); width: 300px; padding: 12px; display: grid; grid-template-columns: 52px 1fr auto; gap: 2px 12px; align-items: center; transition: opacity .2s var(--ease), translate .2s var(--ease); }
-  .inspector[hidden] { display: grid; opacity: 0; translate: 0 6px; pointer-events: none; }
+  .inspector { inset-inline-start: var(--gap); top: 62px; width: 300px; padding: 12px; display: grid; grid-template-columns: 52px 1fr auto; gap: 2px 12px; align-items: center; transition: opacity .2s var(--ease), translate .2s var(--ease); }
+  .inspector[hidden] { display: grid; opacity: 0; translate: 0 -6px; pointer-events: none; }
   .inspector .thumb { width: 52px; height: 52px; }
   .inspector b { font-weight: 600; font-size: 14px; }
   .inspector .desc { grid-column: 1 / -1; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
   .ins-actions { display: flex; gap: 2px; }
   .ins-actions[hidden] { display: none; }
 
-  .stats { inset-inline-end: var(--gap); bottom: var(--gap); padding: 12px 14px; min-width: 220px; }
-  .stats .big { display: flex; gap: 18px; }
-  .stats .big div { display: grid; }
-  .stats .big b { font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
-  .stats .big span { font-size: 11.5px; color: var(--muted); }
-  .bar { height: 4px; border-radius: 4px; background: var(--line); margin: 10px 0 8px; overflow: hidden; }
+  /* under the right island; a click on the numbers folds the details away */
+  .stats { inset-inline-end: var(--gap); top: 62px; padding: 12px 14px; width: 260px; max-height: calc(100% - 62px - 76px); overflow-y: auto; scrollbar-width: thin; }
+  .stats .big { display: grid; grid-template-columns: auto 1fr auto; align-items: end; gap: 18px; width: 100%; padding: 0; border: 0; background: none; text-align: start; }
+  .stats .big > span { display: grid; min-width: 0; }
+  .stats .big b { font-size: 20px; font-weight: 600; letter-spacing: -.02em; line-height: 1.1; }
+  .stats .big span span { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+  .stats .caret { align-self: start; font-size: 14px; color: var(--muted); transition: rotate .2s var(--ease); }
+  .stats .big:hover .caret { color: var(--text); }
+  .stats .big[aria-expanded="false"] .caret { rotate: -90deg; }
+  .stats .big[aria-expanded="false"] ~ .bar { margin-bottom: 0; }
+  .stats .big[aria-expanded="false"] ~ #stats-body { display: none; }
+  .bar { height: 4px; border-radius: 4px; background: var(--line); margin: 8px 0; overflow: hidden; }
   .bar i { display: block; height: 100%; background: var(--ok); border-radius: inherit; transition: width .3s var(--ease); }
   .stats ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 12px; color: var(--muted); }
   .stats li { display: flex; justify-content: space-between; gap: 12px; }
@@ -145,7 +159,7 @@
   .capacity > b { display: block; margin-bottom: 4px; font-size: 12.5px; font-weight: 600; }
   .stats li.limit, .stats li.limit b { color: var(--accent); }
 
-  .legend { top: 62px; inset-inline-end: var(--gap); padding: 10px 12px; max-width: 260px; max-height: calc(100% - 62px - 190px); overflow-y: auto; scrollbar-width: thin; font-size: 12px; }
+  .legend { bottom: var(--gap); inset-inline-end: var(--gap); padding: 10px 12px; max-width: 260px; max-height: 40%; overflow-y: auto; scrollbar-width: thin; font-size: 12px; }
   .legend[hidden] { display: none; }
   .legend > b { display: block; margin-bottom: 6px; font-weight: 600; }
   .legend ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
@@ -172,7 +186,7 @@
   .tip { position: fixed; z-index: 20; width: 290px; padding: 10px 12px; display: grid; gap: 4px; pointer-events: none; background: rgb(28 23 25 / .97); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); }
   .tip[hidden] { display: none; }
   .tip b { font-weight: 600; }
-  .toast { left: 50%; bottom: 18px; translate: -50% 0; padding: 9px 14px; width: max-content; max-width: calc(100% - 32px); font-size: 13px; display: flex; gap: 8px; align-items: center; transition: opacity .2s var(--ease), translate .2s var(--ease); z-index: 6; }
+  .toast { left: 50%; bottom: calc(var(--gap) + 58px); translate: -50% 0; padding: 9px 14px; width: max-content; max-width: calc(100% - 32px); font-size: 13px; display: flex; gap: 8px; align-items: center; transition: opacity .2s var(--ease), translate .2s var(--ease); z-index: 6; }
   .toast[hidden] { display: flex; opacity: 0; translate: -50% 8px; pointer-events: none; }
   .toast i { color: var(--ok); }
 
@@ -190,15 +204,14 @@
 
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
 
-  /* Narrower screens: the toolbar's extras move into a menu, then the zoom buttons go (scroll or pinch). */
-  @media (max-width: 1399px) {
-    .more-btn { display: inline-flex; }
-    .more:not(:popover-open) { display: none; }
-    .more:popover-open { position: fixed; inset: auto; top: 62px; inset-inline-start: calc(340px + var(--gap)); margin: 0; padding: 6px; min-width: 240px; display: grid; gap: 2px; background: rgb(28 23 25 / .97); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); }
-    .more .sep { display: none; }
-    .more .icon-btn, .more .land { height: 44px; justify-content: flex-start; padding: 0 12px; gap: 10px; color: var(--text); }
-    .more .land select { flex: 1; padding: 0; }
-    .menu-label { display: inline; }
+  /* Narrower screens: the tool and toggle labels go first, then the view settings move behind the eye
+     button and the zoom buttons go (scroll or pinch). */
+  @media (min-width: 1700px) { .view .menu-label { display: inline; } }
+  @media (max-width: 1099px) { .dock .label { display: none; } }
+  @media (max-width: 1279px) {
+    .view:not(:popover-open) { display: none; }
+    .view-btn { display: inline-flex; }
+    .inspector { top: var(--gap); }
   }
   @media (max-width: 999px) { .wide { display: none !important; } }
 
@@ -209,17 +222,20 @@
     main { grid-row: 1; }
     aside { grid-row: 2; border-inline-end: 0; border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; margin-top: -16px; position: relative; z-index: 7; box-shadow: 0 -10px 30px rgb(8 4 6 / .45); padding-bottom: env(safe-area-inset-bottom); }
     aside.open { height: min(62dvh, 560px); }
-    aside:not(.open) :is(.lang, .search, .palette) { display: none; }
+    aside:not(.open) :is(.search, .palette) { display: none; }
     aside:not(.open) .tabs { margin-bottom: 10px; }
+    .tabs { grid-template-columns: repeat(4, 1fr); }
+    .tabs button { flex-direction: column; justify-content: center; gap: 2px; min-height: 46px; padding: 5px 2px 4px; font-size: 11px; text-align: center; }
+    .tabs button span { max-width: 100%; }
     .grabber { display: grid; place-items: center; height: 24px; width: 100%; padding: 0; border: 0; background: none; }
     .grabber span { width: 40px; height: 4px; border-radius: 4px; background: var(--line-strong); }
     .brand, .desk, .toolbar .label { display: none !important; }
     .icon-btn { height: 40px; min-width: 40px; }
-    .more:popover-open, .quality:popover-open { inset-inline-start: var(--gap); }
     .stats { display: none; }
-    .inspector { inset-inline: var(--gap); bottom: calc(var(--gap) + 16px); width: auto; }
+    .inspector { inset-inline: var(--gap); top: 62px; width: auto; }
+    .dock { bottom: calc(var(--gap) + 16px); }
     .inspector:not(.holding) { display: none; }
-    .selection { inset-inline: var(--gap); bottom: calc(var(--gap) + 16px); top: auto; width: auto; max-width: none; translate: none; }
+    .selection { inset-inline: var(--gap); bottom: calc(var(--gap) + 70px); top: auto; width: auto; max-width: none; translate: none; }
     .toast { top: 62px; bottom: auto; }
     .toast[hidden] { translate: -50% -8px; }
   }
@@ -232,12 +248,8 @@
   <button class="grabber" id="sheet-toggle" aria-expanded="false" aria-controls="palette" data-i18n-label="sheetToggle"><span></span></button>
   <div class="brand">
     <i class="ph-fill ph-diamond" aria-hidden="true"></i>
-    <div><h1 data-i18n="title">Cult of the Lamb Planner</h1><p data-i18n="tagline">Plan your base on the real in-game grid</p></div>
+    <h1 data-i18n="title">Cult of the Lamb Planner</h1>
   </div>
-  <label class="lang">
-    <i class="ph ph-translate" aria-hidden="true"></i>
-    <select id="lang" aria-label="Language" data-i18n-label="language"></select>
-  </label>
   <label class="search">
     <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
     <input id="search" type="search" placeholder="Search buildings" aria-label="Search buildings" data-i18n-placeholder="search" data-i18n-label="search" autocomplete="off">
@@ -251,39 +263,35 @@
   <canvas id="map" aria-label="Base map" data-i18n-label="mapLabel"></canvas>
   <canvas id="fx" aria-hidden="true"></canvas>
 
-  <div class="float toolbar" role="toolbar" data-i18n-label="tools">
-    <button class="icon-btn" id="tool-select" aria-pressed="true" data-i18n-tip="moveTool"><i class="ph ph-cursor"></i></button>
-    <button class="icon-btn" id="tool-erase" aria-pressed="false" data-i18n-tip="erase"><i class="ph ph-eraser"></i></button>
-    <button class="icon-btn" id="tool-measure" aria-pressed="false" data-i18n-tip="measure"><i class="ph ph-ruler"></i></button>
-    <button class="icon-btn desk" id="rotate" data-i18n-tip="flipKey"><i class="ph ph-arrows-clockwise"></i></button>
+  <!-- tools: a dock at the bottom, at the top on phones (the building list's sheet is at the bottom) -->
+  <div class="float toolbar dock" role="toolbar" data-i18n-label="tools">
+    <button class="icon-btn" id="tool-select" aria-pressed="true" data-i18n-tip="moveTool"><i class="ph ph-cursor"></i><span class="label" data-i18n-short="moveTool"></span></button>
+    <button class="icon-btn" id="tool-erase" aria-pressed="false" data-i18n-tip="erase"><i class="ph ph-eraser"></i><span class="label" data-i18n-short="erase"></span></button>
+    <button class="icon-btn" id="tool-measure" aria-pressed="false" data-i18n-tip="measure"><i class="ph ph-ruler"></i><span class="label" data-i18n-short="measure"></span></button>
+    <button class="icon-btn desk" id="rotate" data-i18n-tip="flipKey"><i class="ph ph-arrows-clockwise"></i><span class="label" data-i18n="flip"></span></button>
     <span class="sep"></span>
     <button class="icon-btn" id="undo" data-i18n-tip="undo" disabled><i class="ph ph-arrow-counter-clockwise"></i></button>
     <button class="icon-btn" id="redo" data-i18n-tip="redo" disabled><i class="ph ph-arrow-clockwise"></i></button>
+  </div>
+
+  <!-- what the map shows: its own island on wide screens, a menu behind the eye button on narrow ones -->
+  <div class="float view" id="more" popover role="group" data-i18n-label="view">
+    <label class="land" data-i18n-title="landTitle">
+      <i class="ph ph-map-trifold" aria-hidden="true"></i>
+      <select id="land" data-i18n-label="landTitle">
+        <option value="0" data-i18n="land0">Base land</option>
+        <option value="1" data-i18n="land1">+ South field</option>
+        <option value="2" data-i18n="land2">+ West</option>
+        <option value="3" data-i18n="land3">+ East</option>
+      </select>
+    </label>
+    <label class="land" data-i18n-title="look">
+      <i class="ph ph-sun" aria-hidden="true" id="look-icon"></i>
+      <select id="look" data-i18n-label="look"></select>
+    </label>
     <span class="sep"></span>
-    <button class="icon-btn more-btn" popovertarget="more" data-i18n-tip="more"><i class="ph ph-dots-three-outline"></i></button>
-    <div class="more" id="more" popover>
-      <label class="land" data-i18n-title="landTitle">
-        <i class="ph ph-map-trifold" aria-hidden="true"></i>
-        <select id="land" data-i18n-label="landTitle">
-          <option value="0" data-i18n="land0">Base land</option>
-          <option value="1" data-i18n="land1">+ South field</option>
-          <option value="2" data-i18n="land2">+ West</option>
-          <option value="3" data-i18n="land3">+ East</option>
-        </select>
-      </label>
-      <label class="land" data-i18n-title="look">
-        <i class="ph ph-sun" aria-hidden="true" id="look-icon"></i>
-        <select id="look" data-i18n-label="look"></select>
-      </label>
-      <span class="sep"></span>
-      <button class="icon-btn" id="quality-open" data-i18n-tip="quality"><i class="ph ph-sliders-horizontal"></i><span class="menu-label" data-i18n="quality"></span></button>
-      <button class="icon-btn" id="labels" aria-pressed="false" data-i18n-tip="names"><i class="ph ph-text-aa"></i><span class="menu-label" data-i18n-short="names"></span></button>
-      <button class="icon-btn" id="ranges" aria-pressed="false" data-i18n-tip="ranges"><i class="ph ph-circle-dashed"></i><span class="menu-label" data-i18n-short="ranges"></span></button>
-      <button class="icon-btn" id="clear" data-i18n-tip="clear"><i class="ph ph-trash"></i><span class="menu-label" data-i18n="clear"></span></button>
-      <button class="icon-btn" id="import" data-i18n-tip="importSave"><i class="ph ph-upload-simple"></i><span class="menu-label" data-i18n="importSave"></span></button>
-      <button class="icon-btn" id="png" data-i18n-tip="png"><i class="ph ph-download-simple"></i><span class="menu-label" data-i18n="png"></span></button>
-      <button class="icon-btn desk" id="help" data-i18n-tip="shortcuts"><i class="ph ph-keyboard"></i><span class="menu-label" data-i18n-short="shortcuts"></span></button>
-    </div>
+    <button class="icon-btn" id="labels" aria-pressed="false" data-i18n-tip="names"><i class="ph ph-text-aa"></i><span class="menu-label" data-i18n-short="names"></span></button>
+    <button class="icon-btn" id="ranges" aria-pressed="false" data-i18n-tip="ranges"><i class="ph ph-circle-dashed"></i><span class="menu-label" data-i18n-short="ranges"></span></button>
   </div>
 
   <div class="float toolbar right" role="toolbar" data-i18n-label="viewShare">
@@ -291,7 +299,21 @@
     <span class="zoom num wide" id="zoom">100%</span>
     <button class="icon-btn wide" id="zoom-in" data-i18n-tip="zoomIn"><i class="ph ph-plus"></i></button>
     <button class="icon-btn" id="fit" data-i18n-tip="fit"><i class="ph ph-corners-out"></i></button>
-    <div class="quality" id="quality" popover>
+    <span class="sep desk"></span>
+    <button class="icon-btn view-btn" popovertarget="more" data-i18n-tip="view"><i class="ph ph-eye"></i></button>
+    <button class="icon-btn" popovertarget="file" data-i18n-tip="more"><i class="ph ph-dots-three-outline"></i></button>
+    <div class="menu" id="file" popover>
+      <label class="land">
+        <i class="ph ph-translate" aria-hidden="true"></i>
+        <select id="lang" aria-label="Language" data-i18n-label="language"></select>
+      </label>
+      <button class="icon-btn" id="import" data-i18n-tip="importSave"><i class="ph ph-upload-simple"></i><span class="menu-label" data-i18n="importSave"></span></button>
+      <button class="icon-btn" id="png" data-i18n-tip="png"><i class="ph ph-download-simple"></i><span class="menu-label" data-i18n="png"></span></button>
+      <button class="icon-btn" id="quality-open" data-i18n-tip="quality"><i class="ph ph-sliders-horizontal"></i><span class="menu-label" data-i18n="quality"></span></button>
+      <button class="icon-btn desk" id="help" data-i18n-tip="shortcuts"><i class="ph ph-keyboard"></i><span class="menu-label" data-i18n-short="shortcuts"></span></button>
+      <button class="icon-btn danger" id="clear" data-i18n-tip="clear"><i class="ph ph-trash"></i><span class="menu-label" data-i18n="clear"></span></button>
+    </div>
+    <div class="menu quality" id="quality" popover>
       <label class="land"><span data-i18n="textures"></span>
         <select id="textures"><option value="1" data-i18n="detailFull"></option><option value="2" data-i18n="detailHalf"></option><option value="3" data-i18n="detailThird"></option></select>
       </label>
@@ -319,12 +341,14 @@
     <p class="desc" id="ins-desc"></p>
   </div>
 
-  <div class="float stats" role="group" data-i18n-label="layoutStats">
-    <div class="big">
-      <div><b class="num" id="st-count">0</b><span data-i18n="statsBuildings">buildings</span></div>
-      <div><b class="num" id="st-cells">0</b><span id="st-cells-of"></span></div>
-    </div>
+  <div class="float stats" id="stats" role="group" data-i18n-label="layoutStats">
+    <button class="big" id="stats-toggle" aria-expanded="true" aria-controls="stats-body" data-i18n-title="layoutStats">
+      <span><b class="num" id="st-count">0</b><span data-i18n="statsBuildings">buildings</span></span>
+      <span><b class="num" id="st-cells">0</b><span id="st-cells-of"></span></span>
+      <i class="ph ph-caret-down caret" aria-hidden="true"></i>
+    </button>
     <div class="bar"><i id="st-bar" style="width:0"></i></div>
+    <div id="stats-body">
     <ul id="st-groups"></ul>
     <div class="capacity" id="st-capacity" hidden>
       <b id="st-room"></b>
@@ -333,6 +357,7 @@
     <div class="capacity" id="st-materials" hidden data-i18n-title="materialsHint">
       <b data-i18n="materials">Materials</b>
       <div class="items" id="st-materials-list"></div>
+    </div>
     </div>
   </div>
 

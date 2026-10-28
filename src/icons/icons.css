@@ -44,6 +44,9 @@
 .ph.ph-arrows-out-cardinal:before {
   content: "\e0a4";
 }
+.ph.ph-caret-down:before {
+  content: "\e136";
+}
 .ph.ph-check-circle:before {
   content: "\e184";
 }
@@ -76,6 +79,9 @@
 }
 .ph.ph-eraser:before {
   content: "\e21e";
+}
+.ph.ph-eye:before {
+  content: "\e220";
 }
 .ph.ph-flower-tulip:before {
   content: "\eacc";
@@ -130,9 +136,6 @@
 }
 .ph.ph-squares-four:before {
   content: "\e464";
-}
-.ph.ph-stack:before {
-  content: "\e466";
 }
 .ph.ph-sun:before {
   content: "\e472";
@@ -200,6 +203,9 @@
 .ph-fill.ph-arrows-out-cardinal:before {
   content: "\e0a4";
 }
+.ph-fill.ph-caret-down:before {
+  content: "\e136";
+}
 .ph-fill.ph-check-circle:before {
   content: "\e184";
 }
@@ -232,6 +238,9 @@
 }
 .ph-fill.ph-eraser:before {
   content: "\e21e";
+}
+.ph-fill.ph-eye:before {
+  content: "\e220";
 }
 .ph-fill.ph-flower-tulip:before {
   content: "\eacc";
@@ -286,9 +295,6 @@
 }
 .ph-fill.ph-squares-four:before {
   content: "\e464";
-}
-.ph-fill.ph-stack:before {
-  content: "\e466";
 }
 .ph-fill.ph-sun:before {
   content: "\e472";
