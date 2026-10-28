@@ -10,10 +10,12 @@
 //                holds each sprite's anchor (the centre of the footprint's first cell), and
 //                <TYPE>#<i>.png the frames of its idle animation; lights/ the light it casts
 //                (mask-<TYPE>.png) and adds (glow-<TYPE>.png); buildings-lit/ graded as in lamp light
+//   Floors       floors/<TYPE>.<sprite>.<matrix>.png: every tile the game's rule tiles can put down for
+//                each path and floor, drawn alone by its own tilemap; floors.json their tiling rules
 //   Backgrounds  landN.png per Woolhaven land level (none bought .. all three, switched in memory
 //                with DLCLandController), the game's grid per level in grid.json, and gridN.png
 //                with the game's build-mode tile on every cell
-// With Looks set (day, dusk, night, rain, winter, blizzard, bloodmoon), Buildings and Backgrounds run
+// With Looks set (day, dusk, night, rain, winter, blizzard, bloodmoon), Buildings, Floors and Backgrounds run
 // once per look, each into its own folder, after switching the game to it in memory: the clock, the
 // season, the weather and the blood moon lighting. Each look also gets lut.png, the game's colour
 // grading for it, which the building renders (made without post-processing) are passed through, and
@@ -39,6 +41,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.SceneManagement;
+using UnityEngine.Tilemaps;
 
 [BepInPlugin("chrsnv.cotlplanner.capture", "COTL Planner Capture", "1.2.0")]
 public class PlannerCapture : BaseUnityPlugin
@@ -48,10 +51,10 @@ public class PlannerCapture : BaseUnityPlugin
     const float U0 = -33.858737f, U1 = 34.224524f, V0 = -46f, V1 = 15.101617f;
     const float K = 0.70710678f;
 
-    // Fixed structures that belong to the default base and stay in the clean capture. The Temple is
-    // left out: it can be moved and upgraded, so the planner draws it like any other building.
+    // Fixed structures that belong to the default base and stay in the clean capture. The Temple and the
+    // Shrine are left out: they change with the cult's level, so the planner draws them.
     static readonly HashSet<string> Keep = new HashSet<string> {
-        "SHRINE", "SHRINE_II", "SHRINE_III", "SHRINE_IV", "SHRINE_BASE",
+        "SHRINE_BASE",
         "TEMPLE_BASE", "TEMPLE_BASE_EXTENSION1", "TEMPLE_BASE_EXTENSION2", "COLLECTED_RESOURCES_CHEST", "MISSION_SHRINE",
         "DANCING_FIREPIT", "FEAST_TABLE", "RATAU_SHRINE", "PLACEMENT_REGION", "FIRE", "FISHING_SPOT",
     };
@@ -59,7 +62,7 @@ public class PlannerCapture : BaseUnityPlugin
     ConfigEntry<int> slot, width;
     ConfigEntry<float> settle, ppu;
     ConfigEntry<string> looks, types;
-    ConfigEntry<bool> autoLoad, forceDay, quitAfter, doStructures, doTranslations, doBuildings, doBackgrounds, doDensity;
+    ConfigEntry<bool> autoLoad, forceDay, quitAfter, doStructures, doTranslations, doBuildings, doFloors, doBackgrounds, doDensity;
     string outDir;
     bool started, done;
 
@@ -76,8 +79,9 @@ public class PlannerCapture : BaseUnityPlugin
         doDensity = Config.Bind("Jobs", "Density", false, "density.txt: how many texture pixels the game's art has per world unit.");
         doTranslations = Config.Bind("Jobs", "Translations", true, "i18n.json: every localisation term in every language.");
         doBuildings = Config.Bind("Jobs", "Buildings", true, "buildings/: every buildable structure rendered alone.");
+        doFloors = Config.Bind("Jobs", "Floors", true, "floors/: every path and floor tile as the game's rule tiles draw it; floors.json: their rules.");
         doBackgrounds = Config.Bind("Jobs", "Backgrounds", true, "landN.png, grid.json, gridN.png per land level.");
-        types = Config.Bind("Jobs", "Types", "", "Comma-separated structure types to render in Buildings (empty: all).");
+        types = Config.Bind("Jobs", "Types", "", "Comma-separated structure types to render in Buildings and Floors (empty: all).");
         looks = Config.Bind("Jobs", "Looks", "", "Comma-separated looks to run Buildings and Backgrounds in, each into its own folder: day, dusk, night, rain, winter, blizzard, bloodmoon. Empty: once, as the save looks.");
         outDir = Path.Combine(Paths.PluginPath, "PlannerCapture");
         Directory.CreateDirectory(outDir);
@@ -142,6 +146,7 @@ public class PlannerCapture : BaseUnityPlugin
         if (list.Count == 0)
         {
             if (doBuildings.Value) yield return CaptureBuildings(outDir, null, null, false);
+            if (doFloors.Value) yield return CaptureFloors(outDir, null, null, true);
             if (doBackgrounds.Value) yield return CaptureLands(outDir, true, false);
         }
         foreach (var look in list)
@@ -157,6 +162,7 @@ public class PlannerCapture : BaseUnityPlugin
             Logger.LogInfo($"{look}: the lit grading differs by {litBy:0.0} on average");
             if (litBy < LitThreshold) lit = null;
             if (doBuildings.Value) yield return CaptureBuildings(dir, lut, lit, look == "winter" || look == "blizzard");
+            if (doFloors.Value) yield return CaptureFloors(dir, lut, lit, look == list[0]);
             if (doBackgrounds.Value) yield return CaptureLands(dir, look == list[0], lit != null);
         }
         Try("capture.json", () =>
@@ -239,6 +245,7 @@ public class PlannerCapture : BaseUnityPlugin
     void DumpStructures()
     {
         var rows = new List<string>();
+        var region = PlacementRegion.Instance;
         foreach (var s in FindObjectsOfType<Structure>())
         {
             var d = s.Structure_Info;
@@ -251,8 +258,10 @@ public class PlannerCapture : BaseUnityPlugin
             }
             catch { }
             rows.Add($"{{\"type\":\"{s.Type}\",\"x\":{d.GridTilePosition.x},\"y\":{d.GridTilePosition.y},\"w\":{d.Bounds.x},\"h\":{d.Bounds.y}," +
-                     $"\"movable\":{Bool(movable)},\"deletable\":{Bool(deletable)},\"obstruction\":{Bool(d.IsObstruction)}}}");
+                     $"\"movable\":{Bool(movable)},\"deletable\":{Bool(deletable)},\"obstruction\":{Bool(d.IsObstruction)}{At(s.transform.position)}}}");
         }
+        // where it stands in grid units (fractional), for structures off the grid, such as the Shrine
+        string At(Vector3 p) { if (!region) return ""; var g = region.transform.InverseTransformPoint(p); return $",\"gx\":{g.x:0.###},\"gy\":{g.y:0.###}"; }
         File.WriteAllText(Path.Combine(outDir, "structures.json"), "[\n" + string.Join(",\n", rows) + "\n]");
         Logger.LogInfo($"structures.json: {rows.Count} structures");
     }
@@ -340,10 +349,12 @@ public class PlannerCapture : BaseUnityPlugin
         var lights = new List<string>();
         var seen = new HashSet<string>();
         var only = new HashSet<string>(types.Value.Split(',').Select(t => t.Trim()).Where(t => t != ""));
+        var floors = new HashSet<string>(PathTileManager.Instance ? ((Array)Traverse.Create(PathTileManager.Instance).Field("tiles").GetValue())
+            .Cast<object>().Select(d => Traverse.Create(d).Field("Type").GetValue().ToString()) : new string[0]); // the Floors job draws those
         foreach (var entry in list.TypeAndPlacementObject)
         {
             string type = entry.Type.ToString();
-            if (only.Count > 0 && !only.Contains(type)) continue;
+            if (only.Count > 0 && !only.Contains(type) || floors.Contains(type)) continue;
             if (!seen.Add(type) || entry.Addr_PlacementObject == null || !entry.Addr_PlacementObject.RuntimeKeyIsValid()) continue;
             GameObject go = null;
             yield return Place(entry, holder, anchor, winter, g => go = g);
@@ -363,7 +374,13 @@ public class PlannerCapture : BaseUnityPlugin
             }
             string row = null;
             Try(type, () => { row = Shot(type, lut, lit); if (row != null) meta.Add($"{Json(type)}:{row}"); });
-            if (row == null) { Destroy(go); continue; }
+            if (row == null)
+            {
+                Logger.LogWarning($"{type}: nothing drawn; renderers: " + string.Join("; ", go.GetComponentsInChildren<Renderer>(true).Select(r =>
+                    $"{r.name} {r.GetType().Name} {(r.enabled && r.gameObject.activeInHierarchy ? "on" : "off")} layer {r.gameObject.layer} sort {r.sortingLayerName} shader {r.sharedMaterial?.shader?.name}")));
+                Destroy(go);
+                continue;
+            }
 
             // additive light parts, rendered alone over black: graded as the light adds to what's under it
             Try($"{type} glow", () =>
@@ -467,6 +484,166 @@ public class PlannerCapture : BaseUnityPlugin
         Logger.LogInfo($"buildings: {meta.Count} rendered, {anims.Count} animated, {lights.Count} lights and glows");
     }
 
+    // ---------- paths and floors ----------
+
+    // Paths and floors are rule tiles on PathTileManager's tilemaps, one tilemap per floor: a tile's sprite, and
+    // how it's turned or mirrored, follow from which of its 8 neighbours hold the same floor, the first rule
+    // that matches winning; a random rule picks by Perlin noise at the tile's cell. Writes floors/<key>.png,
+    // each tile those rules can put down drawn alone by a copy of the floor's own tilemap (so with its
+    // material and the look's light), anchored like a building at the centre of grid cell (0,0), in
+    // floors/floors.json, keyed "<TYPE>.<sprite>.<m00>,<m01>,<m10>,<m11>" (the tile's matrix). With
+    // `withRules`, also <root>/floors.json, per type: its rules as the planner checks them, in order, each turn
+    // or mirroring the game tries a separate rule: { need: [[dx, dy, 1 = same floor | 2 = not]], m, s: sprite },
+    // with dx, dy in the planner's grid; for a random rule, s and m per cell of the area `pick` covers instead
+    // (row by row, `w` wide from x0, y0), as the noise gives them. A floor with no rule matching shows `default`.
+    IEnumerator CaptureFloors(string root, Color32[] lut, Color32[] lit, bool withRules)
+    {
+        var manager = PathTileManager.Instance;
+        var region = PlacementRegion.Instance;
+        if (!manager || !region) { Logger.LogWarning("no path tiles or placement region in the scene"); yield break; }
+        string dir = Path.Combine(root, "floors"), litDir = Path.Combine(root, "floors-lit");
+        Directory.CreateDirectory(dir);
+        if (lit != null) Directory.CreateDirectory(litDir);
+        var cam = GameCamera();
+        Vector3 anchor = region.transform.TransformPoint(Vector3.zero);
+        const float OrthoSize = 2f; // a tile and whatever of it spills past its cell
+        int Size = Mathf.RoundToInt(2 * OrthoSize * ppu.Value);
+        const int X0 = -40, Y0 = -40, W = 81; // the random picks cover the base and all its land
+        var rotated = AccessTools.Method(typeof(RuleTile), "GetRotatedPos");
+        var mirrored = AccessTools.Method(typeof(RuleTile), "GetMirroredPos");
+        var index = AccessTools.Method(typeof(RuleTile), "GetIndexOfOffset");
+        var perlin = AccessTools.Method(typeof(RuleTile), "GetPerlinValue");
+        var randomTransform = AccessTools.Method(typeof(RuleTile), "ApplyRandomTransform");
+        string Key(Matrix4x4 m) => string.Join(",", new[] { m.m00, m.m01, m.m10, m.m11 }.Select(v => Mathf.RoundToInt(v).ToString()));
+        var meta = new List<string>();
+        var rules = new List<string>();
+        var only = new HashSet<string>(types.Value.Split(',').Select(t => t.Trim()).Where(t => t != ""));
+        foreach (var data in (Array)Traverse.Create(manager).Field("tiles").GetValue())
+        {
+            var td = Traverse.Create(data);
+            string type = td.Field("Type").GetValue().ToString();
+            if (only.Count > 0 && !only.Contains(type)) continue;
+            var tile = td.Field("Tile").GetValue<RuleTile>();
+            var map = td.Field("TileMap").GetValue<Tilemap>();
+            if (!tile || !map) { Logger.LogWarning($"{type}: no rule tile or tilemap"); continue; }
+            // the floor's tilemap cell under a cell of the planner's grid, and back
+            Vector3Int CellOf(int x, int y) => map.WorldToCell(region.transform.TransformPoint(new Vector3(x, y, 0)));
+            Vector3 Local(Vector3Int c) => region.transform.InverseTransformPoint(map.GetCellCenterWorld(c));
+            var c0 = CellOf(0, 0);
+            Vector3 off = Local(c0);
+            if (withRules) Logger.LogInfo($"{type}: grid cell (0,0) is tile {c0}, centred at {off}; (1,0) is {CellOf(1, 0)}, (0,1) is {CellOf(0, 1)}");
+            // a tile offset as an offset in the planner's grid
+            string Step(int dx, int dy) { var v = Local(c0 + new Vector3Int(dx, dy, 0)) - off; return $"{Mathf.RoundToInt(v.x)},{Mathf.RoundToInt(v.y)}"; }
+
+            var sprites = new List<Sprite>();
+            int SpriteIndex(Sprite sp) { int i = sprites.IndexOf(sp); if (i < 0) { sprites.Add(sp); i = sprites.Count - 1; } return i; }
+            var shots = new Dictionary<string, (Sprite sprite, Matrix4x4 m)>();
+            void Need(Sprite sp, Matrix4x4 m) { if (sp) shots[$"{type}.{SpriteIndex(sp)}.{Key(m)}"] = (sp, m); }
+            var fallback = Traverse.Create(tile).Field("m_DefaultSprite").GetValue<Sprite>();
+            var tiling = ((System.Collections.IEnumerable)Traverse.Create(tile).Field("m_TilingRules").GetValue()).Cast<object>().ToList();
+            Need(fallback, Matrix4x4.identity);
+            var ruleRows = new List<string>();
+            foreach (var rule in tiling)
+            {
+                var tr = Traverse.Create(rule);
+                var neighbours = ((Array)tr.Field("m_Neighbors").GetValue()).Cast<object>().Select(Convert.ToInt32).ToArray();
+                var ruleSprites = tr.Field("m_Sprites").GetValue<Sprite[]>() ?? new Sprite[0];
+                int ruleTransform = Convert.ToInt32(tr.Field("m_RuleTransform").GetValue()), output = Convert.ToInt32(tr.Field("m_Output").GetValue());
+                object randomType = tr.Field("m_RandomTransform").GetValue();
+                float scale = tr.Field("m_PerlinScale").GetValue<float>();
+                if (ruleSprites.Length == 0) continue;
+                // the turns and mirrorings the game tries, in its order: where it looks for each neighbour, and the matrix
+                var tries = new List<(Func<Vector3Int, Vector3Int> look, Matrix4x4 m)>();
+                for (int angle = 0; angle <= (ruleTransform == 1 ? 270 : 0); angle += 90)
+                {
+                    int a = angle;
+                    tries.Add((o => (Vector3Int)rotated.Invoke(tile, new object[] { o, a }), Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(0, 0, -a), Vector3.one)));
+                }
+                if (ruleTransform == 2) tries.Add((o => (Vector3Int)mirrored.Invoke(tile, new object[] { o, true, false }), Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(-1, 1, 1))));
+                if (ruleTransform == 3) tries.Add((o => (Vector3Int)mirrored.Invoke(tile, new object[] { o, false, true }), Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(1, -1, 1))));
+                foreach (var (look, m) in tries)
+                {
+                    var need = new List<string>();
+                    for (int dy = -1; dy <= 1; dy++)
+                        for (int dx = -1; dx <= 1; dx++)
+                        {
+                            if (dx == 0 && dy == 0) continue;
+                            int n = neighbours[(int)index.Invoke(tile, new object[] { look(new Vector3Int(dx, dy, 0)) })];
+                            if (n == 1 || n == 2) need.Add($"[{Step(dx, dy)},{n}]");
+                        }
+                    string head = $"{{\"need\":[{string.Join(",", need)}]";
+                    if (output != 1) // one sprite: the first (an animation's first frame)
+                    {
+                        Need(ruleSprites[0], m);
+                        ruleRows.Add($"{head},\"m\":\"{Key(m)}\",\"s\":{SpriteIndex(ruleSprites[0])}}}");
+                        continue;
+                    }
+                    var s = new StringBuilder();
+                    var ms = new List<string>();
+                    for (int y = Y0; y < Y0 + W; y++)
+                        for (int x = X0; x < X0 + W; x++)
+                        {
+                            var cell = CellOf(x, y);
+                            float p = (float)perlin.Invoke(null, new object[] { cell, scale, 100000f });
+                            var sp = ruleSprites[Mathf.Clamp(Mathf.FloorToInt(p * ruleSprites.Length), 0, ruleSprites.Length - 1)];
+                            var mm = randomType == null || Convert.ToInt32(randomType) == 0 ? m : (Matrix4x4)randomTransform.Invoke(null, new object[] { randomType, m, scale, cell });
+                            Need(sp, mm);
+                            s.Append(s.Length > 0 ? "," : "").Append(SpriteIndex(sp));
+                            ms.Add(Key(mm));
+                        }
+                    var keys = ms.Distinct().ToList();
+                    ruleRows.Add($"{head},\"pick\":{{\"x0\":{X0},\"y0\":{Y0},\"w\":{W},\"ms\":[{string.Join(",", keys.Select(k => $"\"{k}\""))}]," +
+                            $"\"s\":[{s}],\"m\":[{string.Join(",", ms.Select(k => keys.IndexOf(k)))}]}}}}");
+                }
+            }
+            if (withRules)
+                rules.Add($"{Json(type)}:{{\"default\":{(fallback ? SpriteIndex(fallback) : -1)},\"rules\":[\n{string.Join(",\n", ruleRows)}]}}");
+
+            // each tile alone, on a copy of the floor's tilemap moved onto the capture layer
+            var copy = Instantiate(map.gameObject, map.transform.parent, true);
+            copy.SetActive(true);
+            foreach (var t in copy.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = Body;
+            var tm = copy.GetComponent<Tilemap>();
+            tm.ClearAllTiles();
+            // Most floors draw only where the ground has marked the stencil (_StencilRef 1); alone, nothing has.
+            var drawer = copy.GetComponent<TilemapRenderer>();
+            var material = new Material(drawer.sharedMaterial);
+            if (material.HasProperty("_StencilRef")) material.SetFloat("_StencilRef", 0);
+            drawer.sharedMaterial = material;
+            var cell0 = tm.WorldToCell(anchor);
+            foreach (var kv in shots)
+            {
+                var one = ScriptableObject.CreateInstance<Tile>();
+                one.sprite = kv.Value.sprite;
+                one.transform = kv.Value.m;
+                one.flags = TileFlags.LockTransform;
+                tm.SetTile(cell0, one);
+                tm.RefreshTile(cell0);
+                yield return new WaitForEndOfFrame();
+                Try(kv.Key, () =>
+                {
+                    var black = Render(cam, Size, Size, OrthoSize, anchor, 1 << Body, Color.black, post: false, alpha: true);
+                    var white = Render(cam, Size, Size, OrthoSize, anchor, 1 << Body, Color.white, post: false, alpha: true);
+                    var px = Cutout(black.GetPixels32(), white.GetPixels32());
+                    Destroy(black);
+                    Destroy(white);
+                    if (lit != null) SaveCrop(px, Size, Size, Path.Combine(litDir, kv.Key + ".png"), c => Grade(lit, c));
+                    string row = SaveCrop(px, Size, Size, Path.Combine(dir, kv.Key + ".png"), c => lut == null ? c : Grade(lut, c));
+                    if (row != null) meta.Add($"{Json(kv.Key)}:{row}");
+                    else Logger.LogWarning($"{kv.Key}: nothing drawn");
+                });
+                tm.SetTile(cell0, null);
+                Destroy(one);
+            }
+            Destroy(copy);
+            Destroy(material);
+            Logger.LogInfo($"{type}: {tiling.Count} rules, {shots.Count} tiles");
+        }
+        File.WriteAllText(Path.Combine(dir, "floors.json"), $"{{\"ppu\":{Size / (2 * OrthoSize)},\"items\":{{\n{string.Join(",\n", meta)}\n}}}}");
+        if (withRules) File.WriteAllText(Path.Combine(outDir, "floors.json"), $"{{\n{string.Join(",\n", rules)}\n}}");
+        Logger.LogInfo($"floors: {meta.Count} tiles");
+    }
+
     // A building's prefab as the build menu places it, stripped to what it draws, standing at `at`.
     IEnumerator Place(TypeAndPlacementObject entry, GameObject holder, Vector3 at, bool winter, Action<GameObject> got)
     {
@@ -474,15 +651,34 @@ public class PlannerCapture : BaseUnityPlugin
         var ph = Addressables.LoadAssetAsync<GameObject>(entry.Addr_PlacementObject.RuntimeKey);
         yield return ph;
         string build = ph.Status == AsyncOperationStatus.Succeeded && ph.Result ? ph.Result.GetComponent<PlacementObject>()?.ToBuildAsset : null;
-        if (string.IsNullOrEmpty(build)) yield break;
+        // some placement objects (the farm plot, the tabernacle) don't name what they build: the structure's own prefab
+        if (string.IsNullOrEmpty(build)) try { build = StructuresData.GetInfoByType(entry.Type, 0)?.PrefabPath; } catch { }
+        if (string.IsNullOrEmpty(build)) { Logger.LogWarning($"{type}: nothing to build"); yield break; }
         string key = build.StartsWith("Assets/") ? build : "Assets/" + build + ".prefab"; // as PlacementObject loads it
         var bh = Addressables.LoadAssetAsync<GameObject>(key);
         yield return bh;
         if (bh.Status != AsyncOperationStatus.Succeeded || !bh.Result) { Logger.LogWarning($"{type}: can't load {key}"); yield break; }
+        // A farm plot loads its soil when it wakes up; the copy here never does.
+        GameObject soil = null;
+        var farm = bh.Result.GetComponentInChildren<FarmPlot>(true);
+        var soilRef = farm ? Traverse.Create(farm).Field("_unWateredGameObjectTemplate").GetValue<AssetReferenceGameObject>() : null;
+        if (soilRef != null && soilRef.RuntimeKeyIsValid())
+        {
+            var sh = Addressables.LoadAssetAsync<GameObject>(soilRef.RuntimeKey);
+            yield return sh;
+            soil = sh.Status == AsyncOperationStatus.Succeeded ? sh.Result : null;
+        }
         GameObject go = null;
         try
         {
             go = Instantiate(bh.Result, holder.transform, false); // inactive parent: none of its scripts run yet
+            if (soil)
+            {
+                var plot = go.GetComponentInChildren<FarmPlot>(true);
+                var dirt = Instantiate(soil, plot.DirtTransform ? plot.DirtTransform : plot.transform, false).transform;
+                dirt.localPosition = Vector3.zero; // as the game's ObjectPool.Spawn puts it
+                dirt.localRotation = Quaternion.identity;
+            }
             StripScripts(go, winter);
             go.transform.SetParent(null, false); // the light scripts set their meshes up now
             go.transform.SetPositionAndRotation(at, Quaternion.identity);
@@ -555,9 +751,15 @@ public class PlannerCapture : BaseUnityPlugin
             if (shader.Contains("StencilLighting_Volumetric") || shader.Contains("VolumetricLighting") || shader.Contains("Additive")) r.gameObject.layer = Glow;
             else if (r is ParticleSystemRenderer || brokenShader || shader.Contains("StencilLighting") // light decals placed on other layers
                 || sortLayer == "Lighting" || sortLayer == "VFX" || sortLayer == "DepthFX" || sortLayer.Contains("UI")
-                || obj.Contains("range") || obj.Contains("radius") || obj.Contains("indicator"))
+                || obj.Contains("range") || obj.Contains("radius") || obj.Contains("indicator") || obj.Contains("twitch"))
                 r.enabled = false;
-            else r.gameObject.layer = Body;
+            else
+            {
+                r.gameObject.layer = Body;
+                // ground-like parts (a farm plot's soil) draw only where the ground has marked the stencil; alone, nothing has
+                if (r.sharedMaterials.Any(m => m && m.HasProperty("_StencilRef") && m.GetFloat("_StencilRef") != 0))
+                    foreach (var m in r.materials) if (m.HasProperty("_StencilRef")) m.SetFloat("_StencilRef", 0);
+            }
         }
     }
 

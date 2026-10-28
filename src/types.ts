@@ -4,6 +4,7 @@ import type { Base, Cell } from "./core.ts";
 
 export interface BaseData extends Base {
   defaults?: { type: string; x: number; y: number }[];
+  shrine?: { x: number; y: number }; // where the Shrine stands (grid units); it is off the grid and can't be moved
 }
 
 export interface MenuSection { id: string; term: string; types: string[] }
@@ -43,6 +44,18 @@ export interface Atlas {
   ppu: number; sheets: string[]; items: Record<string, Item>;
   anim?: { ppu: number; frames: Record<string, [number, number]>; box: Record<string, [number, number, number, number]>; items: Record<string, Item> };
 }
+
+/**
+ * floors.json: per path or floor type, its rule tile as the game checks it. The first rule whose `need` holds
+ * ([dx, dy, 1] that cell has the same floor, [dx, dy, 2] it hasn't) picks the tile: sprite `s` turned by matrix
+ * `m`, or for a random rule the sprite and matrix `pick` lists for the cell (row by row, `w` wide from x0, y0).
+ * No rule: sprite `default`. Each look's floors.json (an Atlas) has the tiles, keyed "<TYPE>.<s>.<m>".
+ */
+export interface FloorRule {
+  need: [number, number, 1 | 2][]; m?: string; s?: number;
+  pick?: { x0: number; y0: number; w: number; ms: string[]; s: number[]; m: number[] };
+}
+export type FloorRules = Record<string, { default: number; rules: FloorRule[] }>;
 
 export interface WikiBuilding { name: string; icon?: string }
 
