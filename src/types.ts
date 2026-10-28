@@ -15,6 +15,8 @@ export interface GameData {
   chains: string[][]; // upgrade chains, first level first
   menu: MenuTab[];
   ranges?: Record<string, Range>;
+  costs?: Record<string, [string, number][]>; // what building a type costs: [item type, quantity], as the game lists it
+  upgrades?: Record<string, string>; // type -> the type it upgrades in place (building it costs that one's cost too)
 }
 
 /**
@@ -72,6 +74,7 @@ export interface Strings {
   terms: Record<string, string>;
   names: Record<string, string>;
   desc: Record<string, string>;
+  items?: Record<string, string>; // item type (LOG, STONE, ...) -> name
 }
 
 export interface Building { type: string; w: number; h: number; once: boolean; fixed: boolean; icon?: string }

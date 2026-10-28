@@ -3348,5 +3348,2749 @@
 "size": 7,
 "at": 0.0
 }
+},
+"costs": {
+"BED": [
+[
+"LOG",
+4
+],
+[
+"BLACK_GOLD",
+8
+]
+],
+"BED_2": [
+[
+"LOG",
+4
+],
+[
+"STONE",
+3
+],
+[
+"BLACK_GOLD",
+8
+]
+],
+"BED_3": [
+[
+"LOG_REFINED",
+2
+],
+[
+"GOLD_REFINED",
+2
+],
+[
+"POOP",
+3
+]
+],
+"BLOODSTONE_MINE": [
+[
+"STONE",
+8
+],
+[
+"BLACK_GOLD",
+24
+]
+],
+"BLOODSTONE_MINE_2": [
+[
+"STONE_REFINED",
+2
+],
+[
+"GOLD_REFINED",
+2
+],
+[
+"SPIDER_WEB",
+8
+]
+],
+"BODY_PIT": [
+[
+"LOG",
+4
+],
+[
+"BLACK_GOLD",
+8
+]
+],
+"CHOPPING_SHRINE": [
+[
+"LOG",
+20
+],
+[
+"BLACK_GOLD",
+8
+]
+],
+"COLLECTED_RESOURCES_CHEST": [
+[
+"LOG",
+4
+],
+[
+"STONE",
+8
+]
+],
+"COMPOST_BIN": [
+[
+"LOG_REFINED",
+4
+],
+[
+"GOLD_REFINED",
+8
+],
+[
+"SPIDER_WEB",
+8
+]
+],
+"COMPOST_BIN_DEAD_BODY": [
+[
+"LOG_REFINED",
+8
+],
+[
+"GOLD_REFINED",
+6
+]
+],
+"CONFESSION_BOOTH": [
+[
+"LOG_REFINED",
+4
+],
+[
+"STONE_REFINED",
+3
+],
+[
+"BLACK_GOLD",
+8
+]
+],
+"COOKING_FIRE": [
+[
+"LOG",
+4
+],
+[
+"STONE",
+2
+]
+],
+"CRYPT_1": [
+[
+"STONE",
+16
+],
+[
+"BLACK_GOLD",
+24
+]
+],
+"CRYPT_2": [
+[
+"STONE_REFINED",
+5
+],
+[
+"GOLD_REFINED",
+4
+]
+],
+"CRYPT_3": [
+[
+"STONE_REFINED",
+13
+],
+[
+"GOLD_REFINED",
+14
+]
+],
+"DANCING_FIREPIT": [
+[
+"LOG",
+24
+],
+[
+"BLACK_GOLD",
+8
+]
+],
+"DAYCARE": [
+[
+"COTTON",
+8
+],
+[
+"GRASS",
+16
+],
+[
+"LOG_REFINED",
+12
+]
+],
+"DECORATION_BARROW": [
+[
+"GRASS",
+3
+],
+[
+"FLOWER_RED",
+1
+]
+],
+"DECORATION_BELL_SMALL": [
+[
+"LOG",
+2
+]
+],
+"DECORATION_BELL_STATUE": [
+[
+"LOG",
+4
+],
+[
+"BLACK_GOLD",
+8
+]
+],
+"DECORATION_BONE_ARCH": [
+[
+"BONE",
+4
+]
+],
+"DECORATION_BONE_BARREL": [
+[
+"LOG",
+1
+],
+[
+"BONE",
+1
+]
+],
+"DECORATION_BONE_CANDLE": [
+[
+"STONE",
+1
+]
+],
+"DECORATION_BONE_FLAG": [
+[
+"BONE",
+3
+]
+],
+"DECORATION_BONE_LANTERN": [
+[
+"BONE",
+3
+]
+],
+"DECORATION_BONE_PILLAR": [
+[
+"BONE",
+2
+]
+],
+"DECORATION_BONE_SCULPTURE": [
+[
+"BONE",
+4
+]
+],
+"DECORATION_BONE_SKULL_BIG": [
+[
+"BONE",
+4
+]
+],
+"DECORATION_BONE_SKULL_PILE": [
+[
+"BONE",
+4
+]
+],
+"DECORATION_BOSS_TROPHY_1": [
+[
+"FLOWER_RED",
+8
+],
+[
+"STONE_REFINED",
+3
+],
+[
+"GOLD_REFINED",
+4
+]
+],
+"DECORATION_BOSS_TROPHY_2": [
+[
+"MUSHROOM_SMALL",
+8
+],
+[
+"GOLD_REFINED",
+4
+]
+],
+"DECORATION_BOSS_TROPHY_3": [
+[
+"CRYSTAL",
+8
+],
+[
+"GOLD_REFINED",
+4
+]
+],
+"DECORATION_BOSS_TROPHY_4": [
+[
+"SPIDER_WEB",
+8
+],
+[
+"GOLD_REFINED",
+4
+]
+],
+"DECORATION_BOSS_TROPHY_5": [
+[
+"STONE_REFINED",
+8
+],
+[
+"GOLD_REFINED",
+16
+]
+],
+"DECORATION_BOSS_TROPHY_DLC_EXECUTIONER": [
+[
+"YEW_HOLY",
+4
+],
+[
+"GOLD_REFINED",
+16
+]
+],
+"DECORATION_BOSS_TROPHY_DLC_WOLF": [
+[
+"YEW_HOLY",
+4
+],
+[
+"GOLD_REFINED",
+16
+]
+],
+"DECORATION_BOSS_TROPHY_DLC_YNGYA": [
+[
+"YEW_HOLY",
+4
+],
+[
+"GOLD_REFINED",
+16
+]
+],
+"DECORATION_CANDLE_BARREL": [
+[
+"LOG",
+1
+]
+],
+"DECORATION_CHRISTMAS_CANDLE": [
+[
+"STONE",
+3
+]
+],
+"DECORATION_CHRISTMAS_CANDYCANE": [
+[
+"LOG",
+3
+]
+],
+"DECORATION_CHRISTMAS_SNOWMAN": [
+[
+"STONE",
+3
+]
+],
+"DECORATION_CHRISTMAS_TREE": [
+[
+"GRASS",
+4
+]
+],
+"DECORATION_CNY_DRAGON": [
+[
+"LOG",
+3
+]
+],
+"DECORATION_CNY_LANTERN": [
+[
+"GRASS",
+3
+]
+],
+"DECORATION_CNY_TREE": [
+[
+"LOG",
+4
+]
+],
+"DECORATION_CRYSTAL_LAMP": [
+[
+"CRYSTAL",
+2
+]
+],
+"DECORATION_CRYSTAL_LIGHT": [
+[
+"CRYSTAL",
+3
+]
+],
+"DECORATION_CRYSTAL_ROCK": [
+[
+"CRYSTAL",
+3
+]
+],
+"DECORATION_CRYSTAL_STATUE": [
+[
+"STONE_REFINED",
+2
+],
+[
+"CRYSTAL",
+4
+]
+],
+"DECORATION_CRYSTAL_TREE": [
+[
+"LOG",
+3
+],
+[
+"CRYSTAL",
+3
+]
+],
+"DECORATION_CRYSTAL_WINDOW": [
+[
+"CRYSTAL",
+2
+]
+],
+"DECORATION_DLC_ROT_BOTTLE": [
+[
+"MAGMA_STONE",
+2
+]
+],
+"DECORATION_DLC_ROT_BUCKET": [
+[
+"MAGMA_STONE",
+2
+]
+],
+"DECORATION_DLC_ROT_CAGE1": [
+[
+"MAGMA_STONE",
+1
+],
+[
+"STONE",
+3
+]
+],
+"DECORATION_DLC_ROT_CAGE2": [
+[
+"MAGMA_STONE",
+1
+],
+[
+"MAGMA_STONE",
+3
+]
+],
+"DECORATION_DLC_ROT_CAULDRON": [
+[
+"MAGMA_STONE",
+1
+],
+[
+"STONE",
+2
+]
+],
+"DECORATION_DLC_ROT_DIORAMA": [
+[
+"MAGMA_STONE",
+4
+],
+[
+"STONE",
+3
+]
+],
+"DECORATION_DLC_ROT_FIREMACHINE": [
+[
+"MAGMA_STONE",
+3
+]
+],
+"DECORATION_DLC_ROT_IRONMAIDEN": [
+[
+"MAGMA_STONE",
+1
+],
+[
+"STONE",
+3
+]
+],
+"DECORATION_DLC_ROT_LUMP1": [
+[
+"MAGMA_STONE",
+4
+]
+],
+"DECORATION_DLC_ROT_LUMP2": [
+[
+"MAGMA_STONE",
+4
+]
+],
+"DECORATION_DLC_ROT_PILLAR1": [
+[
+"MAGMA_STONE",
+3
+]
+],
+"DECORATION_DLC_ROT_PILLAR2": [
+[
+"MAGMA_STONE",
+3
+]
+],
+"DECORATION_DLC_ROT_STONE1": [
+[
+"MAGMA_STONE",
+5
+],
+[
+"STONE",
+2
+]
+],
+"DECORATION_DLC_ROT_STONE2": [
+[
+"MAGMA_STONE",
+5
+],
+[
+"STONE",
+2
+]
+],
+"DECORATION_DLC_ROT_TENTACLE": [
+[
+"MAGMA_STONE",
+2
+]
+],
+"DECORATION_DLC_ROT_WALL": [
+[
+"MAGMA_STONE",
+2
+]
+],
+"DECORATION_DLC_STEAMPUNK_CHIMNEY_1": [
+[
+"LIGHTNING_SHARD",
+3
+]
+],
+"DECORATION_DLC_STEAMPUNK_CHIMNEY_2": [
+[
+"LIGHTNING_SHARD",
+3
+]
+],
+"DECORATION_DLC_STEAMPUNK_CLOCK": [
+[
+"LIGHTNING_SHARD",
+3
+]
+],
+"DECORATION_DLC_STEAMPUNK_LAMPPOST": [
+[
+"LIGHTNING_SHARD",
+2
+]
+],
+"DECORATION_DLC_STEAMPUNK_PLANT": [
+[
+"LOG",
+1
+],
+[
+"GRASS",
+1
+]
+],
+"DECORATION_DLC_STEAMPUNK_WALL": [
+[
+"LOG",
+2
+]
+],
+"DECORATION_DLC_WOLF_BULB": [
+[
+"LIGHTNING_SHARD",
+4
+]
+],
+"DECORATION_DLC_WOLF_CULTIST1": [
+[
+"LIGHTNING_SHARD",
+1
+],
+[
+"LOG",
+2
+]
+],
+"DECORATION_DLC_WOLF_CULTIST2": [
+[
+"LIGHTNING_SHARD",
+1
+],
+[
+"LOG",
+2
+]
+],
+"DECORATION_DLC_WOLF_DIORAMA": [
+[
+"LIGHTNING_SHARD",
+4
+],
+[
+"LOG",
+3
+]
+],
+"DECORATION_DLC_WOLF_FIREPIT": [
+[
+"LIGHTNING_SHARD",
+2
+]
+],
+"DECORATION_DLC_WOLF_LAMPPOST": [
+[
+"LIGHTNING_SHARD",
+3
+]
+],
+"DECORATION_DLC_WOLF_PILLAR1": [
+[
+"LIGHTNING_SHARD",
+2
+],
+[
+"STONE",
+2
+]
+],
+"DECORATION_DLC_WOLF_PILLAR2": [
+[
+"LIGHTNING_SHARD",
+2
+],
+[
+"STONE",
+2
+]
+],
+"DECORATION_DLC_WOLF_STATUE1": [
+[
+"LIGHTNING_SHARD",
+1
+],
+[
+"STONE",
+2
+]
+],
+"DECORATION_DLC_WOLF_STATUE2": [
+[
+"LIGHTNING_SHARD",
+1
+],
+[
+"STONE",
+2
+]
+],
+"DECORATION_DLC_WOLF_STATUE3": [
+[
+"LIGHTNING_SHARD",
+1
+],
+[
+"STONE",
+2
+]
+],
+"DECORATION_DLC_WOLF_STATUE4": [
+[
+"LIGHTNING_SHARD",
+1
+],
+[
+"STONE",
+2
+]
+],
+"DECORATION_DLC_WOLF_STATUE5": [
+[
+"LIGHTNING_SHARD",
+1
+],
+[
+"STONE",
+2
+]
+],
+"DECORATION_DLC_WOLF_TESLA": [
+[
+"LIGHTNING_SHARD",
+3
+]
+],
+"DECORATION_DLC_WOLF_TREE1": [
+[
+"LOG",
+2
+]
+],
+"DECORATION_DLC_WOLF_WIRES": [
+[
+"LIGHTNING_SHARD",
+2
+]
+],
+"DECORATION_DLC_WOOLHAVEN_BARREL1": [
+[
+"LOG",
+1
+]
+],
+"DECORATION_DLC_WOOLHAVEN_BARREL2": [
+[
+"LOG",
+3
+]
+],
+"DECORATION_DLC_WOOLHAVEN_BELLS": [
+[
+"STONE",
+2
+]
+],
+"DECORATION_DLC_WOOLHAVEN_BUSH1": [
+[
+"GRASS",
+4
+]
+],
+"DECORATION_DLC_WOOLHAVEN_BUSH2": [
+[
+"GRASS",
+8
+]
+],
+"DECORATION_DLC_WOOLHAVEN_CANDLE": [
+[
+"LIGHTNING_SHARD",
+1
+]
+],
+"DECORATION_DLC_WOOLHAVEN_FOUNTAIN": [
+[
+"STONE_REFINED",
+2
+]
+],
+"DECORATION_DLC_WOOLHAVEN_JUG": [
+[
+"STONE",
+1
+]
+],
+"DECORATION_DLC_WOOLHAVEN_RUG": [
+[
+"LOG",
+1
+]
+],
+"DECORATION_DLC_WOOLHAVEN_SMALLSTATUE1": [
+[
+"STONE",
+4
+]
+],
+"DECORATION_DLC_WOOLHAVEN_SMALLSTATUE2": [
+[
+"STONE",
+5
+]
+],
+"DECORATION_DLC_WOOLHAVEN_STREETLAMP": [
+[
+"STONE",
+3
+]
+],
+"DECORATION_DLC_WOOLHAVEN_TREE": [
+[
+"YEW_CURSED",
+2
+]
+],
+"DECORATION_DLC_WOOLHAVEN_WALL": [
+[
+"STONE",
+2
+]
+],
+"DECORATION_DLC_YNGYA_CANDLE": [
+[
+"LOG",
+1
+],
+[
+"GRASS",
+3
+]
+],
+"DECORATION_DLC_YNGYA_FLOWERBUCKET": [
+[
+"LOG",
+1
+],
+[
+"GRASS",
+4
+]
+],
+"DECORATION_DLC_YNGYA_STICKBUNDLE": [
+[
+"YEW_CURSED",
+2
+],
+[
+"GRASS",
+3
+]
+],
+"DECORATION_DLC_YNGYA_TALLFLOWERS": [
+[
+"FLOWER_WHITE",
+1
+],
+[
+"FLOWER_PURPLE",
+1
+]
+],
+"DECORATION_DLC_YNGYA_TREEBUSH": [
+[
+"FLOWER_WHITE",
+2
+],
+[
+"GRASS",
+4
+]
+],
+"DECORATION_DLC_YNGYA_TREEPOT": [
+[
+"FLOWER_PURPLE",
+2
+],
+[
+"GRASS",
+4
+]
+],
+"DECORATION_DST_ALCHEMY": [
+[
+"STONE",
+4
+]
+],
+"DECORATION_DST_BEEFALOSKELETON": [
+[
+"STONE_REFINED",
+2
+],
+[
+"BONE",
+4
+]
+],
+"DECORATION_DST_DEERCLOPS": [
+[
+"STONE",
+3
+]
+],
+"DECORATION_DST_GLOMMERSTATUE": [
+[
+"STONE",
+3
+]
+],
+"DECORATION_DST_MARBLETREE": [
+[
+"STONE",
+3
+]
+],
+"DECORATION_DST_PIGSTICK": [
+[
+"MEAT",
+1
+],
+[
+"LOG",
+1
+]
+],
+"DECORATION_DST_SCIENCEMACHINE": [
+[
+"STONE",
+4
+]
+],
+"DECORATION_DST_TREE": [
+[
+"LOG",
+8
+]
+],
+"DECORATION_DST_WALL": [
+[
+"GRASS",
+1
+]
+],
+"DECORATION_EASTEREGG_EGG": [
+[
+"YOLK",
+1
+]
+],
+"DECORATION_EASTEREGG_HAROSTATUE": [
+[
+"STONE_REFINED",
+5
+]
+],
+"DECORATION_EASTEREGG_TURUA": [
+[
+"MAGMA_STONE",
+4
+]
+],
+"DECORATION_EASTEREGG_WARRACKA": [
+[
+"MAGMA_STONE",
+4
+]
+],
+"DECORATION_FLAG_CROWN": [
+[
+"GRASS",
+10
+],
+[
+"LOG",
+1
+]
+],
+"DECORATION_FLAG_CRYSTAL": [
+[
+"CRYSTAL",
+3
+]
+],
+"DECORATION_FLAG_MUSHROOM": [
+[
+"LOG",
+2
+],
+[
+"MUSHROOM_SMALL",
+1
+]
+],
+"DECORATION_FLAG_SCRIPTURE": [
+[
+"GRASS",
+10
+],
+[
+"LOG",
+1
+]
+],
+"DECORATION_FLOWERPOTWALL": [
+[
+"GRASS",
+2
+],
+[
+"FLOWER_RED",
+1
+]
+],
+"DECORATION_FLOWERVASE": [
+[
+"FLOWER_RED",
+2
+]
+],
+"DECORATION_FLOWER_ARCH": [
+[
+"GRASS",
+8
+]
+],
+"DECORATION_FLOWER_BOTTLE": [
+[
+"FLOWER_RED",
+2
+]
+],
+"DECORATION_FLOWER_BOX_1": [
+[
+"GRASS",
+5
+],
+[
+"FLOWER_RED",
+2
+]
+],
+"DECORATION_FLOWER_CART": [
+[
+"GRASS",
+3
+],
+[
+"FLOWER_RED",
+2
+]
+],
+"DECORATION_FLOWER_CART_SMALL": [
+[
+"LOG",
+1
+],
+[
+"FLOWER_RED",
+2
+]
+],
+"DECORATION_FOUNTAIN": [
+[
+"STONE",
+4
+]
+],
+"DECORATION_GNOME1": [
+[
+"STONE",
+3
+]
+],
+"DECORATION_GNOME2": [
+[
+"STONE",
+3
+]
+],
+"DECORATION_GNOME3": [
+[
+"STONE",
+3
+]
+],
+"DECORATION_GOAT_LANTERN": [
+[
+"STONE",
+3
+]
+],
+"DECORATION_GOAT_PLANT": [
+[
+"GRASS",
+3
+]
+],
+"DECORATION_GOAT_STATUE": [
+[
+"LOG",
+3
+]
+],
+"DECORATION_HALLOWEEN_CANDLE": [
+[
+"STONE",
+3
+],
+[
+"GRASS",
+1
+]
+],
+"DECORATION_HALLOWEEN_PUMPKIN": [
+[
+"PUMPKIN",
+3
+],
+[
+"LOG",
+2
+]
+],
+"DECORATION_HALLOWEEN_SKULL": [
+[
+"BONE",
+2
+],
+[
+"FLOWER_RED",
+2
+]
+],
+"DECORATION_HALLOWEEN_TREE": [
+[
+"LOG",
+8
+]
+],
+"DECORATION_HAY_BALE": [
+[
+"GRASS",
+2
+]
+],
+"DECORATION_HAY_PILE": [
+[
+"GRASS",
+2
+]
+],
+"DECORATION_LAMB_FLAG_STATUE": [
+[
+"STONE",
+5
+]
+],
+"DECORATION_LEAFYLAMPPOST": [
+[
+"STONE",
+2
+],
+[
+"GRASS",
+3
+]
+],
+"DECORATION_LEAFY_FLOWER_SCULPTURE": [
+[
+"GRASS",
+4
+]
+],
+"DECORATION_LEAFY_LANTERN": [
+[
+"GRASS",
+4
+]
+],
+"DECORATION_LEAFY_SCULPTURE": [
+[
+"GRASS",
+4
+]
+],
+"DECORATION_MONSTERSHRINE": [
+[
+"STONE_REFINED",
+4
+]
+],
+"DECORATION_MUSHROOM_1": [
+[
+"MUSHROOM_SMALL",
+2
+]
+],
+"DECORATION_MUSHROOM_2": [
+[
+"MUSHROOM_SMALL",
+2
+]
+],
+"DECORATION_MUSHROOM_CANDLE_1": [
+[
+"MUSHROOM_SMALL",
+2
+]
+],
+"DECORATION_MUSHROOM_CANDLE_2": [
+[
+"MUSHROOM_SMALL",
+2
+]
+],
+"DECORATION_MUSHROOM_CANDLE_LARGE": [
+[
+"MUSHROOM_SMALL",
+4
+]
+],
+"DECORATION_MUSHROOM_SCULPTURE": [
+[
+"MUSHROOM_SMALL",
+28
+],
+[
+"GOLD_REFINED",
+16
+]
+],
+"DECORATION_OLDFAITH_CRYSTAL": [
+[
+"STONE_REFINED",
+1
+],
+[
+"BLACK_GOLD",
+4
+]
+],
+"DECORATION_OLDFAITH_FLAG": [
+[
+"BLACK_GOLD",
+2
+],
+[
+"GRASS",
+2
+]
+],
+"DECORATION_OLDFAITH_FOUNTAIN": [
+[
+"STONE",
+4
+],
+[
+"BLACK_GOLD",
+8
+],
+[
+"FOLLOWER_MEAT",
+1
+]
+],
+"DECORATION_OLDFAITH_IRONMAIDEN": [
+[
+"LOG",
+3
+],
+[
+"FOLLOWER_MEAT",
+1
+]
+],
+"DECORATION_OLDFAITH_SHRINE": [
+[
+"STONE",
+2
+],
+[
+"FLOWER_RED",
+2
+]
+],
+"DECORATION_OLDFAITH_TORCH": [
+[
+"STONE",
+1
+],
+[
+"GRASS",
+2
+]
+],
+"DECORATION_OLDFAITH_WALL": [
+[
+"STONE",
+1
+]
+],
+"DECORATION_PALWORLD_LAMB": [
+[
+"STONE",
+2
+]
+],
+"DECORATION_PALWORLD_LANTERN": [
+[
+"STONE",
+2
+]
+],
+"DECORATION_PALWORLD_PLANT": [
+[
+"GRASS",
+2
+]
+],
+"DECORATION_PALWORLD_STATUE": [
+[
+"STONE",
+3
+]
+],
+"DECORATION_PALWORLD_TREE": [
+[
+"LOG",
+3
+]
+],
+"DECORATION_PILGRIM_BONSAI": [
+[
+"LOG",
+3
+]
+],
+"DECORATION_PILGRIM_LANTERN": [
+[
+"LOG",
+2
+]
+],
+"DECORATION_PILGRIM_PAGODA": [
+[
+"LOG",
+3
+]
+],
+"DECORATION_PILGRIM_VASE": [
+[
+"STONE",
+1
+],
+[
+"GRASS",
+1
+]
+],
+"DECORATION_PILGRIM_WALL": [
+[
+"GRASS",
+3
+]
+],
+"DECORATION_PLUSH": [
+[
+"GRASS",
+16
+]
+],
+"DECORATION_POND": [
+[
+"STONE",
+2
+]
+],
+"DECORATION_POST_BOX": [
+[
+"LOG",
+1
+]
+],
+"DECORATION_PUMPKIN_PILE": [
+[
+"PUMPKIN",
+3
+]
+],
+"DECORATION_PUMPKIN_STOOL": [
+[
+"LOG",
+1
+],
+[
+"PUMPKIN",
+1
+]
+],
+"DECORATION_SINFUL_CRUCIFIX": [
+[
+"BLACK_GOLD",
+8
+],
+[
+"FOLLOWER_MEAT",
+1
+]
+],
+"DECORATION_SINFUL_FLOWERS1": [
+[
+"FLOWER_RED",
+4
+]
+],
+"DECORATION_SINFUL_FLOWERS2": [
+[
+"FLOWER_RED",
+4
+]
+],
+"DECORATION_SINFUL_INCENSE": [
+[
+"FLOWER_RED",
+4
+],
+[
+"LOG",
+2
+]
+],
+"DECORATION_SINFUL_SKULL": [
+[
+"BONE",
+4
+]
+],
+"DECORATION_SINFUL_STATUE": [
+[
+"BLACK_GOLD",
+80
+]
+],
+"DECORATION_SMALL_STONE_CANDLE": [
+[
+"STONE",
+2
+]
+],
+"DECORATION_SPIDER_LANTERN": [
+[
+"SPIDER_WEB",
+2
+]
+],
+"DECORATION_SPIDER_PILLAR": [
+[
+"SPIDER_WEB",
+7
+]
+],
+"DECORATION_SPIDER_SCULPTURE": [
+[
+"SPIDER_WEB",
+8
+]
+],
+"DECORATION_SPIDER_TORCH": [
+[
+"SPIDER_WEB",
+3
+]
+],
+"DECORATION_SPIDER_WEB_CROWN_SCULPTURE": [
+[
+"SPIDER_WEB",
+3
+]
+],
+"DECORATION_STONE": [
+[
+"STONE",
+1
+]
+],
+"DECORATION_STONE_CANDLE": [
+[
+"STONE",
+1
+]
+],
+"DECORATION_STONE_CANDLE_LAMP": [
+[
+"STONE",
+2
+]
+],
+"DECORATION_STONE_FLAG": [
+[
+"STONE",
+2
+]
+],
+"DECORATION_STONE_HENGE": [
+[
+"STONE",
+2
+]
+],
+"DECORATION_STONE_MUSHROOM": [
+[
+"STONE",
+3
+]
+],
+"DECORATION_STUMP_LAMB_STATUE": [
+[
+"LOG",
+3
+]
+],
+"DECORATION_TORCH": [
+[
+"LOG",
+2
+]
+],
+"DECORATION_TORCH_BIG": [
+[
+"LOG",
+2
+],
+[
+"STONE",
+2
+]
+],
+"DECORATION_TREE": [
+[
+"GRASS",
+3
+]
+],
+"DECORATION_TWIG_LAMP": [
+[
+"LOG",
+2
+]
+],
+"DECORATION_TWITCH_FLAG_CROWN": [
+[
+"LOG",
+3
+]
+],
+"DECORATION_TWITCH_MUSHROOM_BAG": [
+[
+"MUSHROOM_SMALL",
+2
+]
+],
+"DECORATION_TWITCH_ROSE_BUSH": [
+[
+"GRASS",
+4
+]
+],
+"DECORATION_TWITCH_STONE_FLAG": [
+[
+"STONE",
+3
+]
+],
+"DECORATION_TWITCH_STONE_STATUE": [
+[
+"STONE",
+3
+]
+],
+"DECORATION_TWITCH_WOODEN_GUARDIAN": [
+[
+"LOG",
+3
+]
+],
+"DECORATION_VIDEO": [
+[
+"STONE_REFINED",
+8
+],
+[
+"GOLD_REFINED",
+16
+]
+],
+"DECORATION_WALL_BONE": [
+[
+"BONE",
+1
+]
+],
+"DECORATION_WALL_GRASS": [
+[
+"GRASS",
+1
+]
+],
+"DECORATION_WALL_SPIDER": [
+[
+"SPIDER_WEB",
+3
+]
+],
+"DECORATION_WALL_STONE": [
+[
+"STONE",
+1
+]
+],
+"DECORATION_WALL_TWIGS": [
+[
+"LOG",
+1
+]
+],
+"DECORATION_WATERINGCAN": [
+[
+"STONE",
+1
+],
+[
+"FLOWER_RED",
+2
+]
+],
+"DECORATION_WEEPINGSHRINE": [
+[
+"GRASS",
+8
+],
+[
+"STONE",
+2
+]
+],
+"DECORATION_WREATH_STICK": [
+[
+"GRASS",
+4
+]
+],
+"DEMON_SUMMONER": [
+[
+"LOG",
+4
+],
+[
+"STONE",
+8
+],
+[
+"BLACK_GOLD",
+16
+]
+],
+"DEMON_SUMMONER_2": [
+[
+"LOG_REFINED",
+1
+],
+[
+"STONE_REFINED",
+3
+],
+[
+"GOLD_REFINED",
+4
+]
+],
+"DEMON_SUMMONER_3": [
+[
+"STONE_REFINED",
+4
+],
+[
+"GOLD_REFINED",
+6
+],
+[
+"SPIDER_WEB",
+12
+]
+],
+"DRUM_CIRCLE": [
+[
+"LOG_REFINED",
+5
+],
+[
+"GOLD_REFINED",
+4
+]
+],
+"FARM_CROP_GROWER": [
+[
+"LOG_REFINED",
+4
+],
+[
+"LIGHTNING_SHARD",
+12
+]
+],
+"FARM_PLOT": [
+[
+"GRASS",
+4
+],
+[
+"BLACK_GOLD",
+2
+]
+],
+"FARM_PLOT_SIGN": [
+[
+"LOG",
+2
+]
+],
+"FARM_PLOT_SOZO": [
+[
+"MUSHROOM_SMALL",
+4
+]
+],
+"FARM_STATION": [
+[
+"LOG",
+16
+],
+[
+"BLACK_GOLD",
+16
+]
+],
+"FARM_STATION_II": [
+[
+"LOG_REFINED",
+8
+],
+[
+"STONE_REFINED",
+4
+]
+],
+"FISHING_HUT": [
+[
+"LOG",
+16
+],
+[
+"FISH",
+2
+]
+],
+"FISHING_HUT_2": [
+[
+"FISH",
+4
+],
+[
+"LOG_REFINED",
+8
+],
+[
+"GOLD_REFINED",
+16
+]
+],
+"FOOD_STORAGE": [
+[
+"LOG_REFINED",
+4
+],
+[
+"STONE_REFINED",
+3
+],
+[
+"BLACK_GOLD",
+16
+]
+],
+"FOOD_STORAGE_2": [
+[
+"LOG_REFINED",
+16
+],
+[
+"GOLD_REFINED",
+24
+]
+],
+"FORAGING_SHRINE": [
+[
+"LOG",
+8
+],
+[
+"STONE",
+4
+],
+[
+"BLACK_GOLD",
+8
+]
+],
+"FURNACE_1": [
+[
+"BLACK_GOLD",
+16
+]
+],
+"FURNACE_2": [
+[
+"STONE_REFINED",
+3
+],
+[
+"LOG_REFINED",
+5
+]
+],
+"FURNACE_3": [
+[
+"STONE_REFINED",
+5
+],
+[
+"LOG_REFINED",
+10
+]
+],
+"GRAVE": [
+[
+"STONE_REFINED",
+3
+],
+[
+"BLACK_GOLD",
+16
+]
+],
+"HARVEST_TOTEM": [
+[
+"LOG_REFINED",
+4
+],
+[
+"STONE_REFINED",
+2
+],
+[
+"BLACK_GOLD",
+16
+]
+],
+"HARVEST_TOTEM_2": [
+[
+"LOG_REFINED",
+4
+],
+[
+"STONE_REFINED",
+4
+],
+[
+"GOLD_REFINED",
+8
+]
+],
+"HATCHERY": [
+[
+"COTTON",
+8
+],
+[
+"GRASS",
+16
+],
+[
+"LOG_REFINED",
+12
+]
+],
+"HATCHERY_2": [
+[
+"COTTON",
+12
+],
+[
+"LOG_REFINED",
+8
+],
+[
+"PLEASURE_POINT",
+1
+]
+],
+"HEALING_BAY": [
+[
+"LOG_REFINED",
+4
+],
+[
+"FLOWER_RED",
+8
+],
+[
+"BLACK_GOLD",
+16
+]
+],
+"HEALING_BAY_2": [
+[
+"LOG_REFINED",
+4
+],
+[
+"FLOWER_RED",
+8
+],
+[
+"GOLD_REFINED",
+8
+]
+],
+"JANITOR_STATION": [
+[
+"LOG_REFINED",
+4
+],
+[
+"GOLD_REFINED",
+6
+]
+],
+"JANITOR_STATION_2": [
+[
+"LOG_REFINED",
+8
+],
+[
+"GOLD_REFINED",
+14
+]
+],
+"KITCHEN": [
+[
+"LOG_REFINED",
+4
+],
+[
+"STONE_REFINED",
+8
+],
+[
+"GOLD_REFINED",
+8
+]
+],
+"KNUCKLEBONES_ARENA": [
+[
+"LOG_REFINED",
+4
+],
+[
+"STONE_REFINED",
+4
+],
+[
+"BLACK_GOLD",
+64
+]
+],
+"LEADER_TENT": [
+[
+"SPIDER_WEB",
+8
+],
+[
+"BLACK_GOLD",
+32
+]
+],
+"LIGHTNING_ROD": [
+[
+"LIGHTNING_SHARD",
+7
+],
+[
+"GOLD_REFINED",
+8
+]
+],
+"LIGHTNING_ROD_2": [
+[
+"STONE_REFINED",
+4
+],
+[
+"LIGHTNING_SHARD",
+7
+]
+],
+"LOGISTICS": [
+[
+"YEW_HOLY",
+7
+],
+[
+"GOLD_REFINED",
+8
+]
+],
+"LUMBERJACK_STATION": [
+[
+"LOG",
+12
+],
+[
+"BLACK_GOLD",
+24
+]
+],
+"LUMBERJACK_STATION_2": [
+[
+"LOG_REFINED",
+3
+],
+[
+"GOLD_REFINED",
+2
+],
+[
+"CRYSTAL",
+4
+]
+],
+"MATING_TENT": [
+[
+"SILK_THREAD",
+4
+],
+[
+"GOLD_REFINED",
+16
+]
+],
+"MEDIC": [
+[
+"LOG_REFINED",
+4
+],
+[
+"STONE_REFINED",
+4
+]
+],
+"MINING_SHRINE": [
+[
+"STONE",
+8
+],
+[
+"BLACK_GOLD",
+8
+]
+],
+"MISSIONARY": [
+[
+"LOG",
+16
+],
+[
+"STONE",
+4
+],
+[
+"BLACK_GOLD",
+32
+]
+],
+"MISSIONARY_II": [
+[
+"LOG_REFINED",
+4
+],
+[
+"STONE_REFINED",
+4
+],
+[
+"BLACK_GOLD",
+64
+]
+],
+"MISSIONARY_III": [
+[
+"LOG_REFINED",
+16
+],
+[
+"GOLD_REFINED",
+16
+],
+[
+"CRYSTAL",
+16
+]
+],
+"MORGUE_1": [
+[
+"STONE",
+24
+],
+[
+"BLACK_GOLD",
+24
+]
+],
+"MORGUE_2": [
+[
+"STONE_REFINED",
+8
+],
+[
+"GOLD_REFINED",
+6
+]
+],
+"OFFERING_STATUE": [
+[
+"LOG",
+16
+],
+[
+"STONE",
+8
+],
+[
+"BLACK_GOLD",
+24
+]
+],
+"OUTHOUSE": [
+[
+"LOG_REFINED",
+4
+],
+[
+"BLACK_GOLD",
+16
+]
+],
+"OUTHOUSE_2": [
+[
+"LOG_REFINED",
+6
+],
+[
+"BLACK_GOLD",
+16
+],
+[
+"CRYSTAL",
+8
+]
+],
+"POOP_BUCKET": [
+[
+"LOG_REFINED",
+8
+],
+[
+"GOLD_REFINED",
+16
+]
+],
+"PRISON": [
+[
+"LOG",
+20
+],
+[
+"BLACK_GOLD",
+16
+]
+],
+"PROPAGANDA_SPEAKER": [
+[
+"LOG",
+4
+],
+[
+"STONE",
+2
+],
+[
+"BLACK_GOLD",
+8
+]
+],
+"PROXIMITY_FURNACE": [
+[
+"LIGHTNING_SHARD",
+4
+]
+],
+"PUB": [
+[
+"LOG_REFINED",
+12
+],
+[
+"HOPS",
+1
+],
+[
+"GRAPES",
+1
+]
+],
+"PUB_2": [
+[
+"LOG_REFINED",
+16
+],
+[
+"GOLD_REFINED",
+10
+],
+[
+"PLEASURE_POINT",
+1
+]
+],
+"RACING_GATE": [
+[
+"YEW_HOLY",
+1
+]
+],
+"RANCH": [
+[
+"LOG_REFINED",
+4
+]
+],
+"RANCH_2": [
+[
+"LOG_REFINED",
+9
+]
+],
+"RANCH_CHOPPING_BLOCK": [
+[
+"STONE_REFINED",
+2
+],
+[
+"YEW_CURSED",
+2
+]
+],
+"RANCH_FENCE": [
+[
+"LOG_REFINED",
+1
+]
+],
+"RANCH_HUTCH": [
+[
+"LOG_REFINED",
+4
+],
+[
+"STONE_REFINED",
+4
+]
+],
+"RANCH_TROUGH": [
+[
+"LOG_REFINED",
+4
+],
+[
+"GRASS",
+8
+]
+],
+"REFINERY": [
+[
+"LOG",
+4
+],
+[
+"STONE",
+8
+],
+[
+"BLACK_GOLD",
+16
+]
+],
+"REFINERY_2": [
+[
+"LOG_REFINED",
+3
+],
+[
+"STONE_REFINED",
+4
+],
+[
+"GOLD_REFINED",
+6
+]
+],
+"ROTSTONE_MINE": [
+[
+"MAGMA_STONE",
+8
+],
+[
+"STONE_REFINED",
+4
+]
+],
+"ROTSTONE_MINE_2": [
+[
+"MAGMA_STONE",
+20
+],
+[
+"YEW_CURSED",
+7
+]
+],
+"SCARECROW": [
+[
+"LOG",
+20
+],
+[
+"BLACK_GOLD",
+24
+]
+],
+"SCARECROW_2": [
+[
+"LOG_REFINED",
+8
+],
+[
+"STONE_REFINED",
+4
+],
+[
+"GOLD_REFINED",
+8
+]
+],
+"SEED_BUCKET": [
+[
+"LOG_REFINED",
+8
+],
+[
+"GOLD_REFINED",
+16
+]
+],
+"SHARED_HOUSE": [
+[
+"STONE_REFINED",
+8
+],
+[
+"GOLD_REFINED",
+8
+],
+[
+"POOP",
+8
+]
+],
+"SHRINE": [
+[
+"BLACK_GOLD",
+24
+]
+],
+"SHRINE_DISCIPLE_BOOST": [
+[
+"STONE_REFINED",
+8
+],
+[
+"GOLD_REFINED",
+16
+]
+],
+"SHRINE_DISCIPLE_COLLECTION": [
+[
+"STONE_REFINED",
+8
+],
+[
+"GOLD_REFINED",
+16
+]
+],
+"SHRINE_II": [
+[
+"LOG_REFINED",
+8
+],
+[
+"STONE_REFINED",
+4
+],
+[
+"BLACK_GOLD",
+40
+]
+],
+"SHRINE_III": [
+[
+"STONE_REFINED",
+12
+],
+[
+"LOG_REFINED",
+12
+],
+[
+"BLACK_GOLD",
+48
+]
+],
+"SHRINE_IV": [
+[
+"STONE_REFINED",
+4
+],
+[
+"LOG_REFINED",
+4
+],
+[
+"GOLD_REFINED",
+24
+]
+],
+"SHRINE_PASSIVE": [
+[
+"STONE",
+8
+],
+[
+"BLACK_GOLD",
+16
+]
+],
+"SHRINE_PASSIVE_II": [
+[
+"STONE_REFINED",
+4
+],
+[
+"BLACK_GOLD",
+24
+]
+],
+"SHRINE_PASSIVE_III": [
+[
+"STONE_REFINED",
+8
+],
+[
+"GOLD_REFINED",
+8
+]
+],
+"SHRINE_PLEASURE": [
+[
+"STONE_REFINED",
+4
+],
+[
+"GOLD_REFINED",
+4
+]
+],
+"SILO_FERTILISER": [
+[
+"LOG_REFINED",
+4
+],
+[
+"BLACK_GOLD",
+16
+]
+],
+"SILO_SEED": [
+[
+"LOG",
+8
+],
+[
+"STONE",
+8
+],
+[
+"BLACK_GOLD",
+16
+]
+],
+"SURVEILLANCE": [
+[
+"LOG",
+8
+],
+[
+"STONE",
+4
+],
+[
+"BLACK_GOLD",
+24
+]
+],
+"TAILOR": [
+[
+"SPIDER_WEB",
+16
+],
+[
+"GOLD_REFINED",
+8
+]
+],
+"TEMPLE": [
+[
+"LOG",
+12
+],
+[
+"STONE",
+4
+]
+],
+"TEMPLE_II": [
+[
+"LOG",
+16
+],
+[
+"STONE",
+8
+],
+[
+"BLACK_GOLD",
+40
+]
+],
+"TEMPLE_III": [
+[
+"LOG_REFINED",
+8
+],
+[
+"STONE_REFINED",
+4
+],
+[
+"GOLD_REFINED",
+16
+]
+],
+"TEMPLE_IV": [
+[
+"LOG_REFINED",
+16
+],
+[
+"STONE_REFINED",
+8
+],
+[
+"GOLD_REFINED",
+40
+]
+],
+"TOOLSHED": [
+[
+"LOG_REFINED",
+8
+]
+],
+"TRAIT_MANIPULATOR_1": [
+[
+"YEW_CURSED",
+4
+],
+[
+"GOLD_REFINED",
+6
+]
+],
+"TRAIT_MANIPULATOR_2": [
+[
+"YEW_CURSED",
+7
+],
+[
+"GOLD_REFINED",
+10
+]
+],
+"TRAIT_MANIPULATOR_3": [
+[
+"YEW_CURSED",
+12
+],
+[
+"GOLD_REFINED",
+16
+]
+],
+"VOLCANIC_SPA": [
+[
+"LIGHTNING_SHARD",
+7
+],
+[
+"STONE",
+10
+]
+],
+"WEATHER_VANE": [
+[
+"STONE_REFINED",
+4
+],
+[
+"LIGHTNING_SHARD",
+8
+]
+],
+"WOLF_TRAP": [
+[
+"STONE_REFINED",
+1
+],
+[
+"YEW_HOLY",
+1
+]
+],
+"WOOLY_SHACK": [
+[
+"LOG_REFINED",
+8
+],
+[
+"COTTON",
+4
+],
+[
+"GOLD_REFINED",
+8
+]
+]
+},
+"upgrades": {
+"BED_2": "BED",
+"BED_3": "BED_2",
+"BLOODSTONE_MINE_2": "BLOODSTONE_MINE",
+"CRYPT_2": "CRYPT_1",
+"CRYPT_3": "CRYPT_2",
+"CULT_UPGRADE2": "CULT_UPGRADE1",
+"DEMON_SUMMONER_2": "DEMON_SUMMONER",
+"DEMON_SUMMONER_3": "DEMON_SUMMONER_2",
+"FARM_STATION_II": "FARM_STATION",
+"FOOD_STORAGE_2": "FOOD_STORAGE",
+"FURNACE_2": "FURNACE_1",
+"FURNACE_3": "FURNACE_2",
+"GRAVE": "BODY_PIT",
+"HARVEST_TOTEM_2": "HARVEST_TOTEM",
+"HATCHERY_2": "HATCHERY",
+"HEALING_BAY_2": "HEALING_BAY",
+"JANITOR_STATION_2": "JANITOR_STATION",
+"LIGHTNING_ROD_2": "LIGHTNING_ROD",
+"LUMBERJACK_STATION_2": "LUMBERJACK_STATION",
+"MISSIONARY_II": "MISSIONARY",
+"MISSIONARY_III": "MISSIONARY_II",
+"MORGUE_2": "MORGUE_1",
+"OUTHOUSE_2": "OUTHOUSE",
+"PUB_2": "PUB",
+"RANCH_2": "RANCH",
+"REFINERY_2": "REFINERY",
+"ROTSTONE_MINE_2": "ROTSTONE_MINE",
+"SCARECROW_2": "SCARECROW",
+"SHRINE_II": "SHRINE",
+"SHRINE_III": "SHRINE_II",
+"SHRINE_IV": "SHRINE_III",
+"SHRINE_PASSIVE_II": "SHRINE_PASSIVE",
+"SHRINE_PASSIVE_III": "SHRINE_PASSIVE_II",
+"TEMPLE_II": "TEMPLE",
+"TEMPLE_III": "TEMPLE_II",
+"TEMPLE_IV": "TEMPLE_III",
+"TRAIT_MANIPULATOR_2": "TRAIT_MANIPULATOR_1",
+"TRAIT_MANIPULATOR_3": "TRAIT_MANIPULATOR_2"
 }
 }

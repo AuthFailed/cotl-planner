@@ -116,7 +116,11 @@
 
   .meta { margin: 0; color: var(--muted); font-size: 12px; }
   .desc { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.45; white-space: pre-line; text-wrap: pretty; }
-  .desc:empty { display: none; }
+  .desc:empty, .cost:empty { display: none; }
+  .items { display: inline-flex; flex-wrap: wrap; gap: 2px 8px; vertical-align: middle; }
+  .item { display: inline-flex; align-items: center; gap: 2px; color: var(--text); white-space: nowrap; }
+  .item img { width: 18px; height: 18px; object-fit: contain; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
   .inspector { inset-inline-start: var(--gap); bottom: var(--gap); width: 300px; padding: 12px; display: grid; grid-template-columns: 52px 1fr auto; gap: 2px 12px; align-items: center; transition: opacity .2s var(--ease), translate .2s var(--ease); }
   .inspector[hidden] { display: grid; opacity: 0; translate: 0 6px; pointer-events: none; }
@@ -307,7 +311,7 @@
 
   <div class="float inspector" id="inspector" hidden aria-live="polite">
     <span id="ins-art"></span>
-    <div><b id="ins-name"></b><p class="meta" id="ins-meta"></p></div>
+    <div><b id="ins-name"></b><p class="meta" id="ins-meta"></p><p class="meta cost" id="ins-cost"></p></div>
     <div class="ins-actions" id="ins-actions">
       <button class="icon-btn" id="ins-flip" data-i18n-tip="flipKey"><i class="ph ph-arrows-clockwise"></i></button>
       <button class="icon-btn" id="ins-cancel" data-i18n-tip="stopPlacing"><i class="ph ph-x"></i></button>
@@ -326,6 +330,10 @@
       <b id="st-room"></b>
       <ul id="st-capacity-list"></ul>
     </div>
+    <div class="capacity" id="st-materials" hidden data-i18n-title="materialsHint">
+      <b data-i18n="materials">Materials</b>
+      <div class="items" id="st-materials-list"></div>
+    </div>
   </div>
 
   <div class="float legend" id="legend" hidden role="group" data-i18n-label="rangesLegend">
@@ -334,7 +342,7 @@
   </div>
 
   <div class="float selection" id="selection" hidden role="dialog" data-i18n-label="selected">
-    <div><b id="sel-name"></b><p class="meta" id="sel-meta"></p></div>
+    <div><b id="sel-name"></b><p class="meta" id="sel-meta"></p><p class="meta cost" id="sel-cost"></p></div>
     <p class="desc" id="sel-desc"></p>
     <div class="tiers" id="sel-tiers" role="group" data-i18n-label="level"></div>
     <div class="actions">
@@ -347,7 +355,7 @@
   <div class="float toast" id="toast" hidden role="status"><i class="ph-fill ph-check-circle"></i><span id="toast-text"></span></div>
 </main>
 
-<div class="tip" id="tip" role="tooltip" hidden><b id="tip-name"></b><p class="meta" id="tip-meta"></p><p class="desc" id="tip-desc"></p></div>
+<div class="tip" id="tip" role="tooltip" hidden><b id="tip-name"></b><p class="meta" id="tip-meta"></p><p class="meta cost" id="tip-cost"></p><p class="desc" id="tip-desc"></p></div>
 
 <dialog id="confirm-dialog" class="confirm" aria-labelledby="confirm-title">
   <h2 id="confirm-title"></h2>

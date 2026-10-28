@@ -63,7 +63,7 @@ public class PlannerCapture : BaseUnityPlugin
     ConfigEntry<int> slot, width;
     ConfigEntry<float> settle, ppu;
     ConfigEntry<string> looks, types;
-    ConfigEntry<bool> autoLoad, forceDay, quitAfter, doStructures, doTranslations, doBuildings, doFloors, doBackgrounds, doDensity, doRanges;
+    ConfigEntry<bool> autoLoad, forceDay, quitAfter, doStructures, doTranslations, doBuildings, doFloors, doBackgrounds, doDensity, doRanges, doCosts, doItems;
     string outDir;
     bool started, done;
 
@@ -79,6 +79,8 @@ public class PlannerCapture : BaseUnityPlugin
         doStructures = Config.Bind("Jobs", "Structures", true, "structures.json: placed structures with their cells.");
         doDensity = Config.Bind("Jobs", "Density", false, "density.txt: how many texture pixels the game's art has per world unit.");
         doTranslations = Config.Bind("Jobs", "Translations", true, "i18n.json: every localisation term in every language.");
+        doCosts = Config.Bind("Jobs", "Costs", false, "costs.json: what every structure type costs to build, and the type it upgrades from.");
+        doItems = Config.Bind("Jobs", "Items", false, "items/: every item's inventory icon (<ITEM>.png) and text icon (text-<ITEM>.png).");
         doRanges = Config.Bind("Jobs", "Ranges", false, "ranges.json: every structure's range indicators as its prefabs carry them; ranges/ their sprites.");
         doBuildings = Config.Bind("Jobs", "Buildings", true, "buildings/: every buildable structure rendered alone.");
         doFloors = Config.Bind("Jobs", "Floors", true, "floors/: every path and floor tile as the game's rule tiles draw it; floors.json: their rules.");
@@ -137,6 +139,8 @@ public class PlannerCapture : BaseUnityPlugin
         if (doDensity.Value) yield return Density();
         if (doStructures.Value) Try("structures", DumpStructures);
         if (doTranslations.Value) Try("translations", DumpTranslations);
+        if (doCosts.Value) Try("costs", DumpCosts);
+        if (doItems.Value) Try("items", DumpItems);
         if (doRanges.Value) yield return DumpRanges();
         // Snow shows trails from two render textures the game fills around its camera and the player. Past their
         // edge it samples the edge, so a footprint there runs on as a stripe across the backdrop. Black is their
@@ -281,6 +285,78 @@ public class PlannerCapture : BaseUnityPlugin
         json.Append("\n}}");
         File.WriteAllText(Path.Combine(outDir, "i18n.json"), json.ToString());
         Logger.LogInfo($"i18n.json: {terms.Count} terms in {source.mLanguages.Count} languages");
+    }
+
+    // Each cost item with all its public fields (item type and quantity), as the game lists it for this save.
+    void DumpCosts()
+    {
+        var rows = new List<string>();
+        string Item(object c) => "{" + string.Join(",", c.GetType().GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Select(f => $"{Json(f.Name)}:{Json(f.GetValue(c)?.ToString())}")) + "}";
+        foreach (StructureBrain.TYPES T in Enum.GetValues(typeof(StructureBrain.TYPES)))
+        {
+            string cost = "", from = "null";
+            try { cost = string.Join(",", StructuresData.GetCost(T).Cast<object>().Select(Item)); } catch { }
+            try { var info = StructuresData.GetInfoByType(T, 0); if (info != null && info.IsUpgrade) from = Json(info.UpgradeFromType.ToString()); } catch { }
+            rows.Add($"{Json(T.ToString())}:{{\"cost\":[{cost}],\"from\":{from}}}");
+        }
+        File.WriteAllText(Path.Combine(outDir, "costs.json"), $"{{\n{string.Join(",\n", rows)}\n}}");
+        Logger.LogInfo($"costs.json: {rows.Count} types");
+    }
+
+    // Item icons two ways: InventoryIconMapping's sprite (the inventory's picture) and the TextMeshPro sprite that
+    // FontImageNames.GetIconByType names (the small icon the game puts in cost lines).
+    void DumpItems()
+    {
+        string dir = Path.Combine(outDir, "items");
+        Directory.CreateDirectory(dir);
+        var mapType = AccessTools.TypeByName("InventoryIconMapping");
+        var getImage = mapType == null ? null : AccessTools.GetDeclaredMethods(mapType).FirstOrDefault(m => m.Name == "GetImage" && m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == typeof(InventoryItem.ITEM_TYPE));
+        var maps = mapType == null ? new UnityEngine.Object[0] : Resources.FindObjectsOfTypeAll(mapType);
+        var getTag = AccessTools.GetDeclaredMethods(typeof(FontImageNames)).FirstOrDefault(m => m.Name == "GetIconByType" && m.GetParameters().Length >= 1 && m.GetParameters()[0].ParameterType == typeof(InventoryItem.ITEM_TYPE));
+        var spriteAssets = Resources.FindObjectsOfTypeAll<TMPro.TMP_SpriteAsset>();
+        Logger.LogInfo($"items: {maps.Length} icon mappings, GetImage {(getImage != null ? getImage.ToString() : "missing")}, GetIconByType {(getTag != null ? getTag.ToString() : "missing")}, {spriteAssets.Length} TMP sprite assets");
+        var rows = new List<string>();
+        var tagName = new System.Text.RegularExpressions.Regex("name=\"?([^\">]+)");
+        foreach (InventoryItem.ITEM_TYPE item in Enum.GetValues(typeof(InventoryItem.ITEM_TYPE)))
+        {
+            bool image = false, text = false;
+            string tag = null;
+            if (getImage != null)
+                foreach (var m in getImage.IsStatic ? new UnityEngine.Object[] { null } : maps)
+                {
+                    try { if (getImage.Invoke(m, new object[] { item }) is Sprite sp && sp) { SaveSprite(sp, Path.Combine(dir, $"{item}.png")); image = true; break; } } catch { }
+                }
+            try
+            {
+                var args = getTag?.GetParameters().Select((p, i) => i == 0 ? (object)item : p.HasDefaultValue ? p.DefaultValue : null).ToArray();
+                tag = getTag?.Invoke(null, args) as string;
+                var name = tag == null ? null : tagName.Match(tag) is var mt && mt.Success ? mt.Groups[1].Value : null;
+                foreach (var a in name == null ? new TMPro.TMP_SpriteAsset[0] : spriteAssets)
+                {
+                    int i = a.GetSpriteIndexFromName(name);
+                    if (i < 0 || !(a.spriteSheet is Texture sheet)) continue;
+                    var r = a.spriteCharacterTable[i].glyph.glyphRect;
+                    var rt = RenderTexture.GetTemporary(sheet.width, sheet.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+                    Graphics.Blit(sheet, rt);
+                    var was = RenderTexture.active;
+                    RenderTexture.active = rt;
+                    var tex = new Texture2D(r.width, r.height, TextureFormat.RGBA32, false);
+                    tex.ReadPixels(new Rect(r.x, r.y, r.width, r.height), 0, 0);
+                    tex.Apply();
+                    RenderTexture.active = was;
+                    RenderTexture.ReleaseTemporary(rt);
+                    File.WriteAllBytes(Path.Combine(dir, $"text-{item}.png"), tex.EncodeToPNG());
+                    Destroy(tex);
+                    text = true;
+                    break;
+                }
+            }
+            catch (Exception e) { Logger.LogWarning($"items: {item} text icon: {e.Message}"); }
+            rows.Add($"{Json(item.ToString())}:{{\"image\":{Bool(image)},\"text\":{Bool(text)},\"tag\":{Json(tag)}}}");
+        }
+        File.WriteAllText(Path.Combine(dir, "items.json"), $"{{\n{string.Join(",\n", rows)}\n}}");
+        Logger.LogInfo($"items.json: {rows.Count} items");
     }
 
     static string Bool(bool b) => b ? "true" : "false";
