@@ -549,8 +549,8 @@ function renderTabs() {
 }
 
 function tile(T) {
-  const name = nameOf(T), desc = descOf(T), tiers = tiersOf(T).length;
-  const b = el("button", { className: "tile", title: desc ? `${name}\n${desc}` : name },
+  const name = nameOf(T), tiers = tiersOf(T).length;
+  const b = el("button", { className: "tile" },
     thumb(T), el("span", {}, name), el("small", { className: "num" }, `${byType[T].w}×${byType[T].h}`));
   if (tiers > 1) b.prepend(el("span", { className: "tiers num", title: t("levelsHint", { n: tiers }) }, el("i", { className: "ph ph-stack" }), String(tiers)));
   b.dataset.type = T;
@@ -564,6 +564,7 @@ function tile(T) {
 }
 
 function renderPalette() {
+  hideTip();
   const raw = $("search").value.trim(), q = raw.toLocaleLowerCase(lang);
   document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-selected", String(!q && b.dataset.tab === group)));
   let sections;
@@ -584,6 +585,40 @@ function renderPalette() {
     el("div", { className: cls }, ...items.map(tile)),
   ]));
 }
+
+// Name, size and description of a tile, next to the list: a moment after the mouse rests on it
+// (straight away when moving from tile to tile), or on keyboard focus.
+let tipFor = null, tipTimer;
+function showTip(b) {
+  const T = b.dataset.type, tip = $("tip");
+  tipFor = b;
+  $("tip-name").textContent = nameOf(T);
+  $("tip-meta").textContent = meta(T, byType[T]);
+  $("tip-desc").textContent = descOf(T);
+  tip.hidden = false;
+  const r = b.getBoundingClientRect(), side = $("sheet").getBoundingClientRect();
+  const x = document.documentElement.dir === "rtl" ? side.left - 10 - tip.offsetWidth : side.right + 10;
+  tip.style.left = `${x}px`;
+  tip.style.top = `${Math.min(innerHeight - tip.offsetHeight - 10, Math.max(10, r.top + r.height / 2 - tip.offsetHeight / 2))}px`;
+  b.setAttribute("aria-describedby", "tip");
+}
+function hideTip() {
+  clearTimeout(tipTimer);
+  tipFor?.removeAttribute("aria-describedby");
+  tipFor = null;
+  $("tip").hidden = true;
+}
+$("palette").addEventListener("pointerover", e => {
+  const b = e.target.closest?.(".tile");
+  if (!b || b === tipFor || e.pointerType !== "mouse" || phone.matches) return;
+  clearTimeout(tipTimer);
+  tipTimer = setTimeout(() => showTip(b), tipFor ? 0 : 150);
+});
+$("palette").addEventListener("pointerout", e => { if (!e.relatedTarget?.closest?.(".tile")) hideTip(); });
+$("palette").addEventListener("focusin", e => { const b = e.target.closest?.(".tile"); if (b?.matches(":focus-visible") && !phone.matches) showTip(b); });
+$("palette").addEventListener("focusout", hideTip);
+$("palette").addEventListener("scroll", hideTip, { passive: true });
+$("palette").addEventListener("click", hideTip);
 
 function el(tag, props, ...kids) {
   const e = Object.assign(document.createElement(tag), props);
