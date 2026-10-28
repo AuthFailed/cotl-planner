@@ -264,6 +264,7 @@ const undoStack: string[] = [], redoStack: string[] = [];
 let strokeBefore: string | null = null;
 let recent = store.get<string[]>("recent", []).filter(T => byType[T]);
 let showLabels = store.get("labels", false);
+let showRanges = store.get("ranges", false);
 let group = store.get<string | null>("group", null);
 if (!game.menu.some(tab => tab.id === group)) group = game.menu[0].id;
 
@@ -447,6 +448,7 @@ function drawScene(c: Ctx, sz: Size, v: View, items: [Placed, Mode][], lit: bool
     const tiled = floor(c, sz, v, p, mode, lit, ground);
     if (!tiled || mode !== "normal") footprint(c, sz, v, p, mode, tiled);
   }
+  for (const [p, mode] of items) if (mode !== "normal" || showRanges) range(c, sz, v, p, mode);
   let fps = 0;
   for (const [p, mode] of items) fps = Math.max(fps, sprite(c, sz, v, p, mode, lit, time));
   return { area, fps };
@@ -494,6 +496,22 @@ function footprint(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode, bare = fals
   c.lineWidth = (mode === "normal" ? 1.25 : 2) / v.s;
   c.strokeStyle = LINE[mode] ?? `hsl(${hue} 40% 52%)`;
   c.strokeRect(r.x - .5 + .5 / v.s, r.y - .5 + .5 / v.s, r.w - 1 / v.s, r.h - 1 / v.s);
+}
+
+// The area a building works in (game.ranges), on the ground like the game's own indicator: strong for the
+// building held, hovered or selected, faint for the rest when all ranges are shown.
+function range(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode) {
+  const a = game!.ranges?.[p.name];
+  if (!a) return;
+  const half = a.size / 2, focus = mode !== "normal", bad = mode === "blocked" || mode === "erase";
+  gridSpace(c, sz, v);
+  c.beginPath();
+  c.rect(p.x + a.at - half, p.y + a.at - half, a.size, a.size);
+  c.fillStyle = bad ? "rgb(224 107 99 / .14)" : `rgb(237 228 211 / ${focus ? .16 : .07})`;
+  c.fill();
+  c.lineWidth = (focus ? 2 : 1.25) / v.s;
+  c.strokeStyle = bad ? "#e06b63" : `rgb(237 228 211 / ${focus ? .9 : .45})`;
+  c.stroke();
 }
 
 // The backdrop of the look on screen (as inside lamp light with `lit`), within `within` (CSS pixels;
@@ -1207,6 +1225,7 @@ document.addEventListener("keydown", e => {
   else if (k === "v") setTool("select");
   else if (k === "e") setTool("erase");
   else if (k === "l") toggleLabels();
+  else if (k === "a") toggleRanges();
   else if (k === "f") fit();
   else if (k === "+" || k === "=") zoomAt(size.w / 2, size.h / 2, 1.25);
   else if (k === "-") zoomAt(size.w / 2, size.h / 2, .8);
@@ -1229,6 +1248,12 @@ function toggleLabels() {
   $("labels").setAttribute("aria-pressed", String(showLabels));
   requestDraw();
 }
+function toggleRanges() {
+  showRanges = !showRanges;
+  store.set("ranges", showRanges);
+  $("ranges").setAttribute("aria-pressed", String(showRanges));
+  requestDraw();
+}
 
 $("tool-select").onclick = () => setTool("select");
 $("tool-erase").onclick = () => setTool("erase");
@@ -1237,6 +1262,8 @@ $("undo").onclick = undo;
 $("redo").onclick = redo;
 $("labels").onclick = toggleLabels;
 $("labels").setAttribute("aria-pressed", String(showLabels));
+$("ranges").onclick = toggleRanges;
+$("ranges").setAttribute("aria-pressed", String(showRanges));
 $("help").onclick = () => $<HTMLDialogElement>("help-dialog").showModal();
 $("zoom-in").onclick = () => zoomAt(size.w / 2, size.h / 2, 1.25);
 $("zoom-out").onclick = () => zoomAt(size.w / 2, size.h / 2, .8);
@@ -1248,7 +1275,7 @@ $("sel-move").onclick = () => { const p = selected; selected = null; if (p) pick
 $("sel-delete").onclick = () => { if (!selected) return; beginStroke(); removeBuilding(selected); endStroke(); };
 $("sheet-toggle").onclick = () => openSheet(!$("sheet").classList.contains("open"));
 // on phones these live in a popup menu, which closes once one is used
-for (const id of ["land", "look", "labels", "clear", "import", "png"])
+for (const id of ["land", "look", "labels", "ranges", "clear", "import", "png"])
   $(id).addEventListener(id === "land" || id === "look" ? "change" : "click", () => { try { $("more").hidePopover(); } catch { /* no popover support */ } });
 $("clear").onclick = () => {
   if (!placed.some(deletable)) return;

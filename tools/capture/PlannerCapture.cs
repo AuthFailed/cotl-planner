@@ -5,6 +5,7 @@
 // switches saving off, then runs the enabled jobs:
 //   Structures   structures.json: every placed structure's type, cell, footprint and flags
 //   Translations i18n.json: every localisation term in every language the game ships
+//   Ranges       ranges.json: every structure's range indicators as its prefabs carry them, ranges/ their sprites
 //   Buildings    buildings/<TYPE>.png: each buildable structure alone, as the game draws it,
 //                cut out exactly from renders over black and white; buildings/buildings.json
 //                holds each sprite's anchor (the centre of the footprint's first cell), and
@@ -62,7 +63,7 @@ public class PlannerCapture : BaseUnityPlugin
     ConfigEntry<int> slot, width;
     ConfigEntry<float> settle, ppu;
     ConfigEntry<string> looks, types;
-    ConfigEntry<bool> autoLoad, forceDay, quitAfter, doStructures, doTranslations, doBuildings, doFloors, doBackgrounds, doDensity;
+    ConfigEntry<bool> autoLoad, forceDay, quitAfter, doStructures, doTranslations, doBuildings, doFloors, doBackgrounds, doDensity, doRanges;
     string outDir;
     bool started, done;
 
@@ -78,6 +79,7 @@ public class PlannerCapture : BaseUnityPlugin
         doStructures = Config.Bind("Jobs", "Structures", true, "structures.json: placed structures with their cells.");
         doDensity = Config.Bind("Jobs", "Density", false, "density.txt: how many texture pixels the game's art has per world unit.");
         doTranslations = Config.Bind("Jobs", "Translations", true, "i18n.json: every localisation term in every language.");
+        doRanges = Config.Bind("Jobs", "Ranges", false, "ranges.json: every structure's range indicators as its prefabs carry them; ranges/ their sprites.");
         doBuildings = Config.Bind("Jobs", "Buildings", true, "buildings/: every buildable structure rendered alone.");
         doFloors = Config.Bind("Jobs", "Floors", true, "floors/: every path and floor tile as the game's rule tiles draw it; floors.json: their rules.");
         doBackgrounds = Config.Bind("Jobs", "Backgrounds", true, "landN.png, grid.json, gridN.png per land level.");
@@ -135,6 +137,7 @@ public class PlannerCapture : BaseUnityPlugin
         if (doDensity.Value) yield return Density();
         if (doStructures.Value) Try("structures", DumpStructures);
         if (doTranslations.Value) Try("translations", DumpTranslations);
+        if (doRanges.Value) yield return DumpRanges();
         // Snow shows trails from two render textures the game fills around its camera and the player. Past their
         // edge it samples the edge, so a footprint there runs on as a stripe across the backdrop. Black is their
         // cleared state: untrodden snow.
@@ -299,6 +302,85 @@ public class PlannerCapture : BaseUnityPlugin
             }
         }
         return sb.Append('"').ToString();
+    }
+
+    // ---------- range indicators ----------
+
+    // ranges.json: per structure type, the range indicators its prefabs carry (sprites named like one, or held in a
+    // field named like one), each with its sprite, draw mode, size and placement relative to the prefab's root;
+    // ranges/<sprite>.png each indicator sprite. The game sizes most of them in code as they wake up
+    // (SpriteRenderer.size), so a sliced sprite's size here is the prefab's, before that.
+    IEnumerator DumpRanges()
+    {
+        var list = FindObjectOfType<TypeAndPlacementObjects>();
+        if (!list) { Logger.LogWarning("no build list in the scene"); yield break; }
+        string dir = Path.Combine(outDir, "ranges");
+        Directory.CreateDirectory(dir);
+        var rows = new List<string>();
+        var seen = new HashSet<string>();
+        var saved = new HashSet<Sprite>();
+        string V(Vector3 v) => $"[{v.x:0.####},{v.y:0.####},{v.z:0.####}]";
+        foreach (var entry in list.TypeAndPlacementObject)
+        {
+            string type = entry.Type.ToString();
+            if (!seen.Add(type) || entry.Addr_PlacementObject == null || !entry.Addr_PlacementObject.RuntimeKeyIsValid()) continue;
+            var ph = Addressables.LoadAssetAsync<GameObject>(entry.Addr_PlacementObject.RuntimeKey);
+            yield return ph;
+            var prefabs = new List<(string, GameObject)>();
+            if (ph.Status == AsyncOperationStatus.Succeeded && ph.Result) prefabs.Add(("placement", ph.Result));
+            string build = prefabs.Count > 0 ? prefabs[0].Item2.GetComponent<PlacementObject>()?.ToBuildAsset : null;
+            if (string.IsNullOrEmpty(build)) try { build = StructuresData.GetInfoByType(entry.Type, 0)?.PrefabPath; } catch { }
+            if (!string.IsNullOrEmpty(build))
+            {
+                var bh = Addressables.LoadAssetAsync<GameObject>(build.StartsWith("Assets/") ? build : "Assets/" + build + ".prefab");
+                yield return bh;
+                if (bh.Status == AsyncOperationStatus.Succeeded && bh.Result) prefabs.Add(("building", bh.Result));
+            }
+            var found = new List<string>();
+            foreach (var (kind, prefab) in prefabs)
+                Try($"{type} ranges", () =>
+                {
+                    // sprites a script holds as its range indicator, by field name
+                    var held = new Dictionary<SpriteRenderer, string>();
+                    foreach (var mb in prefab.GetComponentsInChildren<MonoBehaviour>(true))
+                        if (mb) foreach (var f in AccessTools.GetDeclaredFields(mb.GetType()).Concat(AccessTools.GetDeclaredFields(mb.GetType().BaseType ?? typeof(object))))
+                            if (f.FieldType == typeof(SpriteRenderer) && System.Text.RegularExpressions.Regex.IsMatch(f.Name, "range|radius", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                                && f.GetValue(mb) is SpriteRenderer s && s) held[s] = $"{mb.GetType().Name}.{f.Name}";
+                    var root = prefab.transform.worldToLocalMatrix;
+                    foreach (var r in prefab.GetComponentsInChildren<SpriteRenderer>(true))
+                    {
+                        string n = r.gameObject.name.ToLowerInvariant();
+                        if (!held.ContainsKey(r) && !n.Contains("range") && !n.Contains("radius")) continue;
+                        var m = root * r.transform.localToWorldMatrix;
+                        var sp = r.sprite;
+                        if (sp && saved.Add(sp)) Try($"{type} {sp.name}", () => SaveSprite(sp, Path.Combine(dir, sp.name + ".png")));
+                        found.Add($"{{\"prefab\":\"{kind}\",\"object\":{Json(r.gameObject.name)},\"field\":{Json(held.TryGetValue(r, out var h) ? h : null)}," +
+                            $"\"sprite\":{Json(sp ? sp.name : null)},\"mode\":\"{r.drawMode}\",\"size\":[{r.size.x:0.####},{r.size.y:0.####}]," +
+                            $"\"bounds\":{(sp ? V(sp.bounds.size) : "null")},\"pivot\":{(sp ? V(sp.bounds.center) : "null")}," +
+                            $"\"pos\":{V(m.GetColumn(3))},\"right\":{V(m.GetColumn(0))},\"up\":{V(m.GetColumn(1))},\"active\":{Bool(r.gameObject.activeInHierarchy)}}}");
+                    }
+                });
+            if (found.Count > 0) rows.Add($"{Json(type)}:[{string.Join(",", found)}]");
+        }
+        File.WriteAllText(Path.Combine(outDir, "ranges.json"), $"{{\n{string.Join(",\n", rows)}\n}}");
+        Logger.LogInfo($"ranges.json: {rows.Count} types");
+    }
+
+    // A sprite's own pixels as a PNG (its texture needn't be readable).
+    static void SaveSprite(Sprite sp, string path)
+    {
+        var rt = RenderTexture.GetTemporary(sp.texture.width, sp.texture.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+        Graphics.Blit(sp.texture, rt);
+        var was = RenderTexture.active;
+        RenderTexture.active = rt;
+        var rect = sp.textureRect;
+        var tex = new Texture2D((int)rect.width, (int)rect.height, TextureFormat.RGBA32, false);
+        tex.ReadPixels(rect, 0, 0);
+        tex.Apply();
+        RenderTexture.active = was;
+        RenderTexture.ReleaseTemporary(rt);
+        File.WriteAllBytes(path, tex.EncodeToPNG());
+        Destroy(tex);
     }
 
     // ---------- building renders ----------

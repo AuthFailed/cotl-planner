@@ -31,6 +31,8 @@ building, drop it on the grid, share the layout as a link. Live at https://map.c
 - Works on phones: the building list is a bottom sheet, one finger places or pans, two
   fingers pinch to zoom
 - Overlap and buildable-ground checks, rotate, move, delete
+- Effect ranges as the game's own indicators draw them (farmer station, scarecrows, totems, speakers,
+  lightning rods, furnaces...): for the building held, hovered or selected, or all at once
 - The whole layout lives in the URL — "Copy link" is your save file
 - Import your real base from the game's save file (⋯ menu → Import save): buildings with their
   levels and flips, and the land you've bought; the file is read in the browser, never uploaded
@@ -70,6 +72,7 @@ issue the HTTPS certificate).
 | Delete | right-click a placed building, or select it and choose Delete |
 | Flip | `R` or the Flip button (the game mirrors buildings) |
 | Zoom | scroll or pinch; `F` fits the base |
+| Ranges | hold, hover or select a building; `A` shows every building's range |
 | Cancel | `Esc`, or the × next to the building you're holding |
 
 ## Building data
@@ -138,6 +141,17 @@ draw list that `compose_sprites.html` renders into one atlas, `public/data/sprit
 cell, which is where the game places the prefab. Spine-animated parts and UI gauges are
 not drawn, and buildings without plain sprites fall back to the wiki icon. In-game
 "rotate" mirrors a building, and so does the planner's Flip.
+
+## Ranges
+
+`public/data/game.json` `ranges` holds the area each ranged building works in, as its in-game
+indicator shows it. The capture plugin's Ranges job lists every structure's range indicator as its
+prefabs carry it (`ranges.json`): all of them are the same sliced square outline turned with the grid,
+so a range is a square `size` cells across, centred `at` cells along the diagonal from the footprint's
+first cell. Most scripts resize the sprite in code as they wake up (the scarecrows, shrines, wolf trap
+and furnaces); `python3 tools/capture/ranges_to_data.py ranges.json` takes those sizes from a table read
+off the game's code and the rest from the prefabs. The farm crop grower is left out: its square sits
+3.5 cells out towards the way it faces, which the planner doesn't model.
 
 ## Building renders
 

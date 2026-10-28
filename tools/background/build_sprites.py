@@ -222,7 +222,9 @@ for name, T in wiki.items():
         if n < len(c) and c[n] in game:
             wiki[name] = c[n]
 
-json.dump({"types": game, "wiki": wiki, "chains": chains, "menu": menu}, open(os.path.join(DATA, "game.json"), "w"), indent=0, ensure_ascii=False)
+out = os.path.join(DATA, "game.json")
+ranges = json.load(open(out)).get("ranges") if os.path.exists(out) else None  # from tools/capture/ranges_to_data.py
+json.dump({"types": game, "wiki": wiki, "chains": chains, "menu": menu, **({"ranges": ranges} if ranges else {})}, open(out, "w"), indent=0, ensure_ascii=False)
 json.dump({"sprites": {g: s for g, s in sprites.cache.items() if s}, "buildings": draw},
           open(os.path.join(HERE, "sprites_drawlist.json"), "w"))
 print(f"{len(game)} types, {len(draw)} with sprites, {len(wiki)} wiki entries matched, "

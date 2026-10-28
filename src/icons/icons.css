@@ -47,6 +47,9 @@
 .ph.ph-check-circle:before {
   content: "\e184";
 }
+.ph.ph-circle-dashed:before {
+  content: "\e602";
+}
 .ph.ph-cloud-rain:before {
   content: "\e1b4";
 }
@@ -196,6 +199,9 @@
 }
 .ph-fill.ph-check-circle:before {
   content: "\e184";
+}
+.ph-fill.ph-circle-dashed:before {
+  content: "\e602";
 }
 .ph-fill.ph-cloud-rain:before {
   content: "\e1b4";
