@@ -117,6 +117,38 @@ const short = (s: string) => s.replace(/\s*\([^()]*\)$/, ""); // "Undo (Ctrl+Z)"
 const term = (key: string) => L.terms[key] || english.terms[key] || key;
 const nameOf = (T: string) => L.names[T] || english.names[T] || wikiOf[T]?.name || T;
 const descOf = (T: string) => L.desc[T] || english.desc[T] || "";
+const itemOf = (I: string) => L.items?.[I] || english.items?.[I] || I;
+
+// What having a T costs: its own cost and, for an upgrade done in place, the level below's, down to a level in `free`.
+function costOf(T: string, free?: Set<string>, into = new Map<string, number>()): Map<string, number> {
+  if (free?.has(T)) return into;
+  for (const [i, n] of game!.costs?.[T] ?? []) into.set(i, (into.get(i) ?? 0) + n);
+  const from = game!.upgrades?.[T];
+  return from ? costOf(from, free, into) : into;
+}
+// "15 Lumber": the item's icon (its name when the icon fails) and the quantity, the name as its label
+function itemChip(I: string, n: number) {
+  const img = el("img", { src: `data/items/${I}.webp${DATA_VERSION}`, alt: "", width: 18, height: 18 });
+  img.onerror = () => img.replaceWith(el("span", {}, itemOf(I)));
+  return el("span", { className: "item", title: itemOf(I) }, img, el("span", { className: "num" }, String(n)), el("span", { className: "sr" }, ` ${itemOf(I)}`));
+}
+const chips = (c: Iterable<[string, number]>) => el("span", { className: "items" }, ...[...c].map(([i, n]) => itemChip(i, n)));
+// The lines of T's cost: "Cost: <list>", or for an upgrade "Upgrade: <list>" and "In all: <total>"
+function costLines(T: string): [string, Record<string, Iterable<[string, number]>>][] {
+  const own = game!.costs?.[T];
+  if (!own?.length) return [];
+  return game!.upgrades?.[T] ? [["costUpgrade", { list: own }], ["costTotal", { total: costOf(T) }]] : [["cost", { list: own }]];
+}
+// into `e`, the items as icons
+function showCost(e: HTMLElement, T: string) {
+  e.replaceChildren(...costLines(T).flatMap(([key, vars], n) => [
+    ...(n ? [el("br", {})] : []),
+    ...t(key).split(/\{(\w+)\}/).map((part, i) => (i % 2 ? (vars[part] ? chips(vars[part]) : "") : part)),
+  ]));
+}
+// as plain text, for a tooltip: "Cost: 15 Lumber, 4 Stone"
+const costText = (T: string) => costLines(T).map(([key, vars]) => t(key, Object.fromEntries(Object.entries(vars)
+  .map(([k, c]) => [k, [...c].map(([i, n]) => `${n} ${itemOf(i)}`).join(", ")])))).join("\n");
 
 // ---------- looks: the base as the game draws it by weather and time of day ----------
 // looks/<look>/ holds a backdrop per number of land upgrades bought (background-N), the buildings'
@@ -872,7 +904,16 @@ function updateStats() {
   $("st-groups").replaceChildren(...game!.menu.filter(tab => counts[tab.id]).sort((a, b) => counts[b.id] - counts[a.id])
     .map(tab => el("li", {}, el("span", {}, term(tab.term)), el("b", { className: "num" }, String(counts[tab.id])))));
   updateCapacity();
+  updateMaterials();
   updateLegend();
+}
+// the buildings the base starts with cost nothing; their upgrades do
+const FREE = new Set(base.defaults?.map(d => d.type));
+function updateMaterials() {
+  const total = new Map<string, number>();
+  for (const p of placed) costOf(p.name, FREE, total);
+  $("st-materials").hidden = !total.size;
+  $("st-materials-list").replaceChildren(...[...total].sort((a, b) => b[1] - a[1]).map(([i, n]) => itemChip(i, n)));
 }
 
 // "2×2 · level 1 of 3 · one per base"
@@ -891,6 +932,7 @@ function updateInspector() {
   if (box.dataset.type !== T) { box.dataset.type = T; $("ins-art").replaceChildren(thumb(T, 52)); }
   $("ins-name").textContent = nameOf(T);
   $("ins-meta").textContent = meta(T, rect({ r: p.r, x: 0, y: 0 }, byType[T]), brush && t(brush.from ? "moving" : "placing"));
+  showCost($("ins-cost"), T);
   $("ins-desc").textContent = descOf(T);
   $("ins-actions").hidden = !brush;
 }
@@ -903,10 +945,11 @@ function updateSelectionCard() {
   const T = selected.name, tiers = tiersOf(T);
   $("sel-name").textContent = nameOf(T);
   $("sel-meta").textContent = meta(T, rect(selected, byType[T]));
+  showCost($("sel-cost"), T);
   $("sel-desc").textContent = descOf(T);
   $("sel-tiers").hidden = tiers.length < 2;
   $("sel-tiers").replaceChildren(...tiers.map((X, i) => {
-    const b = el("button", { title: nameOf(X) }, thumb(X, 30), el("span", { className: "num" }, ROMAN[i] ?? String(i + 1)));
+    const b = el("button", { title: [nameOf(X), costText(X)].filter(Boolean).join("\n") }, thumb(X, 30), el("span", { className: "num" }, ROMAN[i] ?? String(i + 1)));
     b.setAttribute("aria-pressed", String(X === T));
     b.onclick = () => setLevel(X);
     return b;
@@ -1058,6 +1101,7 @@ function showTip(b: HTMLElement) {
   tipFor = b;
   $("tip-name").textContent = nameOf(T);
   $("tip-meta").textContent = meta(T, byType[T]);
+  showCost($("tip-cost"), T);
   $("tip-desc").textContent = descOf(T);
   tip.hidden = false;
   const r = b.getBoundingClientRect(), side = $("sheet").getBoundingClientRect();

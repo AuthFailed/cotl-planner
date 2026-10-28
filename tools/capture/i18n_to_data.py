@@ -3,6 +3,7 @@
 lists the languages, and <code>.json holds one language's
   names  structure type -> name           (Structures/<TYPE>)
   desc   structure type -> description    (Structures/<TYPE>/Description, as plain text)
+  items  item type -> name               (Inventory/<ITEM>, the items in public/data/game.json "costs")
   terms  build-menu tab and section titles (the term keys in public/data/game.json "menu")
   ui     the planner's own strings         (tools/i18n/ui.json, written by hand)
 Empty values are left out; the page falls back to English for them. Columns that are translator
@@ -68,6 +69,7 @@ def plain(text, col, flags, sep):
     return re.sub(r" +([.,!?;。、])", r"\1", out).strip()
 
 
+items = sorted({item for cost in game.get("costs", {}).values() for item, _ in cost})
 menu_terms = {tab["term"] for tab in game["menu"]} | {s["term"] for tab in game["menu"] for s in tab["sections"]}
 out_dir = os.path.join(ROOT, "public", "data", "i18n")
 os.makedirs(out_dir, exist_ok=True)
@@ -83,8 +85,8 @@ for col, lang in columns:
             desc[T] = plain(d, col, standalone(en) if len(SPRITE.findall(d)) == len(SPRITE.findall(en)) else [],
                             LIST_SEP.get(code, ", "))
     data = {"ui": ui.get(code, {}), "terms": {k: v for k in sorted(menu_terms) if (v := value(k, col))},
-            "names": names, "desc": desc}
+            "names": names, "desc": desc, "items": {i: v for i in items if (v := value(f"Inventory/{i}", col))}}
     json.dump(data, open(os.path.join(out_dir, f"{code}.json"), "w"), ensure_ascii=False, separators=(",", ":"))
     index.append({"code": code, "name": lang["name"], **({"dir": "rtl"} if code in RTL else {})})
-    print(f"{code:6} {len(names)} names, {len(desc)} descriptions, {len(data['terms'])} menu terms, {len(data['ui'])} ui strings")
+    print(f"{code:6} {len(names)} names, {len(desc)} descriptions, {len(data['items'])} items, {len(data['terms'])} menu terms, {len(data['ui'])} ui strings")
 json.dump(index, open(os.path.join(out_dir, "index.json"), "w"), ensure_ascii=False, separators=(",", ":"))

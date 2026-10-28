@@ -133,6 +133,17 @@ Translations job dumps every term of the game's I2 Localization data, and
 `python3 tools/capture/i18n_to_data.py i18n.json` writes these files. Anything missing in a
 language falls back to English in the page.
 
+## Costs
+
+`public/data/game.json` `costs` holds what building each type costs (`[item type, quantity]`, as
+`StructuresData.GetCost` lists it) and `upgrades` the type an upgrade done in place replaces
+(`StructuresData.IsUpgrade`); the planner adds those up for the cost of reaching a level, and the stats
+panel sums the layout, the buildings the base starts with left out. The capture plugin's Costs job
+writes `costs.json` and its Items job `items/` (every item's inventory and text icon), then
+`python3 tools/capture/costs_to_data.py costs.json items` writes the costs and turns the text icons of
+the items they use into `public/data/items/<ITEM>.webp`. Run `i18n_to_data.py` after it: the item
+names (`Inventory/<ITEM>`) come with the translations.
+
 ## Building sprites (older pipeline)
 
 `tools/background/build_sprites.py` reads the game's own build list (the base scene's
