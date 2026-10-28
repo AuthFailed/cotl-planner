@@ -12,7 +12,7 @@ export function rect(p: { x: number; y: number; r: 0 | 1 }, b: Footprint): Rect 
   return p.r ? { x: p.x, y: p.y, w: b.h, h: b.w } : { x: p.x, y: p.y, w: b.w, h: b.h };
 }
 
-const overlaps = (a: Rect, b: Rect) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+export const overlaps = (a: Rect, b: Rect) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
 // Can `cand` go down with every cell on buildable ground (`cells`: Set of "x,y") and nothing in the way?
 export function fits(cand: Placed, placed: Placed[], byName: Record<string, Footprint>, cells: Set<string>): boolean {
@@ -48,6 +48,19 @@ export function cellsBetween(a: { x: number; y: number }, b: { x: number; y: num
     out.push({ x, y });
   }
   return out;
+}
+
+// Mirrors a group the way the game flips one building (swapping its footprint's sides): across the diagonal
+// through `at` (default: the group's first corner).
+export function flipGroup(ps: Placed[], at = { x: Math.min(...ps.map(p => p.x)), y: Math.min(...ps.map(p => p.y)) }): Placed[] {
+  return ps.map(p => ({ ...p, x: at.x + p.y - at.y, y: at.y + p.x - at.x, r: p.r ? 0 : 1 }));
+}
+
+// The candidates that stay within each kind's limit (`limit` of its `key`) on top of what's placed.
+export function withinLimits(cands: Placed[], placed: Placed[], key: (T: string) => string, limit: (T: string) => number): Placed[] {
+  const n = new Map<string, number>();
+  for (const p of placed) n.set(key(p.name), (n.get(key(p.name)) ?? 0) + 1);
+  return cands.filter(p => { const k = key(p.name), m = (n.get(k) ?? 0) + 1; n.set(k, m); return m <= limit(p.name); });
 }
 
 export function itemAt(x: number, y: number, placed: Placed[], byName: Record<string, Footprint>): Placed | undefined {

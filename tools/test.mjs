@@ -1,7 +1,7 @@
 // Self-check for src/core.ts: node tools/test.mjs
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
-import { fits, itemAt, encode, decode, cellsFor, reach, cellsBetween } from "../src/core.ts";
+import { fits, itemAt, encode, decode, cellsFor, reach, cellsBetween, flipGroup, withinLimits } from "../src/core.ts";
 import { readSave } from "../src/save.ts";
 
 const byName = { "Farm Plot": { w: 1, h: 1 }, "Long: Thing": { w: 3, h: 1 } };
@@ -24,6 +24,13 @@ assert.deepEqual(line.at(-1), { x: 3, y: -2 }, "ends where the pointer is");
 assert.ok(line.every((c, i) => Math.abs(c.x - (line[i - 1] ?? { x: 0 }).x) + Math.abs(c.y - (line[i - 1] ?? { y: 0 }).y) === 1), "each cell shares a side with the last");
 assert.deepEqual(cellsBetween({ x: 1, y: 1 }, { x: 1, y: 1 }), [], "no move, no cells");
 assert.deepEqual(reach({ x: 0, y: 0 }, { size: 3, at: 0.6 }), { x: 0, y: 0, n: 3 }, "off-centre range");
+const flipped = flipGroup([{ name: "Long: Thing", x: 2, y: 2, r: 0 }, { name: "Farm Plot", x: 5, y: 3, r: 0 }]);
+assert.deepEqual(flipped, [{ name: "Long: Thing", x: 2, y: 2, r: 1 }, { name: "Farm Plot", x: 3, y: 5, r: 1 }], "group flips across its diagonal");
+assert.ok(flipped.every(p => fits(p, flipped.filter(q => q !== p), byName, cells)), "a flipped group doesn't overlap itself");
+assert.deepEqual(flipGroup(flipGroup(flipped)), flipped, "flipping twice is a no-op");
+const once = T => (T === "Long: Thing" ? 1 : Infinity);
+assert.deepEqual(withinLimits([{ name: "Long: Thing", x: 0, y: 0, r: 0 }, { name: "Farm Plot", x: 0, y: 1, r: 0 }], placed, T => T, once).map(p => p.name), ["Farm Plot"], "a one-per-base building already placed is left out");
+assert.equal(withinLimits([{ name: "Long: Thing", x: 0, y: 0, r: 0 }, { name: "Long: Thing", x: 0, y: 1, r: 0 }], [], T => T, once).length, 1, "and only one of two pasted");
 
 const layout = [...placed, { name: "Farm Plot", x: -1, y: 0, r: 0 }, { name: "Farm Plot", x: 1, y: -2, r: 0 }];
 assert.deepEqual(decode("#" + encode(layout), byName), { placed: layout, land: null }, "hash round-trip");
