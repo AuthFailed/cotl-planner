@@ -213,8 +213,7 @@ function thumb(T: string, size = 44): HTMLElement {
   const blank = () => el("i", { className: "thumb ph ph-image" });
   const src = byType[T].icon;
   if (!src) return blank();
-  // anonymous CORS (the wiki CDN allows it) keeps the map exportable; no referrer or the CDN refuses the hotlink
-  const img = el("img", { className: "thumb", crossOrigin: "anonymous", referrerPolicy: "no-referrer", loading: "lazy", alt: "", src });
+  const img = el("img", { className: "thumb", loading: "lazy", alt: "", src });
   img.onerror = () => img.replaceWith(blank());
   return img;
 }
@@ -224,7 +223,7 @@ const images = new Map<string, HTMLImageElement>();
 function icon(T: string) {
   let img = images.get(T);
   if (!img) {
-    img = Object.assign(new Image(), { crossOrigin: "anonymous", referrerPolicy: "no-referrer", onload: requestDraw });
+    img = Object.assign(new Image(), { onload: requestDraw });
     if (byType[T].icon) img.src = byType[T].icon!;
     images.set(T, img);
   }
