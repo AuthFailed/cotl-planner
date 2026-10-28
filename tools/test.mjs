@@ -91,6 +91,16 @@ for (const { code } of json("public/data/i18n/index.json")) {
   assert.ok(Object.entries(d.ui).every(([k, s]) => vars(s) === vars(en.ui[k])), `${code}: same {placeholders} as English`);
   assert.ok(Object.values(d.desc).every(s => !/[<>]/.test(s)), `${code}: descriptions are plain text`);
 }
+// starter templates: every building known and on bought ground, nothing overlapping, a name and text
+const templates = json("public/data/templates.json");
+assert.ok(templates.length >= 3, "at least three templates");
+for (const tp of templates) {
+  const { placed, land } = decode(tp.hash, game.types), { cells } = cellsFor(base, land ?? 0);
+  assert.equal(placed.length, tp.hash.split("|").filter(g => g.includes(":")).flatMap(g => g.split(":")[1].split(",")).length, `${tp.id}: every building known`);
+  assert.ok(placed.every((p, i) => fits(p, placed.slice(0, i), game.types, cells)), `${tp.id}: every building fits`);
+  const key = `tpl${tp.id[0].toUpperCase()}${tp.id.slice(1)}`;
+  assert.ok(en.ui[key] && en.ui[`${key}Text`], `${tp.id}: has a name and description`);
+}
 // every look has its art (every backdrop tile and sheet at full, ½ and ⅓ in AVIF, the ⅓ ones also in
 // WebP for browsers without AVIF, and the small backdrops), and a name in the page's strings
 const bg = json("public/data/background.json");
