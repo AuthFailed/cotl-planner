@@ -1,6 +1,6 @@
 // Self-check for src/core.ts: node tools/test.mjs
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { fits, itemAt, encode, decode, cellsFor } from "../src/core.ts";
 
 const byName = { "Farm Plot": { w: 1, h: 1 }, "Long: Thing": { w: 3, h: 1 } };
@@ -28,6 +28,7 @@ assert.ok(cellsFor(lands, 2).cells.has("-1,0") && !cellsFor(lands, 2).cells.has(
 
 const data = JSON.parse(readFileSync(new URL("../public/data/buildings.json", import.meta.url)));
 assert.ok(data.length > 100 && data.every(b => b.name && b.w > 0 && b.h > 0), "buildings.json sane");
+assert.ok(data.every(b => !b.icon || existsSync(new URL(`../public/${b.icon}`, import.meta.url))), "wiki icons are local files");
 const base = JSON.parse(readFileSync(new URL("../public/data/base.json", import.meta.url)));
 assert.ok(base.tiles.length > 1000 && base.tiles.some(([x, y]) => x === 0 && y === 0), "base.json sane");
 assert.equal(base.expansions.length, 3, "three land expansions");

@@ -67,6 +67,7 @@ repository settings, Pages' source must be set to **GitHub Actions**.
 
 ```bash
 python3 tools/scrape_wiki.py > public/data/buildings.json
+node tools/vendor_icons.mjs   # copies the icons still shown into public/data/icons/ (needs cwebp)
 ```
 
 Sizes, names and the building list now come from the game (`public/data/game.json`, below). The
@@ -192,7 +193,7 @@ node tools/test.mjs
 ## Not done yet
 
 - The DLC shrine room
-- Spine-animated building parts; 17 menu entries (mostly paths) still use wiki icons
+- Spine-animated building parts; 16 menu entries (mostly paths) still use wiki icons
 - Follower reach areas (farmer station, propaganda speakers)
 
 ## Legal
@@ -200,5 +201,5 @@ node tools/test.mjs
 Code is MIT licensed (see `LICENSE`). Building names and sizes come from the
 fandom wiki (CC BY-SA); the base grid coordinates are derived from the game's scene data.
 `public/data/looks/` is rendered from the game's own art, and
-`public/data/i18n/` holds the game's building names and descriptions; they're included here for this fan tool only. Building icons are loaded from the wiki's CDN and are not included. *Cult of the Lamb* and its art belong to Massive Monster
+`public/data/i18n/` holds the game's building names and descriptions; they're included here for this fan tool only. The fallback building icons in `public/data/icons/` are from the [fandom wiki](https://cult-of-the-lamb.fandom.com/wiki/Buildings) (CC BY-SA 3.0), downscaled to WebP. *Cult of the Lamb* and its art belong to Massive Monster
 and Devolver Digital. This is an unofficial fan project, not affiliated with them.
