@@ -154,6 +154,11 @@ and furnaces); `python3 tools/capture/ranges_to_data.py ranges.json` takes those
 off the game's code and the rest from the prefabs. The farm crop grower is left out: its square sits
 3.5 cells out towards the way it faces, which the planner doesn't model.
 
+The planner draws each range along cell edges: the cells whose centre is inside the game's square or on
+its edge, as the game's box checks count them (buildings and plots stand at cell centres). That matters
+only for an even size around a 1×1 building, whose square the game centres on the cell so its edges run
+through the middle of cells: the Propaganda Speaker's 8 reaches 9×9 cells, the first Lightning Rod's 10, 11×11.
+
 ## Building renders
 
 `public/data/looks/<look>/sprites.json` and its sheets hold every buildable structure as the game draws it: the capture
