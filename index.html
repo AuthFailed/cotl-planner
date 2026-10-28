@@ -172,6 +172,8 @@
   .hint i { font-size: 26px; color: var(--accent); }
   .hint b { display: block; margin: 6px 0 4px; font-weight: 600; }
   .hint p { margin: 0; color: var(--muted); font-size: 13px; text-wrap: balance; }
+  .hint button { margin: 12px auto 0; }
+  .hint:not([hidden]) button { pointer-events: auto; }
   .selection { width: max-content; max-width: 330px; padding: 12px; display: grid; gap: 8px; translate: -50% -100%; z-index: 5; }
   .selection[hidden] { display: none; }
   .selection.below { translate: -50% 0; }
@@ -207,6 +209,8 @@
   .layouts li .name { flex: 1; min-width: 0; justify-content: flex-start; color: var(--text); }
   .layouts li .name span { overflow: hidden; text-overflow: ellipsis; }
   .layouts li .name[aria-current="true"] { background: var(--accent-soft); }
+  .templates li button { flex: 1; height: auto; white-space: normal; display: grid; justify-items: start; gap: 2px; padding: 10px 12px; text-align: start; color: var(--text); }
+  .templates li span { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
   .layouts .note { font-size: 12.5px; color: var(--faint); }
   .name-input { width: 100%; height: 38px; margin-bottom: 16px; padding: 0 12px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-ctl); }
   .saves dd { min-width: 0; }
@@ -318,6 +322,7 @@
         <i class="ph ph-translate" aria-hidden="true"></i>
         <select id="lang" aria-label="Language" data-i18n-label="language"></select>
       </label>
+      <button class="icon-btn" id="templates-open" data-i18n-tip="templates"><i class="ph ph-squares-four"></i><span class="menu-label" data-i18n="templates"></span></button>
       <button class="icon-btn" id="import" data-i18n-tip="importSave"><i class="ph ph-upload-simple"></i><span class="menu-label" data-i18n="importSave"></span></button>
       <button class="icon-btn" id="png" data-i18n-tip="png"><i class="ph ph-download-simple"></i><span class="menu-label" data-i18n="png"></span></button>
       <button class="icon-btn" id="quality-open" data-i18n-tip="quality"><i class="ph ph-sliders-horizontal"></i><span class="menu-label" data-i18n="quality"></span></button>
@@ -341,6 +346,7 @@
     <i class="ph-fill ph-hand-pointing" aria-hidden="true"></i>
     <b data-i18n="emptyTitle">Your base is empty</b>
     <p id="hint-text">Pick a building on the left, then click the ground. Drag to place a row, scroll to zoom.</p>
+    <button class="icon-btn secondary" id="hint-templates"><i class="ph ph-squares-four"></i><span data-i18n="templates"></span></button>
   </div>
 
   <div class="float inspector" id="inspector" hidden aria-live="polite">
@@ -411,6 +417,15 @@
   <form method="dialog" class="buttons">
     <button class="icon-btn secondary" value="cancel" data-i18n="close"></button>
     <button class="icon-btn primary" type="button" id="layouts-save"><i class="ph ph-floppy-disk"></i><span data-i18n="saveAs"></span></button>
+  </form>
+</dialog>
+
+<dialog id="templates-dialog" class="confirm layouts templates" aria-labelledby="templates-title">
+  <h2 id="templates-title" data-i18n="templates"></h2>
+  <p data-i18n="templatesIntro"></p>
+  <ul id="templates-list"></ul>
+  <form method="dialog" class="buttons">
+    <button class="icon-btn secondary" value="cancel" data-i18n="close"></button>
   </form>
 </dialog>
 
