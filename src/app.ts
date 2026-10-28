@@ -1,7 +1,7 @@
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 import "./icons/icons.css";
-import { rect, fits, itemAt, encode, decode, cellsFor, reach, type Placed, type Cell } from "./core.ts";
+import { rect, fits, itemAt, encode, decode, cellsFor, reach, cellsBetween, type Placed, type Cell } from "./core.ts";
 import { readSave } from "./save.ts";
 import type { Atlas, Background, BaseData, Building, FloorRules, GameData, Language, MenuTab, Strings, WikiBuilding } from "./types.ts";
 
@@ -16,7 +16,7 @@ const TAB_ICONS: Record<string, string> = { follower: "ph-users-three", faith: "
 type View = { s: number; tx: number; ty: number };
 type Size = { w: number; h: number; dpr: number };
 type Mode = "normal" | "hover" | "erase" | "selected" | "ghost" | "blocked";
-type Brush = { name: string; r: 0 | 1; from?: Placed; at?: number };
+type Brush = { name: string; r: 0 | 1; from?: Placed; at?: number; grab?: CellXY };
 type CellXY = { x: number; y: number };
 type Tool = "select" | "erase" | "measure";
 type Gesture =
@@ -68,7 +68,7 @@ const deletable = (p: Placed) => !byType[p.name].fixed;
 const shrines = (chainOf.SHRINE ?? []).filter(T => atlas?.items[T]);
 for (const T of shrines) byType[T] ??= { type: T, w: game.types[T].w, h: game.types[T].h, once: true, fixed: true };
 function shrine(): Placed | null {
-  const temple = placed.find(p => chainKey(p.name) === "TEMPLE");
+  const temple = [...placed, brush?.from].find(p => p && chainKey(p.name) === "TEMPLE"); // a Temple being moved still counts
   const T = shrines[temple ? chainOf.TEMPLE.indexOf(temple.name) : 0] ?? shrines.at(-1);
   return base!.shrine && T ? { name: T, x: base!.shrine.x, y: base!.shrine.y, r: 0 } : null;
 }
@@ -255,7 +255,7 @@ for (const d of base.defaults ?? []) {
 }
 let tool: Tool = "select";
 let ruler: { a: CellXY; b: CellXY } | null = null; // the measure tool's last box, corner cells a and b
-let brush: Brush | null = null; // while holding a building; `from`/`at` = where a moved one came from
+let brush: Brush | null = null; // while holding a building; `from`/`at` = where a moved one came from, `grab` = the cell of it held
 let selected: Placed | null = null; // placed building whose level picker is open
 let hover: CellXY | null = null; // cell under the pointer
 let view: View = { s: 20, tx: 0, ty: 0 }, fitScale = 20, userView = false; // userView: panned/zoomed by hand, so stop auto-fitting
@@ -287,8 +287,9 @@ const fitView = (w: number, h: number, pad = 90): View => {
   return { s, tx: w / 2 - s * (BOUNDS.x0 + BOUNDS.x1) / 2, ty: h / 2 - s * (BOUNDS.y0 + BOUNDS.y1) / 2 };
 };
 
-// The held footprint is centred on the hovered cell.
+// The held footprint is centred on the hovered cell, or a dragged building keeps the cell it was grabbed by under it.
 function anchored(b: Brush, c: CellXY): Placed {
+  if (b.grab) return { name: b.name, r: b.r, x: c.x - b.grab.x, y: c.y - b.grab.y };
   const r = rect({ r: b.r, x: 0, y: 0 }, byType[b.name]);
   return { name: b.name, r: b.r, x: c.x - Math.floor((r.w - 1) / 2), y: c.y - Math.floor((r.h - 1) / 2) };
 }
@@ -425,14 +426,21 @@ function draw(c: Ctx, sz: Size, v: View, live: boolean) {
   if (fps && live) animTimer ||= window.setTimeout(() => { animTimer = 0; nextFrame(); }, 1000 / Math.min(MAX_FPS, fps));
 }
 
-// While a building is held: the cells it can be put down on (its anchor, as anchored() takes the hovered
-// cell), worked out again only when the building, its turn, the land or the layout change.
+// While a building is held: every cell it can cover somewhere it fits (not just where the pointer may go,
+// which leaves a gap around everything as wide as half the building), worked out again only when the
+// building, its turn, the land or the layout change.
 let spots: Cell[] | null = null, spotsKey = "", spotsCache: Cell[] = [];
 function spotsFor(b: Brush): Cell[] {
   const key = `${b.name}|${b.r}|${cells.size}|${encode(placed)}`;
   if (key !== spotsKey) {
     spotsKey = key;
-    spotsCache = tiles.filter(([x, y]) => fits(anchored(b, { x, y }), placed, byType, cells));
+    const free = new Set<string>();
+    for (const [x, y] of tiles) {
+      const r = rect({ ...b, x, y }, byType[b.name]);
+      if (fits({ name: b.name, r: b.r, x, y }, placed, byType, cells))
+        for (let i = r.x; i < r.x + r.w; i++) for (let j = r.y; j < r.y + r.h; j++) free.add(`${i},${j}`);
+    }
+    spotsCache = tiles.filter(([x, y]) => free.has(`${x},${y}`));
   }
   return spotsCache;
 }
@@ -821,11 +829,11 @@ function dropHeld() {
   markTiles();
   endStroke();
 }
-function pickUp(p: Placed) {
+function pickUp(p: Placed, by?: CellXY) {
   beginStroke();
   const at = placed.indexOf(p);
   placed.splice(at, 1);
-  setBrush({ name: p.name, r: p.r, from: p, at });
+  setBrush({ name: p.name, r: p.r, from: p, at, grab: by && { x: by.x - p.x, y: by.y - p.y } });
 }
 function setTool(next: Tool) {
   tool = next;
@@ -1202,7 +1210,7 @@ canvas.addEventListener("pointermove", e => {
   if (gesture?.kind === "pinch") return pinchMove();
   if (e.pointerType === "touch" && !pointers.has(e.pointerId)) return;
   const c = cellAt(px, py);
-  const moved = !hover || hover.x !== c.x || hover.y !== c.y;
+  const moved = !hover || hover.x !== c.x || hover.y !== c.y, from = hover;
   hover = c;
   if (gesture?.kind === "pan") {
     if (Math.hypot(px - gesture.px, py - gesture.py) > 4) gesture.still = false;
@@ -1212,13 +1220,14 @@ canvas.addEventListener("pointermove", e => {
     return requestDraw();
   }
   if (gesture?.kind === "press" && Math.hypot(px - gesture.px, py - gesture.py) > (e.pointerType === "touch" ? 8 : 5)) {
-    const p = gesture.p;
+    const { p, px: gx, py: gy } = gesture;
     gesture = { kind: "drag" };
-    if (p) pickUp(p);
+    if (p) pickUp(p, cellAt(gx, gy));
   }
   if (!moved) return;
-  if (gesture?.kind === "paint") tryPlace(c);
-  if (gesture?.kind === "erase") eraseAt(c);
+  const passed = from ? cellsBetween(from, c) : [c];
+  if (gesture?.kind === "paint") for (const p of passed) { if (gesture?.kind === "paint") tryPlace(p); } // tryPlace can end the stroke
+  if (gesture?.kind === "erase") passed.forEach(eraseAt);
   if (gesture?.kind === "measure") ruler!.b = c;
   else if (gesture) updateStats();
   updateInspector();
@@ -1323,7 +1332,7 @@ document.addEventListener("keydown", e => {
 document.addEventListener("keyup", e => { if (e.key === " ") { spaceHeld = false; cursor(); } });
 
 function rotate() {
-  if (brush) { brush.r = brush.r ? 0 : 1; updateInspector(); requestDraw(); }
+  if (brush) { brush.r = brush.r ? 0 : 1; brush.grab = undefined; updateInspector(); requestDraw(); }
   else if (selected) { beginStroke(); const i = placed.indexOf(selected); placed[i] = selected = { ...selected, r: selected.r ? 0 : 1 }; endStroke(); }
 }
 function toggleLabels() {

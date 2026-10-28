@@ -1,7 +1,7 @@
 // Self-check for src/core.ts: node tools/test.mjs
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
-import { fits, itemAt, encode, decode, cellsFor, reach } from "../src/core.ts";
+import { fits, itemAt, encode, decode, cellsFor, reach, cellsBetween } from "../src/core.ts";
 import { readSave } from "../src/save.ts";
 
 const byName = { "Farm Plot": { w: 1, h: 1 }, "Long: Thing": { w: 3, h: 1 } };
@@ -18,6 +18,11 @@ assert.equal(itemAt(4, 2, placed, byName), placed[0]);
 assert.equal(itemAt(4, 3, placed, byName), undefined);
 assert.deepEqual(reach({ x: 0, y: 0 }, { size: 8, at: 0 }), { x: -4, y: -4, n: 9 }, "even range on one cell: the cells on its edge count");
 assert.deepEqual(reach({ x: 2, y: 2 }, { size: 6, at: 0.49 }), { x: 0, y: 0, n: 6 }, "range around a 2x2 footprint");
+const line = cellsBetween({ x: 0, y: 0 }, { x: 3, y: -2 });
+assert.equal(line.length, 5, "a drag skipping cells fills them in");
+assert.deepEqual(line.at(-1), { x: 3, y: -2 }, "ends where the pointer is");
+assert.ok(line.every((c, i) => Math.abs(c.x - (line[i - 1] ?? { x: 0 }).x) + Math.abs(c.y - (line[i - 1] ?? { y: 0 }).y) === 1), "each cell shares a side with the last");
+assert.deepEqual(cellsBetween({ x: 1, y: 1 }, { x: 1, y: 1 }), [], "no move, no cells");
 assert.deepEqual(reach({ x: 0, y: 0 }, { size: 3, at: 0.6 }), { x: 0, y: 0, n: 3 }, "off-centre range");
 
 const layout = [...placed, { name: "Farm Plot", x: -1, y: 0, r: 0 }, { name: "Farm Plot", x: 1, y: -2, r: 0 }];

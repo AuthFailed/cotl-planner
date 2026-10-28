@@ -36,6 +36,20 @@ export function reach(p: { x: number; y: number }, a: { size: number; at: number
   return { x: lo(p.x), y: lo(p.y), n: hi(p.x) - lo(p.x) + 1 };
 }
 
+// The cells from a (exclusive) to b (inclusive), each sharing a side with the one before, so a fast drag
+// paints a path that still joins up.
+export function cellsBetween(a: { x: number; y: number }, b: { x: number; y: number }): { x: number; y: number }[] {
+  const n = Math.abs(b.x - a.x) + Math.abs(b.y - a.y), out = [];
+  let { x, y } = a;
+  for (let i = 0; i < n; i++) {
+    // step along whichever axis is further behind the straight line
+    if (x !== b.x && (y === b.y || Math.abs((x - a.x + Math.sign(b.x - a.x)) * (b.y - a.y)) <= Math.abs((y - a.y + Math.sign(b.y - a.y)) * (b.x - a.x)))) x += Math.sign(b.x - a.x);
+    else y += Math.sign(b.y - a.y);
+    out.push({ x, y });
+  }
+  return out;
+}
+
 export function itemAt(x: number, y: number, placed: Placed[], byName: Record<string, Footprint>): Placed | undefined {
   return placed.findLast(p => overlaps({ x, y, w: 1, h: 1 }, rect(p, byName[p.name])));
 }
