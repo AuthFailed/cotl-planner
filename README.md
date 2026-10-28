@@ -32,7 +32,8 @@ building, drop it on the grid, share the layout as a link. Live at https://map.c
   fingers pinch to zoom
 - Overlap and buildable-ground checks, rotate, move, delete
 - Effect ranges as the game's own indicators draw them (farmer station, scarecrows, totems, speakers,
-  lightning rods, furnaces...): for the building held, hovered or selected, or all at once
+  lightning rods, furnaces...): for the building held, hovered or selected, or all at once, each type in
+  its own colour with a legend of names and sizes
 - The whole layout lives in the URL — "Copy link" is your save file
 - Import your real base from the game's save file (⋯ menu → Import save): buildings with their
   levels and flips, and the land you've bought; the file is read in the browser, never uploaded

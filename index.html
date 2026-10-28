@@ -137,6 +137,14 @@
   .stats li { display: flex; justify-content: space-between; gap: 12px; }
   .stats li b { color: var(--text); font-weight: 500; }
 
+  .legend { top: 62px; inset-inline-end: var(--gap); padding: 10px 12px; max-width: 260px; max-height: calc(100% - 62px - 190px); overflow-y: auto; scrollbar-width: thin; font-size: 12px; }
+  .legend[hidden] { display: none; }
+  .legend > b { display: block; margin-bottom: 6px; font-weight: 600; }
+  .legend ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .legend li { display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 8px; color: var(--muted); }
+  .legend li i { width: 12px; height: 12px; border-radius: 3px; }
+  .legend li b { color: var(--text); font-weight: 500; }
+
   .hint { left: 50%; top: 50%; translate: -50% -50%; padding: 18px 20px; width: max-content; max-width: min(340px, calc(100% - 40px)); text-align: center; pointer-events: none; transition: opacity .3s var(--ease); }
   .hint[hidden] { display: block; opacity: 0; }
   .hint i { font-size: 26px; color: var(--accent); }
@@ -309,6 +317,11 @@
     </div>
     <div class="bar"><i id="st-bar" style="width:0"></i></div>
     <ul id="st-groups"></ul>
+  </div>
+
+  <div class="float legend" id="legend" hidden role="group" data-i18n-label="rangesLegend">
+    <b data-i18n="rangesLegend"></b>
+    <ul id="legend-list"></ul>
   </div>
 
   <div class="float selection" id="selection" hidden role="dialog" data-i18n-label="selected">
