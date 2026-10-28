@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Turn the capture plugin's i18n.json (every term the game ships) into data/i18n/: index.json
+"""Turn the capture plugin's i18n.json (every term the game ships) into public/data/i18n/: index.json
 lists the languages, and <code>.json holds one language's
   names  structure type -> name           (Structures/<TYPE>)
   desc   structure type -> description    (Structures/<TYPE>/Description, as plain text)
-  terms  build-menu tab and section titles (the term keys in data/game.json "menu")
+  terms  build-menu tab and section titles (the term keys in public/data/game.json "menu")
   ui     the planner's own strings         (tools/i18n/ui.json, written by hand)
 Empty values are left out; the page falls back to English for them. Columns that are translator
 notes, not languages (Description, Comments, VO, ...), are dropped.
@@ -29,7 +29,7 @@ SPRITE = re.compile(r'<sprite name="?([^">]+)"?>')
 COLOR = re.compile(r"</?color[^>]*>")
 
 src = json.load(open(sys.argv[1]))
-game = json.load(open(os.path.join(ROOT, "data", "game.json")))
+game = json.load(open(os.path.join(ROOT, "public", "data", "game.json")))
 ui = json.load(open(os.path.join(ROOT, "tools", "i18n", "ui.json")))
 terms = src["terms"]
 columns = [(i, l) for i, l in enumerate(src["languages"]) if l["code"] and l["code"] != "vo"]
@@ -69,7 +69,7 @@ def plain(text, col, flags, sep):
 
 
 menu_terms = {tab["term"] for tab in game["menu"]} | {s["term"] for tab in game["menu"] for s in tab["sections"]}
-out_dir = os.path.join(ROOT, "data", "i18n")
+out_dir = os.path.join(ROOT, "public", "data", "i18n")
 os.makedirs(out_dir, exist_ok=True)
 index = []
 for col, lang in columns:

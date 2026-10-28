@@ -10,8 +10,8 @@ Build rules come from StructuresData: GetBuildOnlyOne (one per base, counting ev
 its upgrade chain) and GetUpgradePath (the tiers of each chain), stored as "once" and "chains".
 
 Usage: python3 tools/background/build_sprites.py <ExportedProject> <Game_Data dir>
-Writes data/game.json and tools/background/sprites_drawlist.json; render the sprites with
-compose_sprites.html (see compose.html instructions) and copy sprites.webp/json into data/.
+Writes public/data/game.json and tools/background/sprites_drawlist.json; render the sprites with
+compose_sprites.html (see compose.html instructions) and copy sprites.webp/json into public/data/.
 """
 import base64, json, os, re, struct, sys
 
@@ -20,7 +20,7 @@ from unityyaml import Doc, Sprites, guid_index, sorting_layers, sprite_item, trs
 
 E, GAME = sys.argv[1], sys.argv[2]
 HERE = os.path.dirname(os.path.abspath(__file__))
-DATA = os.path.join(HERE, "..", "..", "data")
+DATA = os.path.join(HERE, "..", "..", "public", "data")
 
 guid_path = guid_index(E)
 layers = sorting_layers(E)
@@ -133,14 +133,14 @@ for T, v in game.items():
     if T in fixed:
         v["fixed"] = True
 
-# English names: the game's own translations (data/i18n.json, from the capture plugin) when present.
+# English names: the game's own translations (public/data/i18n.json, from the capture plugin) when present.
 i18n_path = os.path.join(DATA, "i18n.json")
 if os.path.exists(i18n_path):
     for T, row in json.load(open(i18n_path))["names"].items():
         if T in game:
             game[T]["name"] = row[0]
 
-# Match the wiki list (data/buildings.json) to game types: the game's own name first (wiki ids
+# Match the wiki list (public/data/buildings.json) to game types: the game's own name first (wiki ids
 # have typos, e.g. "Healing Bay II" carries HEALING_BAY), then the wiki id, then enum-derived names.
 norm = lambda s: re.sub(r"[^a-z0-9]", "", (s or "").lower())
 strip = lambda s: re.sub(r"^(building|decoration|deco|structure)s?", "", norm(s))

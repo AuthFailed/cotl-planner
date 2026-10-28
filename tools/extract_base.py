@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Regenerate data/base.json (buildable cells, plus the Woolhaven land expansions) from the
+"""Regenerate public/data/base.json (buildable cells, plus the Woolhaven land expansions) from the
 game's base scene.
 
 1. Export the game with AssetRipper (File > Export > Unity Project). Load only the
    base scene's bundles: AssetRipper 2.0.0 crashes on a sprite-atlas clash if you
    load the whole game.
-2. python3 tools/extract_base.py <ExportedProject> > data/base.json
+2. python3 tools/extract_base.py <ExportedProject> > public/data/base.json
 
 How the game builds the grid (PlacementRegion.FloodFillCreateTiles): integer
 points in the region's local space, flood-filled from (0,0), kept while inside

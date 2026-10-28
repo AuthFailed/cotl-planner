@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Regenerate data/buildings.json from the Cult of the Lamb fandom wiki.
+"""Regenerate public/data/buildings.json from the Cult of the Lamb fandom wiki.
 
 Names, categories and icons come from the "Buildings" page tables; footprint
 size comes from each building page's {{Infobox structure|size=WxH}}.
-Usage: python3 tools/scrape_wiki.py > data/buildings.json
+Usage: python3 tools/scrape_wiki.py > public/data/buildings.json
 """
 import json
 import os
@@ -14,7 +14,7 @@ import urllib.request
 
 API = "https://cult-of-the-lamb.fandom.com/api.php"
 SKIP_SECTIONS = {"Unused Buildings"}
-OVERRIDES = os.path.join(os.path.dirname(__file__), "..", "data", "overrides.json")
+OVERRIDES = os.path.join(os.path.dirname(__file__), "..", "public", "data", "overrides.json")
 
 
 def api(**params):

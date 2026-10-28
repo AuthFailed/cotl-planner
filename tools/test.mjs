@@ -1,7 +1,7 @@
-// Self-check for core.js: node tools/test.mjs
+// Self-check for src/core.ts: node tools/test.mjs
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { fits, itemAt, encode, decode, cellsFor } from "../core.js";
+import { fits, itemAt, encode, decode, cellsFor } from "../src/core.ts";
 
 const byName = { "Farm Plot": { w: 1, h: 1 }, "Long: Thing": { w: 3, h: 1 } };
 const cells = new Set();
@@ -26,15 +26,15 @@ const lands = { tiles: [[0, 0]], expansions: [[[0, -1]], [[-1, 0]], [[1, 0]]] };
 assert.equal(cellsFor(lands, 0).cells.size, 1);
 assert.ok(cellsFor(lands, 2).cells.has("-1,0") && !cellsFor(lands, 2).cells.has("1,0"), "expansions add in order");
 
-const data = JSON.parse(readFileSync(new URL("../data/buildings.json", import.meta.url)));
+const data = JSON.parse(readFileSync(new URL("../public/data/buildings.json", import.meta.url)));
 assert.ok(data.length > 100 && data.every(b => b.name && b.w > 0 && b.h > 0), "buildings.json sane");
-const base = JSON.parse(readFileSync(new URL("../data/base.json", import.meta.url)));
+const base = JSON.parse(readFileSync(new URL("../public/data/base.json", import.meta.url)));
 assert.ok(base.tiles.length > 1000 && base.tiles.some(([x, y]) => x === 0 && y === 0), "base.json sane");
 assert.equal(base.expansions.length, 3, "three land expansions");
 assert.equal(new Set(base.expansions.flat().concat(base.tiles).map(String)).size,
   base.tiles.length + base.expansions.flat().length, "expansion cells never repeat");
-const game = JSON.parse(readFileSync(new URL("../data/game.json", import.meta.url)));
-const atlas = JSON.parse(readFileSync(new URL("../data/sprites.json", import.meta.url)));
+const game = JSON.parse(readFileSync(new URL("../public/data/game.json", import.meta.url)));
+const atlas = JSON.parse(readFileSync(new URL("../public/data/sprites.json", import.meta.url)));
 assert.ok(Object.values(game.types).every(t => t.w > 0 && t.w === t.h), "game footprints are square and positive");
 assert.ok(Object.values(game.wiki).every(t => game.types[t]), "every wiki match points at a known type");
 assert.ok(Object.keys(atlas.items).every(t => game.types[t]), "atlas only holds known types");
@@ -43,15 +43,15 @@ const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8"
 const json = path => JSON.parse(read(path));
 const menuTypes = game.menu.flatMap(tab => tab.sections.flatMap(s => s.types));
 assert.ok(menuTypes.every(T => game.types[T]), "the build menu only lists known types");
-const en = json("data/i18n/en.json");
+const en = json("public/data/i18n/en.json");
 assert.ok(menuTypes.every(T => en.names[T] && en.desc[T]), "every build-menu building has an English name and description");
 assert.ok(game.menu.flatMap(tab => [tab.term, ...tab.sections.map(s => s.term)]).every(k => en.terms[k]), "menu titles have text");
 // every string key the page asks for exists
-const used = [...read("index.html").matchAll(/data-i18n(?:-\w+)?="(\w+)"/g), ...read("app.js").matchAll(/\bt\("(\w+)"/g)].map(m => m[1]);
+const used = [...read("index.html").matchAll(/data-i18n(?:-\w+)?="(\w+)"/g), ...read("src/app.ts").matchAll(/\bt\("(\w+)"/g)].map(m => m[1]);
 assert.deepEqual(used.filter(k => !(k in en.ui)), [], "UI keys used by the page exist");
 const vars = s => [...s.matchAll(/\{\w+\}/g)].map(m => m[0]).sort().join();
-for (const { code } of json("data/i18n/index.json")) {
-  const d = json(`data/i18n/${code}.json`);
+for (const { code } of json("public/data/i18n/index.json")) {
+  const d = json(`public/data/i18n/${code}.json`);
   assert.deepEqual(Object.keys(d.ui).sort(), Object.keys(en.ui).sort(), `${code}: every planner string`);
   assert.ok(Object.entries(d.ui).every(([k, s]) => vars(s) === vars(en.ui[k])), `${code}: same {placeholders} as English`);
   assert.ok(Object.values(d.desc).every(s => !/[<>]/.test(s)), `${code}: descriptions are plain text`);

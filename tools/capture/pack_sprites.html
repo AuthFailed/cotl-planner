@@ -6,7 +6,7 @@
 <canvas id="atlas" style="max-width:100%"></canvas>
 <script type="module">
 // Packs the plugin's building renders (buildings/<TYPE>.png + buildings.json) into the planner's
-// atlas: data/sprites.webp + data/sprites.json, items[type] = [x, y, w, h, anchorX, anchorY].
+// atlas: public/data/sprites.webp + public/data/sprites.json, items[type] = [x, y, w, h, anchorX, anchorY].
 // ?scale=0.75 shrinks everything (and the anchors) to keep the atlas small.
 const scale = +(new URLSearchParams(location.search).get("scale") || 1);
 const log = t => (document.getElementById("log").textContent = t);

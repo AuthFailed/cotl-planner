@@ -3,7 +3,7 @@ around the base, projected like the game camera (see unityyaml.py).
 Usage: python3 tools/background/build_drawlist.py <ExportedProject> tools/background/drawlist.json
 Then: python3 tools/background/serve.py <ExportedProject>/Assets 8766, open
 http://localhost:8766/bg/compose.html?ppu=36 and run `await save()` in the console; it writes
-background.webp + background.json next to these files. Copy both into data/.
+background.webp + background.json next to these files. Copy both into public/data/.
 """
 import json, math, os, re, sys
 
@@ -18,7 +18,7 @@ doc = Doc(os.path.join(E, "Assets/Scenes/Base Biome 1.unity"))
 docs = doc.docs
 
 # Region of interest: the base placement region's cells in world space, plus a margin.
-base = json.load(open(os.path.join(os.path.dirname(__file__), "..", "..", "data", "base.json")))
+base = json.load(open(os.path.join(os.path.dirname(__file__), "..", "..", "public", "data", "base.json")))
 rx, ry = base["world"]
 a = math.radians(base["rotation"])
 wx = [rx + x * math.cos(a) - y * math.sin(a) for x, y in base["tiles"]]

@@ -5,8 +5,12 @@ building, drop it on the grid, share the layout as a link.
 
 - The game's own build grid (1,223 cells), drawn like build mode over the base as the
   game renders it, from the game's camera angle
-- Woolhaven land expansions as an option: south field, then west, then east (the order
-  the game sells them), each with its own background; saved in the share link
+- Woolhaven land upgrades as an option: 1 upgrade (south), 2 (south + west), 3 (south +
+  west + east), the order the game sells them, each with its own background; saved in the
+  share link
+- Weather and time of day: day, dusk, night, rain, blood moon, winter and blizzard, each
+  rendered by the game (ground and buildings, with its lighting, snow and colour grading),
+  with the game's weather tint and falling rain or snow on top
 - Buildings rendered by the game itself (shaders, Spine art, lighting), with exact
   footprints, standing on the grid back to front like in-game
 - The game's build rules: one-per-base buildings (moving the existing one if you place
@@ -23,16 +27,26 @@ building, drop it on the grid, share the layout as a link.
 - The whole layout lives in the URL — "Copy link" is your save file
 - Export to PNG
 
-No build step, no backend: static files only.
+TypeScript, built with [Vite](https://vite.dev); no backend, the build is static files.
 
-## Run locally
+## Develop
 
 ```bash
-python3 -m http.server 8000
+npm install
+npm run dev      # dev server with hot reload
+npm test         # layout logic and data checks (Node 22.6+, runs the TypeScript directly)
+npm run check    # type-check (strict)
+npm run build    # type-check + production build into dist/
 ```
 
-Then open http://localhost:8000. (Opening `index.html` directly from disk won't work,
-because browsers block `fetch()` of the data file over `file://`.)
+- `src/core.ts`: pure layout logic (footprints, fit checks, the share-link format), shared with the tests
+- `src/app.ts`: the page: map drawing, input, palette, translations
+- `src/types.ts`: shapes of the data files
+- `public/data/`: game data, translations and art, copied into the build as is
+- `tools/`: the pipelines that produce `public/data/` (below)
+
+Pushing to `main` builds and deploys to GitHub Pages (`.github/workflows/pages.yml`); in the
+repository settings, Pages' source must be set to **GitHub Actions**.
 
 ## Controls
 
@@ -48,21 +62,21 @@ because browsers block `fetch()` of the data file over `file://`.)
 
 ## Building data
 
-`data/buildings.json` is generated from the
+`public/data/buildings.json` is generated from the
 [Cult of the Lamb fandom wiki](https://cult-of-the-lamb.fandom.com/wiki/Buildings):
 
 ```bash
-python3 tools/scrape_wiki.py > data/buildings.json
+python3 tools/scrape_wiki.py > public/data/buildings.json
 ```
 
-Sizes, names and the building list now come from the game (`data/game.json`, below). The
+Sizes, names and the building list now come from the game (`public/data/game.json`, below). The
 wiki data is still used for two things: build-menu icons for the few buildings without a
 game render, and reading share links made before layouts were keyed by the game's type
 names (they named buildings by their wiki names).
 
 ## Base grid
 
-`data/base.json` holds the buildable cells: `tiles` for the base, and `expansions[N]` for
+`public/data/base.json` holds the buildable cells: `tiles` for the base, and `expansions[N]` for
 the cells each Woolhaven land purchase adds. They come from the game itself: the capture
 plugin (below) rebuilds `PlacementRegion`'s grid for every land level and dumps it, and
 `python3 tools/capture/grid_to_base.py grid.json` writes it into `base.json`, leaving out
@@ -80,17 +94,17 @@ Rubble, trees and weeds are randomised in each save, so they aren't part of the 
 `tools/background/build_sprites.py` also parses the game's build rules from
 `StructuresData`: `GetBuildOnlyOne` (one per base, counting every level of an upgrade
 chain), `GetUpgradePath` (the levels) and `isDeletable` (the Temple can be moved but never
-removed). They land in `data/game.json` as `once`, `chains` and `fixed`, next to `menu`: the
+removed). They land in `public/data/game.json` as `once`, `chains` and `fixed`, next to `menu`: the
 build menu's tabs and sections as the game's `FollowerCategory`, `FaithCategory`,
 `AestheticCategory` and `MajorDLCCategory` list them, with the localisation term of each
 title. Wiki entries are matched to game types by the game's own English names.
-`data/base.json` `defaults` holds the Temple's usual spot.
+`public/data/base.json` `defaults` holds the Temple's usual spot.
 
-`data/i18n/<code>.json` holds one language: building names (`Structures/<TYPE>`),
+`public/data/i18n/<code>.json` holds one language: building names (`Structures/<TYPE>`),
 descriptions (`Structures/<TYPE>/Description`, as plain text: colour tags dropped, inline
 item icons dropped or, where they stand in for a word, replaced by the item's name), the
 menu titles, and the planner's own strings from `tools/i18n/ui.json`, which are written by
-hand for every language. `data/i18n/index.json` lists the languages. The capture plugin's
+hand for every language. `public/data/i18n/index.json` lists the languages. The capture plugin's
 Translations job dumps every term of the game's I2 Localization data, and
 `python3 tools/capture/i18n_to_data.py i18n.json` writes these files. Anything missing in a
 language falls back to English in the page.
@@ -99,17 +113,17 @@ language falls back to English in the page.
 
 `tools/background/build_sprites.py` reads the game's own build list (the base scene's
 `TypeAndPlacementObjects`): each structure type, its placement prefab (exact footprint)
-and its building prefab (the in-game sprites). It writes `data/game.json` (type, English
+and its building prefab (the in-game sprites). It writes `public/data/game.json` (type, English
 name from the game's localisation, footprint, and the wiki-name to type mapping) and a
-draw list that `compose_sprites.html` renders into one atlas, `data/sprites.webp` +
-`data/sprites.json`. Each sprite stores its anchor, the centre of the footprint's first
+draw list that `compose_sprites.html` renders into one atlas, `public/data/sprites.webp` +
+`public/data/sprites.json`. Each sprite stores its anchor, the centre of the footprint's first
 cell, which is where the game places the prefab. Spine-animated parts and UI gauges are
 not drawn, and buildings without plain sprites fall back to the wiki icon. In-game
 "rotate" mirrors a building, and so does the planner's Flip.
 
 ## Building renders
 
-`data/sprites.webp` holds every buildable structure as the game draws it: the capture
+`public/data/looks/<look>/sprites.webp` holds every buildable structure as the game draws it: the capture
 plugin's Buildings job loads each building prefab through Addressables, strips its gameplay
 scripts (keeping Spine renderers and switching off light sprites, range indicators and
 effects), places it on open ground in the base, and renders it alone over black and over
@@ -118,7 +132,7 @@ into the atlas; each sprite keeps its anchor, the centre of the footprint's firs
 
 ## Background art
 
-`data/background.webp` is rendered by the game itself. `tools/capture/PlannerCapture.cs`
+`public/data/looks/<look>/background-N.webp` (N = land upgrades bought) is rendered by the game itself. `tools/capture/PlannerCapture.cs`
 is a BepInEx 5 plugin that continues a save, switches saving off, hides the UI, player,
 followers, placed buildings and obstacles, and renders the base with the game's own
 camera, shaders and colour grading, looking down at 45° without perspective (the
@@ -130,9 +144,32 @@ tiles on every cell, plus `capture.json`, then quits.
 To redo it: install BepInEx 5 in the game, build with
 `tools/capture/build.sh "<game>/Cult Of The Lamb_Data/Managed" "<game>/BepInEx/core"`
 (needs the .NET SDK), copy `PlannerCapture.dll` into `BepInEx/plugins`, start the game,
-then **remove the DLL**: while installed it blocks all saving. Convert each `landN.png` to
-a 4096-wide `data/background-N.webp` and set `data/background.json`
-(`u0 = u_left - world.x`, `v0 = v_top - 0.7071 * world.y`, with `world` from `data/base.json`).
+then **remove the DLL**: while installed it blocks all saving. `public/data/background.json` holds the
+backdrop's placement (`u0 = u_left - world.x`, `v0 = v_top - 0.7071 * world.y`, with `world`
+from `public/data/base.json`).
+
+### Weather and time of day
+
+With `Looks = day,dusk,night,rain,bloodmoon,winter,blizzard` in the plugin's config
+(`BepInEx/config/chrsnv.cotlplanner.capture.cfg`, section `[Jobs]`), the Buildings and
+Backgrounds jobs run once per look, each into its own folder. Before each one the plugin
+switches the game in memory: the clock (the game's light follows the day phase, and its clock
+only runs forward, so afternoon looks go first), the season (winter, with what the game fires on
+a season change), the weather (the base scene's presets: heavy rain, heavy snow, extreme snow for
+the blizzard) and the blood moon lighting. Snow and rain are shader settings, so buildings are
+rendered again for each look, with their winter-only parts on in winter. The look's colour
+grading (Amplify Color LUTs and exposure, a post-processing pass the black/white cutout can't
+go through) is measured by rendering an identity colour chart through it, saved as `lut.png`,
+and applied to each building render. Then:
+
+```bash
+tools/capture/looks_to_data.sh <capture dir>   # backdrops -> public/data/looks/<look>/, looks in background.json
+```
+
+and pack each look's buildings with `pack_sprites.html?look=<look>` into
+`public/data/looks/<look>/sprites.webp` + `sprites.json`. The game's weather tint (a colour it lays over
+the screen) is listed in `background.json` and drawn by the planner, which also animates the
+falling rain and snow (left out of captures, where they'd freeze into dots).
 
 `tools/background/compose.html` is an older fallback that composites the scene's sprites
 straight from an AssetRipper export; it lacks the game's shaders and lighting.
@@ -153,6 +190,6 @@ node tools/test.mjs
 
 Code is MIT licensed (see `LICENSE`). Building names and sizes come from the
 fandom wiki (CC BY-SA); the base grid coordinates are derived from the game's scene data.
-`data/background-*.webp` and `data/sprites.webp` are rendered from the game's own art, and
-`data/i18n/` holds the game's building names and descriptions; they're included here for this fan tool only. Building icons are loaded from the wiki's CDN and are not included. *Cult of the Lamb* and its art belong to Massive Monster
+`public/data/looks/` is rendered from the game's own art, and
+`public/data/i18n/` holds the game's building names and descriptions; they're included here for this fan tool only. Building icons are loaded from the wiki's CDN and are not included. *Cult of the Lamb* and its art belong to Massive Monster
 and Devolver Digital. This is an unofficial fan project, not affiliated with them.

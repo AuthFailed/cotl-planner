@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replace the cells in data/base.json with the game's own runtime grid.
+"""Replace the cells in public/data/base.json with the game's own runtime grid.
 
 grid.json comes from the capture plugin: per land level (0 = no expansion bought .. 3 = all),
 the PlacementRegion grid as [x, y, occupied] cells. Occupied cells (the bridge strip the game
@@ -14,7 +14,7 @@ import os
 import sys
 
 levels = json.load(open(sys.argv[1]))
-path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "base.json")
+path = os.path.join(os.path.dirname(__file__), "..", "..", "public", "data", "base.json")
 base = json.load(open(path))
 
 blocked = {(x, y) for level in levels for x, y, occupied in level if occupied}

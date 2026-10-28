@@ -3,3 +3,5 @@ __pycache__/
 tools/background/drawlist.json
 tools/background/sprites_drawlist.json
 tools/capture/*.dll
+node_modules/
+dist/

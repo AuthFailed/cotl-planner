@@ -1,4 +1,5 @@
-import { rect, fits, itemAt, encode, decode, cellsFor } from "./core.js";
+import { rect, fits, itemAt, encode, decode, cellsFor, type Placed, type Cell } from "./core.ts";
+import type { Atlas, Background, BaseData, Building, GameData, Language, MenuTab, Strings, WikiBuilding } from "./types.ts";
 
 // The game rotates the base grid 45° (data/base.json "rotation") and its cameras look down
 // at ~45°, which flattens the ground vertically by about cos 45°. So a cell (x, y) lands
@@ -6,24 +7,40 @@ import { rect, fits, itemAt, encode, decode, cellsFor } from "./core.js";
 const K = Math.SQRT1_2, V = Math.SQRT1_2;
 const MIN_S = 6, MAX_S = 90;
 const ROMAN = ["I", "II", "III", "IV", "V"];
-const TAB_ICONS = { follower: "ph-users-three", faith: "ph-hands-praying", decor: "ph-flower-tulip", woolhaven: "ph-mountains" };
+const TAB_ICONS: Record<string, string> = { follower: "ph-users-three", faith: "ph-hands-praying", decor: "ph-flower-tulip", woolhaven: "ph-mountains" };
 
-const $ = id => document.getElementById(id);
-const canvas = $("map"), ctx = canvas.getContext("2d");
-const load = u => fetch(u).then(r => (r.ok ? r.json() : null)).catch(() => null);
+type View = { s: number; tx: number; ty: number };
+type Size = { w: number; h: number; dpr: number };
+type Mode = "normal" | "hover" | "erase" | "selected" | "ghost" | "blocked";
+type Brush = { name: string; r: 0 | 1; from?: Placed; at?: number };
+type CellXY = { x: number; y: number };
+type Gesture =
+  | { kind: "pan"; px: number; py: number; tx: number; ty: number; still: boolean }
+  | { kind: "press"; p: Placed | undefined; px: number; py: number }
+  | { kind: "pinch"; d: number; mx: number; my: number }
+  | { kind: "paint" | "erase" | "drag" | "aim" };
+
+// Every id the script touches exists in index.html; the type parameter says what kind of element it is.
+const $ = <E extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as E;
+const canvas = $<HTMLCanvasElement>("map"), ctx = canvas.getContext("2d")!;
+const load = <T>(u: string): Promise<T | null> => fetch(u).then(r => (r.ok ? r.json() : null)).catch(() => null);
 const phone = matchMedia("(max-width: 767px)");
 
-const [base, game, bg, atlas, wiki, langs, en] = await Promise.all(
-  ["base", "game", "background", "sprites", "buildings", "i18n/index", "i18n/en"].map(n => load(`data/${n}.json`)));
+const [base, game, bg, atlas, wiki, langs, en] = await Promise.all([
+  load<BaseData>("data/base.json"), load<GameData>("data/game.json"), load<Background>("data/background.json"),
+  load<Atlas>("data/sprites.json"), load<WikiBuilding[]>("data/buildings.json"),
+  load<Language[]>("data/i18n/index.json"), load<Strings>("data/i18n/en.json"),
+]);
+if (!base || !game) throw new Error("planner data missing");
 
 // ---------- buildings, keyed by the game's structure type (BED, TEMPLE_II, ...) ----------
 // A placed building is { name: type, x, y, r }. The build menu (game.menu, as the game groups it)
 // lists each building's first level; the other levels of its upgrade chain are picked on the map.
-const chainOf = {};
+const chainOf: Record<string, string[]> = {};
 for (const chain of game.chains) for (const T of chain) chainOf[T] = chain;
-const wikiOf = {}; // the wiki's entry for a type: an English name and a build-menu icon (fallback art)
+const wikiOf: Record<string, WikiBuilding> = {}; // the wiki's entry for a type: an English name and a build-menu icon (fallback art)
 for (const b of wiki ?? []) if (game.wiki[b.name]) wikiOf[game.wiki[b.name]] ??= b;
-const byType = {}, tabOf = {};
+const byType: Record<string, Building> = {}, tabOf: Record<string, MenuTab> = {};
 for (const tab of game.menu) for (const s of tab.sections) for (const head of s.types)
   for (const T of chainOf[head] ?? [head]) {
     // higher levels only when there's something to draw for them
@@ -33,19 +50,18 @@ for (const tab of game.menu) for (const s of tab.sections) for (const head of s.
     tabOf[T] ??= tab;
   }
 // one building per chain, whatever its level, counts against the limit
-const chainKey = T => chainOf[T]?.[0] ?? T;
-const tiersOf = T => (chainOf[T] ?? [T]).filter(X => byType[X]);
-const limitOf = T => (byType[T].once ? 1 : Infinity);
-const deletable = p => !byType[p.name].fixed;
+const chainKey = (T: string) => chainOf[T]?.[0] ?? T;
+const tiersOf = (T: string) => (chainOf[T] ?? [T]).filter(X => byType[X]);
+const limitOf = (T: string) => (byType[T].once ? 1 : Infinity);
+const deletable = (p: Placed) => !byType[p.name].fixed;
 // Paths and floors lie flat; without a render of their own they're drawn on the ground, not standing up.
-const isFloor = T => /^TILE_|_FLOOR$/.test(T);
+const isFloor = (T: string) => /^TILE_|_FLOOR$/.test(T);
 
 // ---------- text: the game's own translations plus the planner's strings ----------
-const EMPTY = { ui: {}, terms: {}, names: {}, desc: {} };
-const english = en ?? EMPTY;
-const languages = langs ?? [{ code: "en", name: "English" }];
-const native = code => {
-  try { const s = new Intl.DisplayNames([code], { type: "language" }).of(code); return s[0].toLocaleUpperCase(code) + s.slice(1); }
+const english: Strings = en ?? { ui: {}, terms: {}, names: {}, desc: {} };
+const languages: Language[] = langs ?? [{ code: "en", name: "English" }];
+const native = (code: string) => {
+  try { const s = new Intl.DisplayNames([code], { type: "language" }).of(code) ?? code; return s[0].toLocaleUpperCase(code) + s.slice(1); }
   catch { return code; }
 };
 const preferred = () => {
@@ -57,22 +73,25 @@ const preferred = () => {
 };
 
 // Per-viewer conveniences only; the layout itself lives in the URL.
-function store0(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }
-const store = { get: store0, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
-let lang = store.get("lang", null) ?? preferred();
+const store = {
+  get<T>(k: string, d: T): T { try { return JSON.parse(localStorage.getItem(k) ?? "null") ?? d; } catch { return d; } },
+  set(k: string, v: unknown) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage off: fine */ } },
+};
+let lang = store.get<string | null>("lang", null) ?? preferred();
 if (!languages.some(l => l.code === lang)) lang = "en";
-let L = lang === "en" ? english : await load(`data/i18n/${lang}.json`);
-if (!L) [L, lang] = [english, "en"];
-const t = (key, vars = {}) => (L.ui[key] ?? english.ui[key] ?? key).replace(/\{(\w+)\}/g, (m, k) => vars[k] ?? m);
-const short = s => s.replace(/\s*\([^()]*\)$/, ""); // "Undo (Ctrl+Z)" → "Undo", for labels that show no shortcut
-const term = key => L.terms[key] || english.terms[key] || key;
-const nameOf = T => L.names[T] || english.names[T] || wikiOf[T]?.name || T;
-const descOf = T => L.desc[T] || english.desc[T] || "";
+let L: Strings = (lang === "en" ? english : await load<Strings>(`data/i18n/${lang}.json`)) ?? english;
+if (L === english) lang = "en";
+const t = (key: string, vars: Record<string, string | number> = {}) =>
+  (L.ui[key] ?? english.ui[key] ?? key).replace(/\{(\w+)\}/g, (m, k: string) => String(vars[k] ?? m));
+const short = (s: string) => s.replace(/\s*\([^()]*\)$/, ""); // "Undo (Ctrl+Z)" → "Undo", for labels that show no shortcut
+const term = (key: string) => L.terms[key] || english.terms[key] || key;
+const nameOf = (T: string) => L.names[T] || english.names[T] || wikiOf[T]?.name || T;
+const descOf = (T: string) => L.desc[T] || english.desc[T] || "";
 
 // ---------- backdrop and sprites ----------
 // Backdrop rendered by the game (tools/capture), one image per number of land expansions bought.
-const backdrops = new Map();
-function backdrop(level) {
+const backdrops = new Map<string, HTMLImageElement>();
+function backdrop(level: number) {
   if (!bg) return null;
   const src = bg.images ? bg.images[Math.min(level, bg.images.length - 1)] : "background.webp";
   let img = backdrops.get(src);
@@ -86,119 +105,125 @@ function backdrop(level) {
   return img.complete && img.naturalWidth ? img : [...backdrops.values()].find(i => i.complete && i.naturalWidth) ?? null;
 }
 // Buildings as the game draws them, packed in one atlas: items[type] = [x, y, w, h, anchorX, anchorY].
-const atlasImage = atlas && Object.assign(new Image(), { src: "data/sprites.webp" });
+const atlasImage = Object.assign(new Image(), atlas ? { src: "data/sprites.webp" } : {});
 let atlasReady = false;
-atlasImage?.addEventListener("load", () => { atlasReady = true; requestDraw(); });
+atlasImage.addEventListener("load", () => { atlasReady = true; requestDraw(); });
 
 // ---------- layout state ----------
-// Links made before layouts were keyed by type name buildings by their English (wiki or game) name.
-const aliases = {};
+// Links made before layouts were keyed by type named buildings by their English (wiki or game) name.
+const aliases: Record<string, string> = {};
 for (const [n, T] of Object.entries(game.wiki)) if (byType[T]) aliases[n] = T;
 for (const T in byType) if (english.names[T]) { aliases[english.names[T]] ??= T; aliases[`${english.names[T]} (${T})`] = T; }
 const decoded = decode(location.hash, { ...aliases, ...byType });
 for (const p of decoded.placed) p.name = byType[p.name] ? p.name : aliases[p.name];
 const maxLand = base.expansions?.length ?? 0;
 // a shared link says how much land it was planned on; otherwise use this viewer's last choice
-let land = Math.min(maxLand, decoded.land ?? (location.hash.length > 1 ? 0 : store0("land", 0)));
+let land = Math.min(maxLand, decoded.land ?? (location.hash.length > 1 ? 0 : store.get("land", 0)));
 let { tiles, cells } = cellsFor(base, land);
-let placed = decoded.placed.filter(p => fits(p, [], byType, cells));
+let placed: Placed[] = decoded.placed.filter(p => fits(p, [], byType, cells));
 // Every base starts with its Temple, which the game won't delete: add it where it usually stands.
 for (const d of base.defaults ?? []) {
-  const p = { name: d.type, x: d.x, y: d.y, r: 0 };
+  const p: Placed = { name: d.type, x: d.x, y: d.y, r: 0 };
   if (byType[d.type] && !placed.some(q => chainKey(q.name) === chainKey(d.type)) && fits(p, placed, byType, cells)) placed.unshift(p);
 }
-let tool = "select"; // or "erase"
-let brush = null; // { name, r, from?, at? } while holding a building; `from`/`at` = where a moved one came from
-let selected = null; // placed building whose level picker is open
-let hover = null; // cell under the pointer
-let view = { s: 20, tx: 0, ty: 0 }, fitScale = 20, userView = false; // userView: panned/zoomed by hand, so stop auto-fitting
-let size = { w: 0, h: 0, dpr: 1 };
-let gesture = null; // { kind: "pan" | "paint" | "erase" | "press" | "drag" | "aim" | "pinch", ... } while a pointer is down
+let tool: "select" | "erase" = "select";
+let brush: Brush | null = null; // while holding a building; `from`/`at` = where a moved one came from
+let selected: Placed | null = null; // placed building whose level picker is open
+let hover: CellXY | null = null; // cell under the pointer
+let view: View = { s: 20, tx: 0, ty: 0 }, fitScale = 20, userView = false; // userView: panned/zoomed by hand, so stop auto-fitting
+let size: Size = { w: 0, h: 0, dpr: 1 };
+let gesture: Gesture | null = null; // while a pointer is down
 let spaceHeld = false;
-const undoStack = [], redoStack = [];
-let strokeBefore = null;
-let recent = store.get("recent", []).filter(T => byType[T]);
+const undoStack: string[] = [], redoStack: string[] = [];
+let strokeBefore: string | null = null;
+let recent = store.get<string[]>("recent", []).filter(T => byType[T]);
 let showLabels = store.get("labels", false);
-let group = store.get("group", null);
+let group = store.get<string | null>("group", null);
 if (!game.menu.some(tab => tab.id === group)) group = game.menu[0].id;
 
 // ---------- geometry ----------
-function boundsOf(ts) {
+function boundsOf(ts: Cell[]) {
   const corners = ts.flatMap(([x, y]) => [[x - .5, y - .5], [x + .5, y + .5], [x - .5, y + .5], [x + .5, y - .5]]);
   const isoX = corners.map(([x, y]) => K * (x - y)), isoY = corners.map(([x, y]) => -K * V * (x + y));
   return { x0: Math.min(...isoX), x1: Math.max(...isoX), y0: Math.min(...isoY), y1: Math.max(...isoY) };
 }
 let BOUNDS = boundsOf(tiles);
-const toScreen = (x, y, v = view) => [v.s * K * (x - y) + v.tx, -v.s * K * V * (x + y) + v.ty];
-function cellAt(px, py) {
+const toScreen = (x: number, y: number, v: View = view): [number, number] => [v.s * K * (x - y) + v.tx, -v.s * K * V * (x + y) + v.ty];
+function cellAt(px: number, py: number): CellXY {
   const X = (px - view.tx) / (view.s * K), Y = (py - view.ty) / (view.s * K * V); // X = x − y, Y = −(x + y)
   return { x: Math.round((X - Y) / 2), y: Math.round((-X - Y) / 2) };
 }
-const fitView = (w, h, pad = 90) => {
+const fitView = (w: number, h: number, pad = 90): View => {
   const s = Math.min((w - 2 * pad) / (BOUNDS.x1 - BOUNDS.x0), (h - 2 * pad) / (BOUNDS.y1 - BOUNDS.y0));
   return { s, tx: w / 2 - s * (BOUNDS.x0 + BOUNDS.x1) / 2, ty: h / 2 - s * (BOUNDS.y0 + BOUNDS.y1) / 2 };
 };
 
 // The held footprint is centred on the hovered cell.
-function anchored(c) {
-  const r = rect({ ...brush, x: 0, y: 0 }, byType[brush.name]);
-  return { name: brush.name, r: brush.r, x: c.x - Math.floor((r.w - 1) / 2), y: c.y - Math.floor((r.h - 1) / 2) };
+function anchored(b: Brush, c: CellXY): Placed {
+  const r = rect({ r: b.r, x: 0, y: 0 }, byType[b.name]);
+  return { name: b.name, r: b.r, x: c.x - Math.floor((r.w - 1) / 2), y: c.y - Math.floor((r.h - 1) / 2) };
 }
 
 // ---------- art for the palette and panels ----------
 // A building as the game draws it, shrunk into a square box (`size` CSS pixels, for resolution);
 // the wiki's build-menu icon when the game render is missing.
-function thumb(T, size = 44) {
+function thumb(T: string, size = 44): HTMLElement {
   const a = atlas?.items[T];
   if (a) {
     const px = Math.round(size * Math.min(2, devicePixelRatio || 1));
     const c = el("canvas", { className: "thumb", width: px, height: px });
     const paint = () => {
       const [x, y, w, h] = a, k = Math.min(px / w, px / h, px / 40);
-      c.getContext("2d").drawImage(atlasImage, x, y, w, h, (px - w * k) / 2, (px - h * k) / 2, w * k, h * k);
+      c.getContext("2d")!.drawImage(atlasImage, x, y, w, h, (px - w * k) / 2, (px - h * k) / 2, w * k, h * k);
     };
     if (atlasReady) paint(); else atlasImage.addEventListener("load", paint, { once: true });
     return c;
   }
   const blank = () => el("i", { className: "thumb ph ph-image" });
+  const src = byType[T].icon;
+  if (!src) return blank();
   // anonymous CORS (the wiki CDN allows it) keeps the map exportable; no referrer or the CDN refuses the hotlink
-  return byType[T].icon ? el("img", { className: "thumb", crossOrigin: "anonymous", referrerPolicy: "no-referrer", loading: "lazy", alt: "", src: byType[T].icon, onerror() { this.replaceWith(blank()); } }) : blank();
+  const img = el("img", { className: "thumb", crossOrigin: "anonymous", referrerPolicy: "no-referrer", loading: "lazy", alt: "", src });
+  img.onerror = () => img.replaceWith(blank());
+  return img;
 }
 
 // Wiki icons drawn on the map for buildings without a game render.
-const images = new Map();
-function icon(T) {
+const images = new Map<string, HTMLImageElement>();
+function icon(T: string) {
   let img = images.get(T);
   if (!img) {
     img = Object.assign(new Image(), { crossOrigin: "anonymous", referrerPolicy: "no-referrer", onload: requestDraw });
-    if (byType[T].icon) img.src = byType[T].icon;
+    if (byType[T].icon) img.src = byType[T].icon!;
     images.set(T, img);
   }
   return img.complete && img.naturalWidth ? img : null;
 }
 
-const hueOf = T => {
+const hueOf = (T: string) => {
   let h = 0;
   for (const ch of tabOf[T]?.id ?? T) h = (h * 31 + ch.charCodeAt(0)) % 360;
   return h;
 };
-const initials = name => name.split(/\s+/).map(s => s[0]).join("").slice(0, 2).toUpperCase();
+const initials = (name: string) => name.split(/\s+/).map(s => s[0]).join("").slice(0, 2).toUpperCase();
 
 // ---------- drawing ----------
+type Ctx = CanvasRenderingContext2D;
 let frame = 0;
 function requestDraw() { frame ||= requestAnimationFrame(() => { frame = 0; draw(ctx, size, view, true); }); }
 
-const gridSpace = (c, sz, v) => c.setTransform(sz.dpr * v.s * K, -sz.dpr * v.s * K * V, -sz.dpr * v.s * K, -sz.dpr * v.s * K * V, sz.dpr * v.tx, sz.dpr * v.ty);
-const screenSpace = (c, sz) => c.setTransform(sz.dpr, 0, 0, sz.dpr, 0, 0);
+const gridSpace = (c: Ctx, sz: Size, v: View) => c.setTransform(sz.dpr * v.s * K, -sz.dpr * v.s * K * V, -sz.dpr * v.s * K, -sz.dpr * v.s * K * V, sz.dpr * v.tx, sz.dpr * v.ty);
+const screenSpace = (c: Ctx, sz: Size) => c.setTransform(sz.dpr, 0, 0, sz.dpr, 0, 0);
 
-function draw(c, sz, v, live) {
+function draw(c: Ctx, sz: Size, v: View, live: boolean) {
   screenSpace(c, sz);
   c.fillStyle = "#141012";
   c.fillRect(0, 0, sz.w, sz.h);
 
   // backdrop: image pixel (X, Y) sits at u = u0 + X/ppu, v = v0 - Y/ppu relative to grid origin
-  const bgImage = backdrop(land), hasBg = !!bgImage;
-  if (hasBg) c.drawImage(bgImage, v.s * bg.u0 + v.tx, -v.s * bg.v0 + v.ty, bg.w * v.s / bg.ppu, bg.h * v.s / bg.ppu);
+  const bgImage = backdrop(land);
+  if (bg && bgImage) c.drawImage(bgImage, v.s * bg.u0 + v.tx, -v.s * bg.v0 + v.ty, bg.w * v.s / bg.ppu, bg.h * v.s / bg.ppu);
+  const hasBg = !!bgImage;
 
   // ground: over the art, inset rounded green outlines like the game's build-mode tiles;
   // without art, plain filled cells
@@ -214,19 +239,19 @@ function draw(c, sz, v, live) {
 
   // footprints flat on the ground first, then sprites back-to-front so nearer ones overlap
   const hovered = live && !brush && hover ? itemAt(hover.x, hover.y, placed, byType) : null;
-  const items = placed.map(p => [p, live && p === selected ? "selected" : p === hovered ? (tool === "erase" ? "erase" : "hover") : "normal"]);
+  const items: [Placed, Mode][] = placed.map(p => [p, live && p === selected ? "selected" : p === hovered ? (tool === "erase" ? "erase" : "hover") : "normal"]);
   if (live && brush && hover) {
-    const g = anchored(hover);
+    const g = anchored(brush, hover);
     items.push([g, fits(g, placed, byType, cells) ? "ghost" : "blocked"]);
   }
   for (const [p, mode] of items) footprint(c, sz, v, p, mode);
-  const depth = p => p.x + p.y; // larger x + y sits further up the screen, i.e. further back
+  const depth = (p: Placed) => p.x + p.y; // larger x + y sits further up the screen, i.e. further back
   for (const [p, mode] of items.sort((a, b) => depth(b[0]) - depth(a[0]))) sprite(c, sz, v, p, mode);
   if (showLabels) for (const [p, mode] of items) if (mode !== "ghost" && mode !== "blocked") label(c, sz, v, p);
   if (live) placeSelectionCard();
 }
 
-function halo(c, text, x, y) {
+function halo(c: Ctx, text: string, x: number, y: number) {
   c.lineWidth = 3;
   c.lineJoin = "round";
   c.strokeStyle = "rgb(20 16 18 / .85)";
@@ -235,22 +260,24 @@ function halo(c, text, x, y) {
   c.fillText(text, x, y);
 }
 
-function footprint(c, sz, v, p, mode) {
+const FILL: Partial<Record<Mode, string>> = { ghost: "rgb(143 179 108 / .55)", blocked: "rgb(200 66 59 / .55)", erase: "rgb(200 66 59 / .5)", selected: "rgb(200 66 59 / .25)" };
+const LINE: Partial<Record<Mode, string>> = { ghost: "#b9d896", blocked: "#e06b63", erase: "#e06b63", hover: "#ede4d3", selected: "#e06b63" };
+function footprint(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode) {
   const T = p.name, r = rect(p, byType[T]), hue = hueOf(T);
   gridSpace(c, sz, v);
-  c.fillStyle = { ghost: "rgb(143 179 108 / .55)", blocked: "rgb(200 66 59 / .55)", erase: "rgb(200 66 59 / .5)", selected: "rgb(200 66 59 / .25)" }[mode] ?? `hsl(${hue} 30% 24% / .45)`;
+  c.fillStyle = FILL[mode] ?? `hsl(${hue} 30% 24% / .45)`;
   c.fillRect(r.x - .5, r.y - .5, r.w, r.h);
   const flat = isFloor(T) && !atlas?.items[T] && icon(T);
   if (flat) c.drawImage(flat, r.x - .5, r.y - .5, r.w, r.h);
   c.lineWidth = (mode === "normal" ? 1.25 : 2) / v.s;
-  c.strokeStyle = { ghost: "#b9d896", blocked: "#e06b63", erase: "#e06b63", hover: "#ede4d3", selected: "#e06b63" }[mode] ?? `hsl(${hue} 40% 52%)`;
+  c.strokeStyle = LINE[mode] ?? `hsl(${hue} 40% 52%)`;
   c.strokeRect(r.x - .5 + .5 / v.s, r.y - .5 + .5 / v.s, r.w - 1 / v.s, r.h - 1 / v.s);
 }
 
-function sprite(c, sz, v, p, mode) {
+function sprite(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode) {
   const T = p.name, r = rect(p, byType[T]);
-  const a = atlasReady && atlas.items[T];
-  if (a) {
+  const a = atlasReady && atlas?.items[T];
+  if (a && atlas) {
     // the game's own render: anchored at the centre of the footprint's first cell, same projection as the map
     const [x, y, w, h, ax, ay] = a, k = v.s / atlas.ppu;
     const [px, py] = toScreen(r.x, r.y, v);
@@ -266,7 +293,7 @@ function sprite(c, sz, v, p, mode) {
 }
 
 // Fallback for buildings without extracted art: the wiki's build-menu icon, upright, feet near the front corner.
-function wikiIcon(c, sz, v, r, p, mode) {
+function wikiIcon(c: Ctx, sz: Size, v: View, r: { x: number; y: number; w: number; h: number }, p: Placed, mode: Mode) {
   const [cx] = toScreen(r.x - .5 + r.w / 2, r.y - .5 + r.h / 2, v);
   const [, front] = toScreen(r.x - .5, r.y - .5, v); // lowest corner on screen
   const [, back] = toScreen(r.x - .5 + r.w, r.y - .5 + r.h, v);
@@ -286,7 +313,7 @@ function wikiIcon(c, sz, v, r, p, mode) {
   c.globalAlpha = 1;
 }
 
-function label(c, sz, v, p) {
+function label(c: Ctx, sz: Size, v: View, p: Placed) {
   const r = rect(p, byType[p.name]);
   const [cx] = toScreen(r.x - .5 + r.w / 2, r.y - .5 + r.h / 2, v);
   const [, front] = toScreen(r.x - .5, r.y - .5, v);
@@ -299,7 +326,7 @@ function label(c, sz, v, p) {
 // ---------- state changes ----------
 // History entries hold the layout and the land level together, so undo can bring back land too.
 const snapshot = () => JSON.stringify({ placed, land });
-function restore(json) { const s = JSON.parse(json); placed = s.placed; selected = null; applyLand(s.land); }
+function restore(json: string) { const s = JSON.parse(json) as { placed: Placed[]; land: number }; placed = s.placed; selected = null; applyLand(s.land); }
 function beginStroke() { strokeBefore ??= snapshot(); }
 function endStroke() {
   if (strokeBefore !== null && strokeBefore !== snapshot()) {
@@ -314,28 +341,28 @@ function commit() {
   if (selected && !placed.includes(selected)) selected = null;
   const hash = encode(placed, land);
   history.replaceState(null, "", hash ? "#" + hash : location.pathname + location.search);
-  $("undo").disabled = !undoStack.length;
-  $("redo").disabled = !redoStack.length;
+  $<HTMLButtonElement>("undo").disabled = !undoStack.length;
+  $<HTMLButtonElement>("redo").disabled = !redoStack.length;
   $("hint").hidden = placed.some(deletable) || !!brush || !!selected;
   updateStats();
   updateInspector();
   updateSelectionCard();
   requestDraw();
 }
-function undo() { if (!undoStack.length) return; dropHeld(); redoStack.push(snapshot()); restore(undoStack.pop()); commit(); }
-function redo() { if (!redoStack.length) return; dropHeld(); undoStack.push(snapshot()); restore(redoStack.pop()); commit(); }
+function undo() { if (!undoStack.length) return; dropHeld(); redoStack.push(snapshot()); restore(undoStack.pop()!); commit(); }
+function redo() { if (!redoStack.length) return; dropHeld(); undoStack.push(snapshot()); restore(redoStack.pop()!); commit(); }
 
-function applyLand(level) {
-  if (level === land && tiles) return;
+function applyLand(level: number) {
+  if (level === land) return;
   land = level;
-  ({ tiles, cells } = cellsFor(base, land));
+  ({ tiles, cells } = cellsFor(base!, land));
   BOUNDS = boundsOf(tiles);
-  $("land").value = String(land);
+  $<HTMLSelectElement>("land").value = String(land);
   store.set("land", land);
   if (!userView && size.w) fit();
 }
 // Buying less land than a layout uses drops what no longer fits (one undoable step).
-function setLand(level) {
+function setLand(level: number) {
   dropHeld();
   beginStroke();
   applyLand(level);
@@ -347,20 +374,21 @@ function setLand(level) {
 }
 
 // Places the held building at cell c. Over a one-per-base limit it offers to move the existing one.
-function tryPlace(c) {
-  const cand = anchored(c);
+function tryPlace(c: CellXY): boolean {
+  if (!brush) return false;
+  const cand = anchored(brush, c);
   if (!fits(cand, placed, byType, cells)) return false;
   const same = placed.filter(p => chainKey(p.name) === chainKey(cand.name));
   if (!brush.from && same.length >= limitOf(cand.name)) {
     gesture = null; // stop painting a row while we ask
-    offerMove(cand, same[0], limitOf(cand.name));
+    void offerMove(cand, same[0], limitOf(cand.name));
     return false;
   }
   placed.push(cand);
   remember(cand.name);
   return true;
 }
-async function offerMove(cand, old, limit) {
+async function offerMove(cand: Placed, old: Placed, limit: number) {
   const name = nameOf(old.name);
   const ok = await confirm(limit === 1 ? t("onlyOne", { name }) : t("upTo", { n: limit, name }),
     t(limit === 1 ? "limitText1" : "limitTextN", { n: limit }), t("moveHere"));
@@ -372,26 +400,26 @@ async function offerMove(cand, old, limit) {
   endStroke();
   if (!placed.includes(moved)) toast(t("noFitLevel"));
 }
-function remember(T) {
+function remember(T: string) {
   if (recent[0] === T) return;
   recent = [T, ...recent.filter(n => n !== T)].slice(0, 10);
   store.set("recent", recent);
   renderPalette();
 }
-function removeBuilding(p) {
+function removeBuilding(p: Placed) {
   if (!deletable(p)) { toast(t("cantRemove", { name: nameOf(p.name) })); return false; }
   placed.splice(placed.indexOf(p), 1);
   return true;
 }
-function eraseAt(c) {
+function eraseAt(c: CellXY) {
   const p = itemAt(c.x, c.y, placed, byType);
   if (p) removeBuilding(p);
 }
 
 function markTiles() {
-  document.querySelectorAll(".tile").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.type === brush?.name)));
+  document.querySelectorAll<HTMLElement>(".tile").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.type === brush?.name)));
 }
-function setBrush(b) {
+function setBrush(b: Brush | null) {
   dropHeld(); // a building that was being moved goes back first
   brush = b;
   if (b) selected = null;
@@ -403,18 +431,18 @@ function setBrush(b) {
 // Put a building that's mid-move back where it was.
 function dropHeld() {
   if (!brush?.from) return;
-  placed.splice(brush.at, 0, brush.from);
+  placed.splice(brush.at ?? placed.length, 0, brush.from);
   brush = null;
   markTiles();
   endStroke();
 }
-function pickUp(p) {
+function pickUp(p: Placed) {
   beginStroke();
   const at = placed.indexOf(p);
   placed.splice(at, 1);
   setBrush({ name: p.name, r: p.r, from: p, at });
 }
-function setTool(next) {
+function setTool(next: "select" | "erase") {
   tool = next;
   if (next === "erase") { dropHeld(); brush = null; selected = null; markTiles(); }
   $("tool-select").setAttribute("aria-pressed", String(next === "select"));
@@ -429,24 +457,24 @@ function cursor() {
 // ---------- panels ----------
 function updateStats() {
   const used = placed.reduce((n, p) => n + byType[p.name].w * byType[p.name].h, 0);
-  $("st-count").textContent = placed.length;
-  $("st-cells").textContent = used;
+  $("st-count").textContent = String(placed.length);
+  $("st-cells").textContent = String(used);
   $("st-cells-of").textContent = t("statsCells", { n: cells.size });
   $("st-bar").style.width = `${Math.min(100, used / cells.size * 100)}%`;
-  const counts = {};
+  const counts: Record<string, number> = {};
   for (const p of placed) if (tabOf[p.name]) counts[tabOf[p.name].id] = (counts[tabOf[p.name].id] ?? 0) + 1;
-  $("st-groups").replaceChildren(...game.menu.filter(tab => counts[tab.id]).sort((a, b) => counts[b.id] - counts[a.id])
+  $("st-groups").replaceChildren(...game!.menu.filter(tab => counts[tab.id]).sort((a, b) => counts[b.id] - counts[a.id])
     .map(tab => el("li", {}, el("span", {}, term(tab.term)), el("b", { className: "num" }, String(counts[tab.id])))));
 }
 
 // "2×2 · level 1 of 3 · one per base"
-function meta(T, r, extra) {
+function meta(T: string, r: { w: number; h: number }, extra?: string | null) {
   const tiers = tiersOf(T);
   return [`${r.w}×${r.h}`, tiers.length > 1 && t("levelOf", { n: tiers.indexOf(T) + 1, m: tiers.length }),
     limitOf(T) === 1 && t("onePerBase"), extra].filter(Boolean).join(" · ");
 }
 function updateInspector() {
-  const p = brush ?? (hover && !selected && itemAt(hover.x, hover.y, placed, byType));
+  const p = brush ?? (hover && !selected ? itemAt(hover.x, hover.y, placed, byType) : undefined);
   const box = $("inspector");
   box.hidden = !p;
   box.classList.toggle("holding", !!brush);
@@ -454,7 +482,7 @@ function updateInspector() {
   const T = p.name;
   if (box.dataset.type !== T) { box.dataset.type = T; $("ins-art").replaceChildren(thumb(T, 52)); }
   $("ins-name").textContent = nameOf(T);
-  $("ins-meta").textContent = meta(T, rect(p, byType[T]), brush && t(brush.from ? "moving" : "placing"));
+  $("ins-meta").textContent = meta(T, rect({ r: p.r, x: 0, y: 0 }, byType[T]), brush && t(brush.from ? "moving" : "placing"));
   $("ins-desc").textContent = descOf(T);
   $("ins-actions").hidden = !brush;
 }
@@ -475,8 +503,9 @@ function updateSelectionCard() {
     b.onclick = () => setLevel(X);
     return b;
   }));
-  $("sel-delete").disabled = !deletable(selected);
-  $("sel-delete").title = t(deletable(selected) ? "deleteKey" : "cantDelete");
+  const del = $<HTMLButtonElement>("sel-delete");
+  del.disabled = !deletable(selected);
+  del.title = t(deletable(selected) ? "deleteKey" : "cantDelete");
   placeSelectionCard();
 }
 function placeSelectionCard() {
@@ -487,7 +516,7 @@ function placeSelectionCard() {
   const [cx] = toScreen(r.x - .5 + r.w / 2, r.y - .5 + r.h / 2);
   const [, back] = toScreen(r.x - .5 + r.w, r.y - .5 + r.h); // the footprint's top corner on screen
   const a = atlas?.items[selected.name];
-  const top = a ? toScreen(r.x, r.y)[1] - a[5] * view.s / atlas.ppu : back - view.s; // the sprite's top edge
+  const top = a && atlas ? toScreen(r.x, r.y)[1] - a[5] * view.s / atlas.ppu : back - view.s; // the sprite's top edge
   const h = card.offsetHeight, half = card.offsetWidth / 2;
   // above the sprite, or below the footprint when the toolbar leaves no room above
   const below = top - 8 - h < 64;
@@ -496,7 +525,8 @@ function placeSelectionCard() {
   card.style.left = `${Math.min(size.w - half - 10, Math.max(half + 10, cx))}px`;
   card.style.top = `${Math.min(size.h - 10 - (below ? h : 0), y)}px`;
 }
-function setLevel(T) {
+function setLevel(T: string) {
+  if (!selected) return;
   const next = { ...selected, name: T };
   const others = placed.filter(p => p !== selected);
   if (!fits(next, others, byType, cells)) { toast(t("levelNoFit")); return; }
@@ -505,20 +535,20 @@ function setLevel(T) {
   selected = next;
   endStroke();
 }
-function select(p) {
-  selected = p;
+function select(p: Placed | null | undefined) {
+  selected = p ?? null;
   commit();
 }
 
-let toastTimer;
-function toast(text) {
+let toastTimer: ReturnType<typeof setTimeout> | undefined;
+function toast(text: string) {
   $("toast-text").textContent = text;
   $("toast").hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => ($("toast").hidden = true), 2800);
 }
-function confirm(title, text, okLabel) {
-  const d = $("confirm-dialog");
+function confirm(title: string, text: string, okLabel: string): Promise<boolean> {
+  const d = $<HTMLDialogElement>("confirm-dialog");
   $("confirm-title").textContent = title;
   $("confirm-text").textContent = text;
   $("confirm-ok").textContent = okLabel;
@@ -528,19 +558,19 @@ function confirm(title, text, okLabel) {
 }
 
 // ---------- palette: the game's build menu ----------
-function openSheet(open) {
+function openSheet(open: boolean) {
   $("sheet").classList.toggle("open", open);
   $("sheet-toggle").setAttribute("aria-expanded", String(open));
 }
 
 function renderTabs() {
-  $("tabs").replaceChildren(...game.menu.map(tab => {
+  $("tabs").replaceChildren(...game!.menu.map(tab => {
     const b = el("button", { role: "tab", title: term(tab.term) }, el("i", { className: `ph ${TAB_ICONS[tab.id] ?? "ph-squares-four"}` }), el("span", {}, term(tab.term)));
     b.dataset.tab = tab.id;
     b.onclick = () => {
       group = tab.id;
       store.set("group", group);
-      $("search").value = "";
+      $<HTMLInputElement>("search").value = "";
       renderPalette();
       openSheet(true);
     };
@@ -548,7 +578,7 @@ function renderTabs() {
   }));
 }
 
-function tile(T) {
+function tile(T: string) {
   const name = nameOf(T), tiers = tiersOf(T).length;
   const b = el("button", { className: "tile" },
     thumb(T), el("span", {}, name), el("small", { className: "num" }, `${byType[T].w}×${byType[T].h}`));
@@ -565,20 +595,20 @@ function tile(T) {
 
 function renderPalette() {
   hideTip();
-  const raw = $("search").value.trim(), q = raw.toLocaleLowerCase(lang);
-  document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-selected", String(!q && b.dataset.tab === group)));
-  let sections;
+  const raw = $<HTMLInputElement>("search").value.trim(), q = raw.toLocaleLowerCase(lang);
+  document.querySelectorAll<HTMLElement>("#tabs button").forEach(b => b.setAttribute("aria-selected", String(!q && b.dataset.tab === group)));
+  let sections: [string, string[], "grid" | "recent"][];
   if (q) {
     // a search finds every level, in the chosen language or English
-    const hits = {};
+    const hits: Record<string, string[]> = {};
     for (const T in byType)
       if (nameOf(T).toLocaleLowerCase(lang).includes(q) || (english.names[T] ?? "").toLowerCase().includes(q)) (hits[tabOf[T].id] ??= []).push(T);
-    if (!Object.keys(hits).length) return $("palette").replaceChildren(el("p", { className: "empty-search" }, t("noMatch", { q: raw })));
-    sections = game.menu.filter(tab => hits[tab.id]).map(tab => [term(tab.term), hits[tab.id], "grid"]);
+    if (!Object.keys(hits).length) { $("palette").replaceChildren(el("p", { className: "empty-search" }, t("noMatch", { q: raw }))); return; }
+    sections = game!.menu.filter(tab => hits[tab.id]).map(tab => [term(tab.term), hits[tab.id], "grid"]);
   } else {
-    const tab = game.menu.find(x => x.id === group);
-    sections = (recent.length ? [[t("recent"), recent, "recent"]] : [])
-      .concat(tab.sections.map(s => [term(s.term), s.types.filter(T => byType[T]), "grid"]));
+    const tab = game!.menu.find(x => x.id === group) ?? game!.menu[0];
+    sections = [...(recent.length ? [[t("recent"), recent, "recent"] as [string, string[], "recent"]] : []),
+      ...tab.sections.map(s => [term(s.term), s.types.filter(T => byType[T]), "grid"] as [string, string[], "grid"])];
   }
   $("palette").replaceChildren(...sections.flatMap(([title, items, cls]) => [
     el("h2", {}, title, el("span", { className: "num" }, cls === "recent" ? "" : String(items.length))),
@@ -588,9 +618,9 @@ function renderPalette() {
 
 // Name, size and description of a tile, next to the list: a moment after the mouse rests on it
 // (straight away when moving from tile to tile), or on keyboard focus.
-let tipFor = null, tipTimer;
-function showTip(b) {
-  const T = b.dataset.type, tip = $("tip");
+let tipFor: HTMLElement | null = null, tipTimer: ReturnType<typeof setTimeout> | undefined;
+function showTip(b: HTMLElement) {
+  const T = b.dataset.type!, tip = $("tip");
   tipFor = b;
   $("tip-name").textContent = nameOf(T);
   $("tip-meta").textContent = meta(T, byType[T]);
@@ -608,19 +638,20 @@ function hideTip() {
   tipFor = null;
   $("tip").hidden = true;
 }
+const tileOf = (target: EventTarget | null) => (target instanceof Element ? target.closest<HTMLElement>(".tile") : null);
 $("palette").addEventListener("pointerover", e => {
-  const b = e.target.closest?.(".tile");
+  const b = tileOf(e.target);
   if (!b || b === tipFor || e.pointerType !== "mouse" || phone.matches) return;
   clearTimeout(tipTimer);
   tipTimer = setTimeout(() => showTip(b), tipFor ? 0 : 150);
 });
-$("palette").addEventListener("pointerout", e => { if (!e.relatedTarget?.closest?.(".tile")) hideTip(); });
-$("palette").addEventListener("focusin", e => { const b = e.target.closest?.(".tile"); if (b?.matches(":focus-visible") && !phone.matches) showTip(b); });
+$("palette").addEventListener("pointerout", e => { if (!tileOf(e.relatedTarget)) hideTip(); });
+$("palette").addEventListener("focusin", e => { const b = tileOf(e.target); if (b?.matches(":focus-visible") && !phone.matches) showTip(b); });
 $("palette").addEventListener("focusout", hideTip);
 $("palette").addEventListener("scroll", hideTip, { passive: true });
 $("palette").addEventListener("click", hideTip);
 
-function el(tag, props, ...kids) {
+function el<K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> & Record<string, unknown>, ...kids: (Node | string)[]) {
   const e = Object.assign(document.createElement(tag), props);
   e.append(...kids);
   return e;
@@ -633,19 +664,22 @@ function applyUI() {
   root.lang = lang;
   root.dir = languages.find(l => l.code === lang)?.dir ?? "ltr";
   document.title = t("title");
-  document.querySelector('meta[name="description"]').content = t("metaDescription");
-  for (const e of document.querySelectorAll("[data-i18n]")) e.textContent = t(e.dataset.i18n);
-  for (const e of document.querySelectorAll("[data-i18n-short]")) e.textContent = short(t(e.dataset.i18nShort));
-  for (const e of document.querySelectorAll("[data-i18n-title]")) e.title = t(e.dataset.i18nTitle);
-  for (const e of document.querySelectorAll("[data-i18n-label]")) e.setAttribute("aria-label", t(e.dataset.i18nLabel));
-  for (const e of document.querySelectorAll("[data-i18n-placeholder]")) e.placeholder = t(e.dataset.i18nPlaceholder);
-  for (const e of document.querySelectorAll("[data-i18n-tip]")) { e.title = t(e.dataset.i18nTip); e.setAttribute("aria-label", short(e.title)); }
+  document.querySelector<HTMLMetaElement>('meta[name="description"]')!.content = t("metaDescription");
+  const each = (attr: string, fn: (e: HTMLElement, key: string) => void) => {
+    for (const e of document.querySelectorAll<HTMLElement>(`[data-${attr}]`)) fn(e, e.getAttribute(`data-${attr}`)!);
+  };
+  each("i18n", (e, k) => (e.textContent = t(k)));
+  each("i18n-short", (e, k) => (e.textContent = short(t(k))));
+  each("i18n-title", (e, k) => (e.title = t(k)));
+  each("i18n-label", (e, k) => e.setAttribute("aria-label", t(k)));
+  each("i18n-placeholder", (e, k) => ((e as HTMLInputElement).placeholder = t(k)));
+  each("i18n-tip", (e, k) => { e.title = t(k); e.setAttribute("aria-label", short(e.title)); });
   $("hint-text").textContent = t(phone.matches ? "emptyTextTouch" : "emptyText");
 }
 
 // ---------- input ----------
-const local = e => { const b = canvas.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
-const pointers = new Map(); // pointers down on the map, for two-finger pinch
+const local = (e: MouseEvent): [number, number] => { const b = canvas.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+const pointers = new Map<number, [number, number]>(); // pointers down on the map, for two-finger pinch
 let lastPointer = "mouse";
 
 canvas.addEventListener("pointerdown", e => {
@@ -702,7 +736,7 @@ canvas.addEventListener("pointermove", e => {
   if (gesture?.kind === "press" && Math.hypot(px - gesture.px, py - gesture.py) > (e.pointerType === "touch" ? 8 : 5)) {
     const p = gesture.p;
     gesture = { kind: "drag" };
-    pickUp(p);
+    if (p) pickUp(p);
   }
   if (!moved) return;
   if (gesture?.kind === "paint") tryPlace(c);
@@ -712,7 +746,7 @@ canvas.addEventListener("pointermove", e => {
   requestDraw();
 });
 
-const endGesture = e => {
+const endGesture = (e: PointerEvent) => {
   pointers.delete(e.pointerId);
   if (gesture?.kind === "pinch") { if (!pointers.size) gesture = null; return; }
   if (!gesture) return;
@@ -721,7 +755,7 @@ const endGesture = e => {
   gesture = null;
   if (g.kind === "press") select(g.p === selected ? null : g.p);
   else if (g.kind === "drag") { if (hover && tryPlace(hover)) { brush = null; markTiles(); endStroke(); } else dropHeld(); }
-  else if (g.kind === "aim" && hover) {
+  else if (g.kind === "aim" && hover && brush) {
     if (!brush.from) { beginStroke(); tryPlace(hover); endStroke(); }
     else if (tryPlace(hover)) { brush = null; markTiles(); endStroke(); }
   }
@@ -749,24 +783,26 @@ function cancelGesture() {
   else if ((gesture?.kind === "paint" || gesture?.kind === "erase") && strokeBefore !== null) { restore(strokeBefore); strokeBefore = null; }
   gesture = null;
 }
+function twoPointers() {
+  const [[ax, ay], [bx, by]] = pointers.values();
+  return { d: Math.hypot(ax - bx, ay - by) || 1, mx: (ax + bx) / 2, my: (ay + by) / 2 };
+}
 function startPinch() {
   cancelGesture();
-  const [[ax, ay], [bx, by]] = pointers.values();
-  gesture = { kind: "pinch", d: Math.hypot(ax - bx, ay - by) || 1, mx: (ax + bx) / 2, my: (ay + by) / 2 };
+  gesture = { kind: "pinch", ...twoPointers() };
   hover = null;
   commit();
 }
 function pinchMove() {
-  if (pointers.size < 2) return;
-  const [[ax, ay], [bx, by]] = pointers.values();
-  const d = Math.hypot(ax - bx, ay - by) || 1, mx = (ax + bx) / 2, my = (ay + by) / 2;
-  view.tx += mx - gesture.mx;
-  view.ty += my - gesture.my;
-  zoomAt(mx, my, d / gesture.d);
-  Object.assign(gesture, { d, mx, my });
+  if (pointers.size < 2 || gesture?.kind !== "pinch") return;
+  const now = twoPointers();
+  view.tx += now.mx - gesture.mx;
+  view.ty += now.my - gesture.my;
+  zoomAt(now.mx, now.my, now.d / gesture.d);
+  Object.assign(gesture, now);
 }
 
-function zoomAt(px, py, f) {
+function zoomAt(px: number, py: number, f: number) {
   const s = Math.min(MAX_S, Math.max(MIN_S, view.s * f)), k = s / view.s;
   view = { s, tx: px - (px - view.tx) * k, ty: py - (py - view.ty) * k };
   userView = true;
@@ -782,7 +818,7 @@ function fit() {
 }
 
 document.addEventListener("keydown", e => {
-  if (e.target.closest?.("input, select, dialog")) return;
+  if (e.target instanceof Element && e.target.closest("input, select, dialog")) return;
   const k = e.key.toLowerCase();
   if ((e.metaKey || e.ctrlKey) && k === "z") { e.preventDefault(); return e.shiftKey ? redo() : undo(); }
   if ((e.metaKey || e.ctrlKey) && k === "y") { e.preventDefault(); return redo(); }
@@ -795,7 +831,7 @@ document.addEventListener("keydown", e => {
   else if (k === "f") fit();
   else if (k === "+" || k === "=") zoomAt(size.w / 2, size.h / 2, 1.25);
   else if (k === "-") zoomAt(size.w / 2, size.h / 2, .8);
-  else if (k === "?") $("help-dialog").showModal();
+  else if (k === "?") $<HTMLDialogElement>("help-dialog").showModal();
   else if (k === "escape") { selected = null; setBrush(null); }
   else if (k === "delete" || k === "backspace") {
     const p = selected ?? (hover && itemAt(hover.x, hover.y, placed, byType));
@@ -822,18 +858,19 @@ $("undo").onclick = undo;
 $("redo").onclick = redo;
 $("labels").onclick = toggleLabels;
 $("labels").setAttribute("aria-pressed", String(showLabels));
-$("help").onclick = () => $("help-dialog").showModal();
+$("help").onclick = () => $<HTMLDialogElement>("help-dialog").showModal();
 $("zoom-in").onclick = () => zoomAt(size.w / 2, size.h / 2, 1.25);
 $("zoom-out").onclick = () => zoomAt(size.w / 2, size.h / 2, .8);
 $("fit").onclick = fit;
 $("ins-flip").onclick = rotate;
 $("ins-cancel").onclick = () => setBrush(null);
 $("sel-flip").onclick = rotate;
-$("sel-move").onclick = () => { const p = selected; selected = null; pickUp(p); };
-$("sel-delete").onclick = () => { beginStroke(); removeBuilding(selected); endStroke(); };
+$("sel-move").onclick = () => { const p = selected; selected = null; if (p) pickUp(p); };
+$("sel-delete").onclick = () => { if (!selected) return; beginStroke(); removeBuilding(selected); endStroke(); };
 $("sheet-toggle").onclick = () => openSheet(!$("sheet").classList.contains("open"));
 // on phones these live in a popup menu, which closes once one is used
-for (const id of ["land", "labels", "clear", "png"]) $(id).addEventListener(id === "land" ? "change" : "click", () => { try { $("more").hidePopover(); } catch {} });
+for (const id of ["land", "labels", "clear", "png"])
+  $(id).addEventListener(id === "land" ? "change" : "click", () => { try { $("more").hidePopover(); } catch { /* no popover support */ } });
 $("clear").onclick = () => {
   if (!placed.some(deletable)) return;
   dropHeld(); beginStroke(); placed = placed.filter(p => !deletable(p)); endStroke();
@@ -849,29 +886,31 @@ $("png").onclick = () => {
   const s = 26, pad = 60;
   const sz = { w: Math.ceil((BOUNDS.x1 - BOUNDS.x0) * s + 2 * pad), h: Math.ceil((BOUNDS.y1 - BOUNDS.y0) * s + 2 * pad), dpr: 1 };
   const off = Object.assign(document.createElement("canvas"), { width: sz.w, height: sz.h });
-  draw(off.getContext("2d"), sz, { s, tx: pad - BOUNDS.x0 * s, ty: pad - BOUNDS.y0 * s }, false);
+  draw(off.getContext("2d")!, sz, { s, tx: pad - BOUNDS.x0 * s, ty: pad - BOUNDS.y0 * s }, false);
   off.toBlob(blob => {
+    if (!blob) return;
     const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "cult-base.png" });
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     toast(t("pngSaved"));
   });
 };
+const landSelect = $<HTMLSelectElement>("land"), langSelect = $<HTMLSelectElement>("lang");
 $("search").oninput = renderPalette;
-$("land").value = String(land);
-$("land").onchange = e => setLand(+e.target.value);
-if (!maxLand) $("land").closest("label").hidden = true;
-$("lang").replaceChildren(...languages.map(l => el("option", { value: l.code, textContent: native(l.code) })));
-$("lang").value = lang;
-$("lang").onchange = async e => {
-  const code = e.target.value, data = code === "en" ? english : await load(`data/i18n/${code}.json`);
-  if (!data) { $("lang").value = lang; return; }
-  if ($("lang").value !== code) return; // another language was picked while this one loaded
+landSelect.value = String(land);
+landSelect.onchange = () => setLand(+landSelect.value);
+if (!maxLand) landSelect.closest("label")!.style.display = "none";
+langSelect.replaceChildren(...languages.map(l => el("option", { value: l.code, textContent: native(l.code) })));
+langSelect.value = lang;
+langSelect.onchange = async () => {
+  const code = langSelect.value, data = code === "en" ? english : await load<Strings>(`data/i18n/${code}.json`);
+  if (!data) { langSelect.value = lang; return; }
+  if (langSelect.value !== code) return; // another language was picked while this one loaded
   [L, lang] = [data, code];
   store.set("lang", lang);
   applyUI(); renderTabs(); renderPalette(); commit();
 };
-if (languages.length < 2) $("lang").closest("label").hidden = true;
+if (languages.length < 2) langSelect.closest("label")!.style.display = "none";
 phone.addEventListener("change", () => { applyUI(); commit(); });
 
 new ResizeObserver(([entry]) => {
@@ -880,7 +919,7 @@ new ResizeObserver(([entry]) => {
   canvas.width = Math.round(width * size.dpr);
   canvas.height = Math.round(height * size.dpr);
   if (!userView) fit(); else requestDraw();
-}).observe(canvas.parentElement);
+}).observe(canvas.parentElement!);
 
 applyUI();
 renderTabs();
