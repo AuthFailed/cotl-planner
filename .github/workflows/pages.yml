@@ -26,7 +26,19 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      # the data tools only run by hand, so catch syntax breaks here
+      - name: Check tool scripts
+        run: |
+          python3 -m compileall -q tools
+          git ls-files '*.sh' | xargs -n1 bash -n
+          git ls-files 'tools/*.mjs' 'tools/*.js' | xargs -n1 node --check
       - run: npm run build
+      # GitHub Pages refuses sites over 1 GB; each look adds ~130 MB
+      - name: Check site size
+        run: |
+          size=$(du -sm dist | cut -f1)
+          echo "dist: ${size} MB"
+          [ "$size" -lt 1000 ] || { echo "::error::dist is ${size} MB, over the GitHub Pages limit"; exit 1; }
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
