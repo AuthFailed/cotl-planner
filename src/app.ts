@@ -18,11 +18,12 @@ type Size = { w: number; h: number; dpr: number };
 type Mode = "normal" | "hover" | "erase" | "selected" | "ghost" | "blocked";
 type Brush = { name: string; r: 0 | 1; from?: Placed; at?: number };
 type CellXY = { x: number; y: number };
+type Tool = "select" | "erase" | "measure";
 type Gesture =
   | { kind: "pan"; px: number; py: number; tx: number; ty: number; still: boolean }
   | { kind: "press"; p: Placed | undefined; px: number; py: number }
   | { kind: "pinch"; d: number; mx: number; my: number }
-  | { kind: "paint" | "erase" | "drag" | "aim" };
+  | { kind: "paint" | "erase" | "drag" | "aim" | "measure" };
 
 // Every id the script touches exists in index.html; the type parameter says what kind of element it is.
 const $ = <E extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as E;
@@ -252,7 +253,8 @@ for (const d of base.defaults ?? []) {
   const p: Placed = { name: d.type, x: d.x, y: d.y, r: 0 };
   if (byType[d.type] && !placed.some(q => chainKey(q.name) === chainKey(d.type)) && fits(p, placed, byType, cells)) placed.unshift(p);
 }
-let tool: "select" | "erase" = "select";
+let tool: Tool = "select";
+let ruler: { a: CellXY; b: CellXY } | null = null; // the measure tool's last box, corner cells a and b
 let brush: Brush | null = null; // while holding a building; `from`/`at` = where a moved one came from
 let selected: Placed | null = null; // placed building whose level picker is open
 let hover: CellXY | null = null; // cell under the pointer
@@ -367,6 +369,7 @@ function draw(c: Ctx, sz: Size, v: View, live: boolean) {
   const items: [Placed, Mode][] = placed.map(p => [p, live && p === selected ? "selected" : p === hovered ? (tool === "erase" ? "erase" : "hover") : "normal"]);
   const s = shrine();
   if (s) items.push([s, "normal"]);
+  spots = live && brush ? spotsFor(brush) : null;
   if (live && brush && hover) {
     const g = anchored(brush, hover);
     items.push([g, fits(g, placed, byType, cells) ? "ghost" : "blocked"]);
@@ -416,9 +419,22 @@ function draw(c: Ctx, sz: Size, v: View, live: boolean) {
     c.fillRect(...area);
   }
   if (showLabels) for (const [p, mode] of items) if (mode !== "ghost" && mode !== "blocked") label(c, sz, v, p);
+  if (live && ruler) measure(c, sz, v, ruler.a, ruler.b);
   if (reuse === false) placeSelectionCard();
   // next frame of the fastest animation on screen
   if (fps && live) animTimer ||= window.setTimeout(() => { animTimer = 0; nextFrame(); }, 1000 / Math.min(MAX_FPS, fps));
+}
+
+// While a building is held: the cells it can be put down on (its anchor, as anchored() takes the hovered
+// cell), worked out again only when the building, its turn, the land or the layout change.
+let spots: Cell[] | null = null, spotsKey = "", spotsCache: Cell[] = [];
+function spotsFor(b: Brush): Cell[] {
+  const key = `${b.name}|${b.r}|${cells.size}|${encode(placed)}`;
+  if (key !== spotsKey) {
+    spotsKey = key;
+    spotsCache = tiles.filter(([x, y]) => fits(anchored(b, { x, y }), placed, byType, cells));
+  }
+  return spotsCache;
 }
 
 // The base and its buildings, with the art graded as inside lamp light when `lit`. Returns the backdrop's
@@ -442,6 +458,16 @@ function drawScene(c: Ctx, sz: Size, v: View, items: [Placed, Mode][], lit: bool
     if (layer.width && layer.height && x1 > x0 && y1 > y0) c.drawImage(layer, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0); // a canvas of size 0 can't be drawn
   }
   const area = bg && hasBg ? [v.s * bg.u0 + v.tx, -v.s * bg.v0 + v.ty, bg.w * v.s / bg.ppu, bg.h * v.s / bg.ppu] as const : null;
+  if (spots?.length) {
+    gridSpace(c, sz, v);
+    c.beginPath();
+    for (const [x, y] of spots) c.roundRect(x - .4, y - .4, .8, .8, .12);
+    c.fillStyle = "rgb(160 235 120 / .38)";
+    c.fill();
+    c.lineWidth = 1.5 / v.s;
+    c.strokeStyle = "rgb(200 255 160 / .75)";
+    c.stroke();
+  }
   const ground = new Map(items.filter(([p]) => isFloor(p.name)).map(([p]) => [`${p.x},${p.y}`, p.name]));
   for (const [p, mode] of items) {
     if (shrines.includes(p.name)) continue; // the Shrine stands off the grid
@@ -656,6 +682,22 @@ function wikiIcon(c: Ctx, sz: Size, v: View, r: { x: number; y: number; w: numbe
   c.globalAlpha = 1;
 }
 
+// The measure tool's box: every cell between corner cells a and b, and how many across ("4×6", as a footprint reads).
+function measure(c: Ctx, sz: Size, v: View, a: CellXY, b: CellXY) {
+  const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y), w = Math.abs(a.x - b.x) + 1, h = Math.abs(a.y - b.y) + 1;
+  gridSpace(c, sz, v);
+  c.fillStyle = "rgb(94 200 229 / .18)";
+  c.fillRect(x - .5, y - .5, w, h);
+  c.lineWidth = 2 / v.s;
+  c.strokeStyle = "#5ec8e5";
+  c.strokeRect(x - .5, y - .5, w, h);
+  const [cx] = toScreen(x - .5 + w / 2, y - .5 + h / 2, v), [, front] = toScreen(x - .5, y - .5, v);
+  screenSpace(c, sz);
+  c.font = "600 13px 'Geist Mono Variable', ui-monospace, monospace";
+  c.textAlign = "center"; c.textBaseline = "top";
+  halo(c, `${w}×${h}`, cx, front + 4);
+}
+
 function label(c: Ctx, sz: Size, v: View, p: Placed) {
   const r = rect(p, byType[p.name]);
   const [cx] = toScreen(r.x - .5 + r.w / 2, r.y - .5 + r.h / 2, v);
@@ -785,16 +827,16 @@ function pickUp(p: Placed) {
   placed.splice(at, 1);
   setBrush({ name: p.name, r: p.r, from: p, at });
 }
-function setTool(next: "select" | "erase") {
+function setTool(next: Tool) {
   tool = next;
-  if (next === "erase") { dropHeld(); brush = null; selected = null; markTiles(); }
-  $("tool-select").setAttribute("aria-pressed", String(next === "select"));
-  $("tool-erase").setAttribute("aria-pressed", String(next === "erase"));
+  ruler = null;
+  if (next !== "select") { dropHeld(); brush = null; selected = null; markTiles(); }
+  for (const id of ["select", "erase", "measure"]) $(`tool-${id}`).setAttribute("aria-pressed", String(next === id));
   cursor();
   commit();
 }
 function cursor() {
-  canvas.className = gesture?.kind === "pan" ? "panning" : spaceHeld ? "pan" : tool === "erase" ? "erase" : brush ? "" : "pan";
+  canvas.className = gesture?.kind === "pan" ? "panning" : spaceHeld ? "pan" : tool === "select" ? (brush ? "" : "pan") : tool;
 }
 
 // ---------- panels ----------
@@ -815,7 +857,7 @@ function updateStats() {
   const used = placed.reduce((n, p) => n + byType[p.name].w * byType[p.name].h, 0);
   $("st-count").textContent = String(placed.length);
   $("st-cells").textContent = String(used);
-  $("st-cells-of").textContent = t("statsCells", { n: cells.size });
+  $("st-cells-of").textContent = `${t("statsCells", { n: cells.size })} · ${t("statsFree", { n: cells.size - used })}`;
   $("st-bar").style.width = `${Math.min(100, used / cells.size * 100)}%`;
   const counts: Record<string, number> = {};
   for (const p of placed) if (tabOf[p.name]) counts[tabOf[p.name].id] = (counts[tabOf[p.name].id] ?? 0) + 1;
@@ -1128,6 +1170,11 @@ canvas.addEventListener("pointerdown", e => {
     return cursor();
   }
   if (e.button !== 0) return;
+  if (tool === "measure") {
+    gesture = { kind: "measure" };
+    ruler = { a: c, b: c };
+    return requestDraw();
+  }
   if (tool === "erase") {
     gesture = { kind: "erase" };
     beginStroke(); eraseAt(c);
@@ -1172,7 +1219,8 @@ canvas.addEventListener("pointermove", e => {
   if (!moved) return;
   if (gesture?.kind === "paint") tryPlace(c);
   if (gesture?.kind === "erase") eraseAt(c);
-  if (gesture) updateStats();
+  if (gesture?.kind === "measure") ruler!.b = c;
+  else if (gesture) updateStats();
   updateInspector();
   requestDraw();
 });
@@ -1191,6 +1239,7 @@ const endGesture = (e: PointerEvent) => {
     else if (tryPlace(hover)) { brush = null; markTiles(); endStroke(); }
   }
   else if (g.kind === "pan") { if (g.still && selected) select(null); }
+  else if (g.kind === "measure") { /* the box stays until the next one */ }
   else endStroke();
   cursor();
 };
@@ -1258,6 +1307,7 @@ document.addEventListener("keydown", e => {
   else if (k === "r") rotate();
   else if (k === "v") setTool("select");
   else if (k === "e") setTool("erase");
+  else if (k === "m") setTool("measure");
   else if (k === "l") toggleLabels();
   else if (k === "a") toggleRanges();
   else if (k === "f") fit();
@@ -1292,6 +1342,7 @@ function toggleRanges() {
 
 $("tool-select").onclick = () => setTool("select");
 $("tool-erase").onclick = () => setTool("erase");
+$("tool-measure").onclick = () => setTool("measure");
 $("rotate").onclick = rotate;
 $("undo").onclick = undo;
 $("redo").onclick = redo;
