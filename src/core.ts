@@ -28,6 +28,14 @@ export function cellsFor(base: Base, land: number): { tiles: Cell[]; cells: Set<
   return { tiles, cells: new Set(tiles.map(([x, y]) => `${x},${y}`)) };
 }
 
+// The cells a range reaches: those whose centre is inside its square (`size` across, centred `at` cells along the
+// diagonal from the building's first cell) or on its edge, as the game's box checks count them; buildings and
+// plots stand at cell centres. Returns the first cell and how many cells across.
+export function reach(p: { x: number; y: number }, a: { size: number; at: number }): { x: number; y: number; n: number } {
+  const lo = (c: number) => Math.ceil(c + a.at - a.size / 2 - 1e-3) + 0, hi = (c: number) => Math.floor(c + a.at + a.size / 2 + 1e-3);
+  return { x: lo(p.x), y: lo(p.y), n: hi(p.x) - lo(p.x) + 1 };
+}
+
 export function itemAt(x: number, y: number, placed: Placed[], byName: Record<string, Footprint>): Placed | undefined {
   return placed.findLast(p => overlaps({ x, y, w: 1, h: 1 }, rect(p, byName[p.name])));
 }

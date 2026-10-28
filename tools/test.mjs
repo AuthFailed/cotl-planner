@@ -1,7 +1,7 @@
 // Self-check for src/core.ts: node tools/test.mjs
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
-import { fits, itemAt, encode, decode, cellsFor } from "../src/core.ts";
+import { fits, itemAt, encode, decode, cellsFor, reach } from "../src/core.ts";
 import { readSave } from "../src/save.ts";
 
 const byName = { "Farm Plot": { w: 1, h: 1 }, "Long: Thing": { w: 3, h: 1 } };
@@ -16,6 +16,9 @@ assert.equal(fits({ name: "Long: Thing", x: 4, y: 5 }, [], byName, cells), false
 assert.equal(fits({ name: "Long: Thing", x: -2, y: -2, r: 1 }, [], byName, cells), true, "rotated, negative coords");
 assert.equal(itemAt(4, 2, placed, byName), placed[0]);
 assert.equal(itemAt(4, 3, placed, byName), undefined);
+assert.deepEqual(reach({ x: 0, y: 0 }, { size: 8, at: 0 }), { x: -4, y: -4, n: 9 }, "even range on one cell: the cells on its edge count");
+assert.deepEqual(reach({ x: 2, y: 2 }, { size: 6, at: 0.49 }), { x: 0, y: 0, n: 6 }, "range around a 2x2 footprint");
+assert.deepEqual(reach({ x: 0, y: 0 }, { size: 3, at: 0.6 }), { x: 0, y: 0, n: 3 }, "off-centre range");
 
 const layout = [...placed, { name: "Farm Plot", x: -1, y: 0, r: 0 }, { name: "Farm Plot", x: 1, y: -2, r: 0 }];
 assert.deepEqual(decode("#" + encode(layout), byName), { placed: layout, land: null }, "hash round-trip");

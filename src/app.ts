@@ -1,7 +1,7 @@
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 import "./icons/icons.css";
-import { rect, fits, itemAt, encode, decode, cellsFor, type Placed, type Cell } from "./core.ts";
+import { rect, fits, itemAt, encode, decode, cellsFor, reach, type Placed, type Cell } from "./core.ts";
 import { readSave } from "./save.ts";
 import type { Atlas, Background, BaseData, Building, FloorRules, GameData, Language, MenuTab, Strings, WikiBuilding } from "./types.ts";
 
@@ -498,17 +498,17 @@ function footprint(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode, bare = fals
   c.strokeRect(r.x - .5 + .5 / v.s, r.y - .5 + .5 / v.s, r.w - 1 / v.s, r.h - 1 / v.s);
 }
 
-// The area a building works in (game.ranges), on the ground like the game's own indicator: strong for the
-// building held, hovered or selected. With all ranges shown, each type has its own colour (the legend says
+// The cells a building works on (game.ranges, as reach() counts them), on the ground like the game's own
+// indicator: strong for the building held, hovered or selected. With all ranges shown, each type has its own colour (the legend says
 // which), so overlapping areas can be told apart.
 function range(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode) {
   const a = game!.ranges?.[p.name];
   if (!a) return;
-  const half = a.size / 2, focus = mode !== "normal", bad = mode === "blocked" || mode === "erase";
+  const cells = reach(p, a), focus = mode !== "normal", bad = mode === "blocked" || mode === "erase";
   const colour = `rgb(${showRanges ? rangeColour(p.name) : "237 228 211"}`;
   gridSpace(c, sz, v);
   c.beginPath();
-  c.rect(p.x + a.at - half, p.y + a.at - half, a.size, a.size);
+  c.rect(cells.x - .5, cells.y - .5, cells.n, cells.n);
   c.fillStyle = bad ? "rgb(224 107 99 / .14)" : `${colour} / ${focus ? .18 : .09})`;
   c.fill();
   c.lineWidth = (focus ? 2.5 : 1.5) / v.s;
@@ -527,7 +527,7 @@ function updateLegend() {
   rangeColours = Object.fromEntries(types.map((T, i) => [T, RANGE_COLOURS[i % RANGE_COLOURS.length]]));
   $("legend").hidden = !showRanges || !types.length;
   $("legend-list").replaceChildren(...types.map(T => {
-    const swatch = el("i", {}), n = game!.ranges![T].size;
+    const swatch = el("i", {}), n = reach({ x: 0, y: 0 }, game!.ranges![T]).n;
     swatch.style.background = `rgb(${rangeColour(T)})`;
     return el("li", {}, swatch, el("span", {}, nameOf(T)), el("b", { className: "num" }, `${n}×${n}`));
   }));
