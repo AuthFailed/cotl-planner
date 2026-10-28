@@ -34,7 +34,7 @@ assert.equal(base.expansions.length, 3, "three land expansions");
 assert.equal(new Set(base.expansions.flat().concat(base.tiles).map(String)).size,
   base.tiles.length + base.expansions.flat().length, "expansion cells never repeat");
 const game = JSON.parse(readFileSync(new URL("../public/data/game.json", import.meta.url)));
-const atlas = JSON.parse(readFileSync(new URL("../public/data/sprites.json", import.meta.url)));
+const atlas = JSON.parse(readFileSync(new URL("../public/data/looks/day/sprites.json", import.meta.url)));
 assert.ok(Object.values(game.types).every(t => t.w > 0 && t.w === t.h), "game footprints are square and positive");
 assert.ok(Object.values(game.wiki).every(t => game.types[t]), "every wiki match points at a known type");
 assert.ok(Object.keys(atlas.items).every(t => game.types[t]), "atlas only holds known types");
@@ -55,5 +55,13 @@ for (const { code } of json("public/data/i18n/index.json")) {
   assert.deepEqual(Object.keys(d.ui).sort(), Object.keys(en.ui).sort(), `${code}: every planner string`);
   assert.ok(Object.entries(d.ui).every(([k, s]) => vars(s) === vars(en.ui[k])), `${code}: same {placeholders} as English`);
   assert.ok(Object.values(d.desc).every(s => !/[<>]/.test(s)), `${code}: descriptions are plain text`);
+}
+// every look has its art, and a name in the page's strings
+const bg = json("public/data/background.json");
+assert.equal(bg.looks[0], "day", "day comes first: the palette's thumbnails use it");
+for (const l of bg.looks) {
+  for (const f of [...bg.images, "sprites.webp"]) readFileSync(new URL(`../public/data/looks/${l}/${f}`, import.meta.url));
+  assert.ok(Object.keys(json(`public/data/looks/${l}/sprites.json`).items).every(T => game.types[T]), `${l}: atlas only holds known types`);
+  assert.ok(en.ui[`look${l[0].toUpperCase()}${l.slice(1)}`], `${l}: has a name`);
 }
 console.log("ok");

@@ -8,7 +8,7 @@ building, drop it on the grid, share the layout as a link.
 - Woolhaven land upgrades as an option: 1 upgrade (south), 2 (south + west), 3 (south +
   west + east), the order the game sells them, each with its own background; saved in the
   share link
-- Weather and time of day: day, dusk, night, rain, blood moon, winter and blizzard, each
+- Weather and time of day: day, night, rain, blood moon, winter and blizzard, each
   rendered by the game (ground and buildings, with its lighting, snow and colour grading),
   with the game's weather tint and falling rain or snow on top
 - Buildings rendered by the game itself (shaders, Spine art, lighting), with exact
@@ -150,17 +150,26 @@ from `public/data/base.json`).
 
 ### Weather and time of day
 
-With `Looks = day,dusk,night,rain,bloodmoon,winter,blizzard` in the plugin's config
+With `Looks = day,night,rain,bloodmoon,winter,blizzard` in the plugin's config
 (`BepInEx/config/chrsnv.cotlplanner.capture.cfg`, section `[Jobs]`), the Buildings and
 Backgrounds jobs run once per look, each into its own folder. Before each one the plugin
 switches the game in memory: the clock (the game's light follows the day phase, and its clock
 only runs forward, so afternoon looks go first), the season (winter, with what the game fires on
 a season change), the weather (the base scene's presets: heavy rain, heavy snow, extreme snow for
-the blizzard) and the blood moon lighting. Snow and rain are shader settings, so buildings are
-rendered again for each look, with their winter-only parts on in winter. The look's colour
-grading (Amplify Color LUTs and exposure, a post-processing pass the black/white cutout can't
-go through) is measured by rendering an identity colour chart through it, saved as `lut.png`,
-and applied to each building render. Then:
+the blizzard) and the blood moon lighting (the base turns that off again unless the game's own
+blood moon timer says one is on, so the plugin sets that too). Snow and rain are shader settings,
+so buildings are rendered again for each look, with their winter-only parts on in winter. The
+look's colour grading (Amplify Color LUTs and exposure, a post-processing pass the black/white
+cutout can't go through) is measured by rendering an identity colour chart through it, saved as
+`lut.png`, and applied to each building render. Lamps grade their surroundings with a second
+LUT and clouds cast moving shadows, so the chart is drawn small, far from the base's lights,
+with the cloud overlay off, at five spots, and each entry is the median. The plugin also
+supports `dusk`, but the base lights dusk exactly like day, so the planner leaves it out.
+
+The snow looks come back with a see-through vertical seam on maps with land upgrades;
+`tools/capture/fix_seam.html?files=winter/land1.png,...` (served like the packer) finds such
+seams and fills them from the ground beside them, only on the rows where the band is darker.
+Then:
 
 ```bash
 tools/capture/looks_to_data.sh <capture dir>   # backdrops -> public/data/looks/<look>/, looks in background.json

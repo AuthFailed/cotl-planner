@@ -6,11 +6,13 @@
 <canvas id="atlas" style="max-width:100%"></canvas>
 <script type="module">
 // Packs the plugin's building renders (buildings/<TYPE>.png + buildings.json) into the planner's
-// atlas: public/data/sprites.webp + public/data/sprites.json, items[type] = [x, y, w, h, anchorX, anchorY].
-// ?scale=0.75 shrinks everything (and the anchors) to keep the atlas small.
-const scale = +(new URLSearchParams(location.search).get("scale") || 1);
+// atlas: public/data/looks/<look>/sprites.webp + sprites.json, items[type] = [x, y, w, h, anchorX, anchorY].
+// ?scale=0.75 shrinks everything (and the anchors) to keep the atlas small; ?look=night packs the
+// renders in night/buildings/ and saves night/sprites.*, for data/looks/<look>/.
+const params = new URLSearchParams(location.search);
+const scale = +(params.get("scale") || 1), dir = params.get("look") ? `${params.get("look")}/` : "";
 const log = t => (document.getElementById("log").textContent = t);
-const meta = await (await fetch("buildings/buildings.json")).json();
+const meta = await (await fetch(`${dir}buildings/buildings.json`)).json();
 const crops = [];
 let n = 0;
 await Promise.all(Object.entries(meta.items).map(([type, [ax, ay, w, h]]) => new Promise(res => {
@@ -22,7 +24,7 @@ await Promise.all(Object.entries(meta.items).map(([type, [ax, ay, w, h]]) => new
     res();
   };
   im.onerror = () => res();
-  im.src = `buildings/${encodeURIComponent(type)}.png`;
+  im.src = `${dir}buildings/${encodeURIComponent(type)}.png`;
 })));
 
 // shelf packing, tallest first
@@ -42,8 +44,8 @@ const out = { ppu: meta.ppu * scale, items: Object.fromEntries(crops.map(c => [c
 log(`${crops.length} buildings, atlas ${atlas.width}x${atlas.height} at ${out.ppu} px/unit`);
 window.save = async (q = .85) => {
   const blob = await new Promise(r => atlas.toBlob(r, "image/webp", q));
-  await fetch("/bg/sprites.webp", { method: "PUT", body: blob });
-  await fetch("/bg/sprites.json", { method: "PUT", body: JSON.stringify(out) });
+  await fetch(`/bg/${dir}sprites.webp`, { method: "PUT", body: blob });
+  await fetch(`/bg/${dir}sprites.json`, { method: "PUT", body: JSON.stringify(out) });
   return { bytes: blob.size, count: crops.length, h: atlas.height };
 };
 </script>

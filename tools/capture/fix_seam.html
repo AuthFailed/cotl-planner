@@ -1,0 +1,64 @@
+<!doctype html><meta charset="utf-8"><body style="background:#222;color:#ddd;font:13px monospace"><pre id="log"></pre>
+<script type="module">
+// Snow captures with land upgrades come back with a see-through vertical seam. Finds such bands (columns
+// that differ from their neighbours on most rows), then on the rows where the band is darker than
+// the ground beside it, fills it from the ground to its right. Saves over the input through the
+// packer's server (PUT /bg/...). ?files=winter/land1.png,blizzard/land1.png ; ?dry=1 only reports.
+const log = t => (document.getElementById("log").textContent += t + "\n");
+const params = new URLSearchParams(location.search);
+const files = params.get("files").split(",");
+const load = src => new Promise((res, rej) => Object.assign(new Image(), { onload() { res(this); }, onerror: rej, src }));
+for (const f of files) {
+  const img = await load(f);
+  const W = img.width, H = img.height;
+  const c = Object.assign(document.createElement("canvas"), { width: W, height: H });
+  const g = c.getContext("2d", { willReadFrequently: true });
+  g.drawImage(img, 0, 0);
+  const im = g.getImageData(0, 0, W, H), d = im.data;
+  // per column: share of rows where the pixel differs from the mean of x-6 and x+6 by more than 18
+  const score = new Float32Array(W);
+  for (let y = 0; y < H; y += 2)
+    for (let x = 6; x < W - 6; x++) {
+      const i = (y * W + x) * 4, l = i - 24, r = i + 24;
+      const diff = Math.abs(d[i] - (d[l] + d[r]) / 2) + Math.abs(d[i + 1] - (d[l + 1] + d[r + 1]) / 2) + Math.abs(d[i + 2] - (d[l + 2] + d[r + 2]) / 2);
+      if (diff > 18) score[x]++;
+    }
+  for (let x = 0; x < W; x++) score[x] /= H / 2;
+  const bad = [];
+  for (let x = 0; x < W; x++) if (score[x] > 0.5) bad.push(x);
+  // group neighbouring columns into bands
+  const bands = [];
+  for (const x of bad) { const b = bands.at(-1); if (b && x - b[1] <= 16) b[1] = x; else bands.push([x, x]); }
+  log(`${f}: ${W}x${H}, seams at ${bands.map(([a, b]) => `${a}-${b}`).join(", ") || "none"}`);
+  if (params.get("dry") || !bands.length) continue;
+  // Fill each band with the ground just to its right (the seam's strength varies along it, so it can't
+  // be undone), feathered into the original over a few columns at both edges.
+  const FEATHER = 6;
+  for (const [a0, b0] of bands) {
+    const a = Math.max(FEATHER + 8, a0 - 2), b = Math.min(W - 9, b0 + 2), shift = b - a + 1 + 4;
+    // only rows where the band is darker than the ground either side (the seam doesn't run the full height)
+    const lum = (x, y) => { const i = (y * W + x) * 4; return .3 * d[i] + .59 * d[i + 1] + .11 * d[i + 2]; };
+    const dark = new Uint8Array(H);
+    for (let y0 = 0; y0 < H; y0 += 16) {
+      let band = 0, side = 0, n = 0;
+      for (let y = y0; y < Math.min(H, y0 + 16); y++, n++) {
+        for (let x = a + 2; x <= b - 2; x++) band += lum(x, y) / (b - a - 3);
+        for (let k = 3; k <= 8; k++) side += (lum(a - k, y) + lum(b + k, y)) / 12;
+      }
+      if (side - band > 8 * n) dark.fill(1, y0, y0 + 16);
+    }
+    log(`  band ${a}-${b}: fixing ${dark.reduce((s, v) => s + v, 0)} of ${H} rows`);
+    for (let y = 0; y < H; y++) if (dark[y])
+      for (let x = a - FEATHER; x <= b + FEATHER && x + shift < W; x++) {
+        const w = x < a ? (x - (a - FEATHER)) / FEATHER : x > b ? (b + FEATHER - x) / FEATHER : 1;
+        const i = (y * W + x) * 4, j = i + shift * 4;
+        for (let k = 0; k < 3; k++) d[i + k] = d[i + k] * (1 - w) + d[j + k] * w;
+      }
+  }
+  g.putImageData(im, 0, 0);
+  const blob = await new Promise(r => c.toBlob(r, "image/png"));
+  await fetch("/bg/" + f, { method: "PUT", body: blob });
+  log(`  fixed and saved (${blob.size} bytes)`);
+}
+log("done");
+</script>

@@ -15,7 +15,11 @@ export interface GameData {
   menu: MenuTab[];
 }
 
-export interface Background { ppu: number; w: number; h: number; u0: number; v0: number; images?: string[] }
+/** looks/<look>/<images[N]> is the backdrop with N land upgrades; tint[look] = [r, g, b, a] laid over the screen. */
+export interface Background {
+  ppu: number; w: number; h: number; u0: number; v0: number;
+  images: string[]; looks?: string[]; tint?: Record<string, [number, number, number, number]>;
+}
 
 /** items[type] = [x, y, w, h, anchorX, anchorY] in the atlas image. */
 export interface Atlas { ppu: number; items: Record<string, [number, number, number, number, number, number]> }

@@ -28,7 +28,7 @@ const phone = matchMedia("(max-width: 767px)");
 
 const [base, game, bg, atlas, wiki, langs, en] = await Promise.all([
   load<BaseData>("data/base.json"), load<GameData>("data/game.json"), load<Background>("data/background.json"),
-  load<Atlas>("data/sprites.json"), load<WikiBuilding[]>("data/buildings.json"),
+  load<Atlas>("data/looks/day/sprites.json"), load<WikiBuilding[]>("data/buildings.json"),
   load<Language[]>("data/i18n/index.json"), load<Strings>("data/i18n/en.json"),
 ]);
 if (!base || !game) throw new Error("planner data missing");
@@ -88,26 +88,53 @@ const term = (key: string) => L.terms[key] || english.terms[key] || key;
 const nameOf = (T: string) => L.names[T] || english.names[T] || wikiOf[T]?.name || T;
 const descOf = (T: string) => L.desc[T] || english.desc[T] || "";
 
-// ---------- backdrop and sprites ----------
-// Backdrop rendered by the game (tools/capture), one image per number of land expansions bought.
-const backdrops = new Map<string, HTMLImageElement>();
-function backdrop(level: number) {
-  if (!bg) return null;
-  const src = bg.images ? bg.images[Math.min(level, bg.images.length - 1)] : "background.webp";
-  let img = backdrops.get(src);
-  if (!img) {
-    img = new Image();
-    img.onload = requestDraw;
-    img.src = "data/" + src;
-    backdrops.set(src, img);
+// ---------- looks: the base as the game draws it by weather and time of day ----------
+// data/looks/<look>/ holds a backdrop per number of land upgrades bought (background-N.webp) and the
+// buildings' atlas (sprites.webp + sprites.json), all rendered by the game itself (tools/capture).
+// A look loads the first time it's picked; the palette always uses the day atlas.
+const LOOK_ICONS: Record<string, string> = { day: "ph-sun", night: "ph-moon-stars", rain: "ph-cloud-rain", bloodmoon: "ph-moon", winter: "ph-snowflake", blizzard: "ph-cloud-snow" };
+const GRID: Record<string, number> = { night: .4, bloodmoon: .4 }; // build-grid strength where the scene is dark
+const looks = bg?.looks ?? ["day"];
+let look = store.get("look", "day");
+if (!looks.includes(look)) look = looks[0];
+let shown = look; // the look on screen: a newly picked one takes over once its art has loaded
+type Scene = { atlas: Atlas | null; image: HTMLImageElement; ready: boolean; backdrops: Map<string, HTMLImageElement> };
+const scenes = new Map<string, Scene>();
+function scene(name: string): Scene {
+  let sc = scenes.get(name);
+  if (!sc) {
+    const s: Scene = { atlas: name === "day" ? atlas : null, image: new Image(), ready: false, backdrops: new Map() };
+    s.image.onload = () => { s.ready = true; requestDraw(); };
+    if (s.atlas) s.image.src = `data/looks/${name}/sprites.webp`;
+    else void load<Atlas>(`data/looks/${name}/sprites.json`).then(a => { s.atlas = a; if (a) s.image.src = `data/looks/${name}/sprites.webp`; });
+    scenes.set(name, sc = s);
   }
-  // while another level's image loads, keep showing whichever one is ready
-  return img.complete && img.naturalWidth ? img : [...backdrops.values()].find(i => i.complete && i.naturalWidth) ?? null;
+  return sc;
 }
-// Buildings as the game draws them, packed in one atlas: items[type] = [x, y, w, h, anchorX, anchorY].
-const atlasImage = Object.assign(new Image(), atlas ? { src: "data/sprites.webp" } : {});
-let atlasReady = false;
-atlasImage.addEventListener("load", () => { atlasReady = true; requestDraw(); });
+function backdropOf(name: string, level: number) {
+  if (!bg) return null;
+  const sc = scene(name), src = `data/looks/${name}/${bg.images[Math.min(level, bg.images.length - 1)]}`;
+  let img = sc.backdrops.get(src);
+  if (!img) {
+    img = Object.assign(new Image(), { onload: requestDraw });
+    img.src = src;
+    sc.backdrops.set(src, img);
+  }
+  return img.complete && img.naturalWidth ? img : null;
+}
+function backdrop() {
+  if (backdropOf(look, land) && scene(look).ready) shown = look;
+  // while another land level's image loads, keep showing whichever one is ready
+  return backdropOf(shown, land) ?? [...scene(shown).backdrops.values()].find(i => i.complete && i.naturalWidth) ?? null;
+}
+// A building's render in the look on screen, or the day one while that loads.
+function art(T: string) {
+  for (const sc of [scene(shown), scene("day")]) {
+    const item = sc.ready ? sc.atlas?.items[T] : undefined;
+    if (item && sc.atlas) return { image: sc.image, item, ppu: sc.atlas.ppu };
+  }
+  return null;
+}
 
 // ---------- layout state ----------
 // Links made before layouts were keyed by type named buildings by their English (wiki or game) name.
@@ -168,15 +195,15 @@ function anchored(b: Brush, c: CellXY): Placed {
 // A building as the game draws it, shrunk into a square box (`size` CSS pixels, for resolution);
 // the wiki's build-menu icon when the game render is missing.
 function thumb(T: string, size = 44): HTMLElement {
-  const a = atlas?.items[T];
+  const day = scene("day"), a = atlas?.items[T];
   if (a) {
     const px = Math.round(size * Math.min(2, devicePixelRatio || 1));
     const c = el("canvas", { className: "thumb", width: px, height: px });
     const paint = () => {
       const [x, y, w, h] = a, k = Math.min(px / w, px / h, px / 40);
-      c.getContext("2d")!.drawImage(atlasImage, x, y, w, h, (px - w * k) / 2, (px - h * k) / 2, w * k, h * k);
+      c.getContext("2d")!.drawImage(day.image, x, y, w, h, (px - w * k) / 2, (px - h * k) / 2, w * k, h * k);
     };
-    if (atlasReady) paint(); else atlasImage.addEventListener("load", paint, { once: true });
+    if (day.ready) paint(); else day.image.addEventListener("load", paint, { once: true });
     return c;
   }
   const blank = () => el("i", { className: "thumb ph ph-image" });
@@ -221,8 +248,9 @@ function draw(c: Ctx, sz: Size, v: View, live: boolean) {
   c.fillRect(0, 0, sz.w, sz.h);
 
   // backdrop: image pixel (X, Y) sits at u = u0 + X/ppu, v = v0 - Y/ppu relative to grid origin
-  const bgImage = backdrop(land);
-  if (bg && bgImage) c.drawImage(bgImage, v.s * bg.u0 + v.tx, -v.s * bg.v0 + v.ty, bg.w * v.s / bg.ppu, bg.h * v.s / bg.ppu);
+  const bgImage = backdrop();
+  const area = bg && bgImage ? [v.s * bg.u0 + v.tx, -v.s * bg.v0 + v.ty, bg.w * v.s / bg.ppu, bg.h * v.s / bg.ppu] as const : null;
+  if (area && bgImage) c.drawImage(bgImage, ...area);
   const hasBg = !!bgImage;
 
   // ground: over the art, inset rounded green outlines like the game's build-mode tiles;
@@ -231,10 +259,11 @@ function draw(c: Ctx, sz: Size, v: View, live: boolean) {
   c.beginPath();
   if (hasBg) for (const [x, y] of tiles) c.roundRect(x - .42, y - .42, .84, .84, .14);
   else for (const [x, y] of tiles) c.rect(x - .5, y - .5, 1, 1);
-  c.fillStyle = hasBg ? "rgb(150 220 140 / .07)" : "#3d4e33";
+  const glow = GRID[shown] ?? 1; // the grid would glare over the dark looks
+  c.fillStyle = hasBg ? `rgb(150 220 140 / ${.07 * glow})` : "#3d4e33";
   c.fill();
   c.lineWidth = (hasBg ? 1.5 : 1) / v.s;
-  c.strokeStyle = hasBg ? "rgb(72 176 96 / .75)" : "rgb(20 16 18 / .45)";
+  c.strokeStyle = hasBg ? `rgb(72 176 96 / ${.75 * glow})` : "rgb(20 16 18 / .45)";
   c.stroke();
 
   // footprints flat on the ground first, then sprites back-to-front so nearer ones overlap
@@ -247,6 +276,13 @@ function draw(c: Ctx, sz: Size, v: View, live: boolean) {
   for (const [p, mode] of items) footprint(c, sz, v, p, mode);
   const depth = (p: Placed) => p.x + p.y; // larger x + y sits further up the screen, i.e. further back
   for (const [p, mode] of items.sort((a, b) => depth(b[0]) - depth(a[0]))) sprite(c, sz, v, p, mode);
+  // the game's weather tint, a colour it lays over the screen; here over the scene, not the empty margin
+  const tint = bg?.tint?.[shown];
+  if (tint && area) {
+    screenSpace(c, sz);
+    c.fillStyle = `rgb(${tint.slice(0, 3).map(x => Math.round(x * 255)).join(" ")} / ${tint[3]})`;
+    c.fillRect(...area);
+  }
   if (showLabels) for (const [p, mode] of items) if (mode !== "ghost" && mode !== "blocked") label(c, sz, v, p);
   if (live) placeSelectionCard();
 }
@@ -276,16 +312,16 @@ function footprint(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode) {
 
 function sprite(c: Ctx, sz: Size, v: View, p: Placed, mode: Mode) {
   const T = p.name, r = rect(p, byType[T]);
-  const a = atlasReady && atlas?.items[T];
-  if (a && atlas) {
+  const a = art(T);
+  if (a) {
     // the game's own render: anchored at the centre of the footprint's first cell, same projection as the map
-    const [x, y, w, h, ax, ay] = a, k = v.s / atlas.ppu;
+    const [x, y, w, h, ax, ay] = a.item, k = v.s / a.ppu;
     const [px, py] = toScreen(r.x, r.y, v);
     screenSpace(c, sz);
     c.translate(px, py);
     if (p.r) c.scale(-1, 1); // the game's "rotate" mirrors the building
     if (mode === "ghost" || mode === "blocked") c.globalAlpha = .75;
-    c.drawImage(atlasImage, x, y, w, h, -ax * k, -ay * k, w * k, h * k);
+    c.drawImage(a.image, x, y, w, h, -ax * k, -ay * k, w * k, h * k);
     c.globalAlpha = 1;
     return;
   }
@@ -515,8 +551,8 @@ function placeSelectionCard() {
   const r = rect(selected, byType[selected.name]);
   const [cx] = toScreen(r.x - .5 + r.w / 2, r.y - .5 + r.h / 2);
   const [, back] = toScreen(r.x - .5 + r.w, r.y - .5 + r.h); // the footprint's top corner on screen
-  const a = atlas?.items[selected.name];
-  const top = a && atlas ? toScreen(r.x, r.y)[1] - a[5] * view.s / atlas.ppu : back - view.s; // the sprite's top edge
+  const a = art(selected.name);
+  const top = a ? toScreen(r.x, r.y)[1] - a.item[5] * view.s / a.ppu : back - view.s; // the sprite's top edge
   const h = card.offsetHeight, half = card.offsetWidth / 2;
   // above the sprite, or below the footprint when the toolbar leaves no room above
   const below = top - 8 - h < 64;
@@ -675,7 +711,54 @@ function applyUI() {
   each("i18n-placeholder", (e, k) => ((e as HTMLInputElement).placeholder = t(k)));
   each("i18n-tip", (e, k) => { e.title = t(k); e.setAttribute("aria-label", short(e.title)); });
   $("hint-text").textContent = t(phone.matches ? "emptyTextTouch" : "emptyText");
+  for (const o of $<HTMLSelectElement>("look").options) o.textContent = t(`look${o.value[0].toUpperCase()}${o.value.slice(1)}`);
 }
+
+// ---------- falling rain and snow ----------
+// Drawn over the map on their own layer, like the game's camera weather effects (left out of the
+// captures, where they'd freeze into dots). Off for viewers who ask for reduced motion.
+type Fall = { n: number; speed: [number, number]; len?: [number, number]; drift: number; size: [number, number]; color: string };
+const FALL: Record<string, Fall> = {
+  rain: { n: 240, speed: [650, 950], len: [10, 18], drift: .18, size: [1, 1.3], color: "rgb(200 215 255 / .32)" },
+  winter: { n: 200, speed: [28, 60], drift: .22, size: [1.6, 3.4], color: "rgb(255 255 255 / .85)" },
+  blizzard: { n: 650, speed: [240, 440], drift: 1.1, size: [1.2, 2.8], color: "rgb(240 246 255 / .8)" },
+};
+type Flake = { x: number; y: number; v: number; r: number; len: number; phase: number };
+const fx = $<HTMLCanvasElement>("fx"), fxc = fx.getContext("2d")!;
+const calm = matchMedia("(prefers-reduced-motion: reduce)");
+const rand = ([a, b]: [number, number]) => a + Math.random() * (b - a);
+let flakes: Flake[] = [], fxFrame = 0, fxLast = 0;
+const flake = (f: Fall, anywhere: boolean): Flake => ({
+  x: rand([-size.h * f.drift, size.w]), y: anywhere ? rand([0, size.h]) : rand([-30, -4]),
+  v: rand(f.speed), r: rand(f.size) / 2, len: f.len ? rand(f.len) : 0, phase: Math.random() * 7,
+});
+function weather() {
+  cancelAnimationFrame(fxFrame);
+  fxc.setTransform(size.dpr, 0, 0, size.dpr, 0, 0);
+  fxc.clearRect(0, 0, size.w, size.h);
+  const f = FALL[look];
+  flakes = f && !calm.matches ? Array.from({ length: Math.round(f.n * size.w * size.h / 1e6) }, () => flake(f, true)) : [];
+  if (!f || !flakes.length) return;
+  fxLast = performance.now();
+  const tick = (now: number) => {
+    const dt = Math.min(.05, (now - fxLast) / 1000);
+    fxLast = now;
+    fxc.clearRect(0, 0, size.w, size.h);
+    fxc.beginPath();
+    for (const p of flakes) {
+      p.y += p.v * dt;
+      p.x += p.v * f.drift * dt + (f.len ? 0 : Math.sin(now / 900 + p.phase) * 14 * dt); // snow sways
+      if (p.y > size.h + 20 || p.x > size.w + 20) Object.assign(p, flake(f, false));
+      if (f.len) { fxc.moveTo(p.x, p.y); fxc.lineTo(p.x - f.drift * p.len, p.y - p.len); }
+      else { fxc.moveTo(p.x + p.r, p.y); fxc.arc(p.x, p.y, p.r, 0, Math.PI * 2); }
+    }
+    if (f.len) { fxc.lineWidth = f.size[0]; fxc.strokeStyle = f.color; fxc.stroke(); }
+    else { fxc.fillStyle = f.color; fxc.fill(); }
+    fxFrame = requestAnimationFrame(tick);
+  };
+  fxFrame = requestAnimationFrame(tick);
+}
+calm.addEventListener("change", weather);
 
 // ---------- input ----------
 const local = (e: MouseEvent): [number, number] => { const b = canvas.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
@@ -869,8 +952,8 @@ $("sel-move").onclick = () => { const p = selected; selected = null; if (p) pick
 $("sel-delete").onclick = () => { if (!selected) return; beginStroke(); removeBuilding(selected); endStroke(); };
 $("sheet-toggle").onclick = () => openSheet(!$("sheet").classList.contains("open"));
 // on phones these live in a popup menu, which closes once one is used
-for (const id of ["land", "labels", "clear", "png"])
-  $(id).addEventListener(id === "land" ? "change" : "click", () => { try { $("more").hidePopover(); } catch { /* no popover support */ } });
+for (const id of ["land", "look", "labels", "clear", "png"])
+  $(id).addEventListener(id === "land" || id === "look" ? "change" : "click", () => { try { $("more").hidePopover(); } catch { /* no popover support */ } });
 $("clear").onclick = () => {
   if (!placed.some(deletable)) return;
   dropHeld(); beginStroke(); placed = placed.filter(p => !deletable(p)); endStroke();
@@ -900,6 +983,13 @@ $("search").oninput = renderPalette;
 landSelect.value = String(land);
 landSelect.onchange = () => setLand(+landSelect.value);
 if (!maxLand) landSelect.closest("label")!.style.display = "none";
+const lookSelect = $<HTMLSelectElement>("look");
+const lookIcon = () => ($("look-icon").className = `ph ${LOOK_ICONS[look] ?? "ph-cloud-sun"}`);
+lookSelect.replaceChildren(...looks.map(l => el("option", { value: l })));
+lookSelect.value = look;
+lookSelect.onchange = () => { look = lookSelect.value; store.set("look", look); lookIcon(); weather(); requestDraw(); };
+lookIcon();
+if (looks.length < 2) lookSelect.closest("label")!.style.display = "none";
 langSelect.replaceChildren(...languages.map(l => el("option", { value: l.code, textContent: native(l.code) })));
 langSelect.value = lang;
 langSelect.onchange = async () => {
@@ -916,9 +1006,10 @@ phone.addEventListener("change", () => { applyUI(); commit(); });
 new ResizeObserver(([entry]) => {
   const { width, height } = entry.contentRect;
   size = { w: width, h: height, dpr: devicePixelRatio || 1 };
-  canvas.width = Math.round(width * size.dpr);
-  canvas.height = Math.round(height * size.dpr);
+  canvas.width = fx.width = Math.round(width * size.dpr);
+  canvas.height = fx.height = Math.round(height * size.dpr);
   if (!userView) fit(); else requestDraw();
+  weather();
 }).observe(canvas.parentElement!);
 
 applyUI();

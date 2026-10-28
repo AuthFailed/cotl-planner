@@ -11,6 +11,10 @@
 //   Backgrounds  landN.png per Woolhaven land level (none bought .. all three, switched in memory
 //                with DLCLandController), the game's grid per level in grid.json, and gridN.png
 //                with the game's build-mode tile on every cell
+// With Looks set (day, dusk, night, rain, winter, blizzard, bloodmoon), Buildings and Backgrounds run
+// once per look, each into its own folder, after switching the game to it in memory: the clock, the
+// season, the weather and the blood moon lighting. Each look also gets lut.png, the game's colour
+// grading for it, which the building renders (made without post-processing) are passed through.
 // Then writes capture.json and quits.
 // It never writes the save: SaveAndLoad, metadata and persistence saves are blocked while installed.
 using System;
@@ -31,7 +35,7 @@ using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.SceneManagement;
 
-[BepInPlugin("chrsnv.cotlplanner.capture", "COTL Planner Capture", "1.1.0")]
+[BepInPlugin("chrsnv.cotlplanner.capture", "COTL Planner Capture", "1.2.0")]
 public class PlannerCapture : BaseUnityPlugin
 {
     // Area to capture, in the planner's projected world units: u = x, v = cos45 * (y - z).
@@ -49,6 +53,7 @@ public class PlannerCapture : BaseUnityPlugin
 
     ConfigEntry<int> slot, width;
     ConfigEntry<float> settle;
+    ConfigEntry<string> looks;
     ConfigEntry<bool> autoLoad, forceDay, quitAfter, doStructures, doTranslations, doBuildings, doBackgrounds;
     string outDir;
     bool started, done;
@@ -65,6 +70,7 @@ public class PlannerCapture : BaseUnityPlugin
         doTranslations = Config.Bind("Jobs", "Translations", true, "i18n.json: every localisation term in every language.");
         doBuildings = Config.Bind("Jobs", "Buildings", true, "buildings/: every buildable structure rendered alone.");
         doBackgrounds = Config.Bind("Jobs", "Backgrounds", true, "landN.png, grid.json, gridN.png per land level.");
+        looks = Config.Bind("Jobs", "Looks", "", "Comma-separated looks to run Buildings and Backgrounds in, each into its own folder: day, dusk, night, rain, winter, blizzard, bloodmoon. Empty: once, as the save looks.");
         outDir = Path.Combine(Paths.PluginPath, "PlannerCapture");
         Directory.CreateDirectory(outDir);
         new Harmony("chrsnv.cotlplanner.capture").PatchAll(typeof(PlannerCapture));
@@ -105,15 +111,32 @@ public class PlannerCapture : BaseUnityPlugin
         Logger.LogInfo($"save loaded after {waited:0}s, settling {settle.Value}s");
         yield return new WaitForSecondsRealtime(settle.Value);
         DataManager.Instance.DisableSaving = true;
+        TimeManager.PauseGameTime = true; // the light only changes when a look asks for it
         if (forceDay.Value)
         {
-            DataManager.Instance.CurrentGameTime = 560f; // mid-afternoon: phases are 240 units, afternoon starts at 480
+            TimeManager.CurrentGameTime = 560f; // mid-afternoon: phases are 240 units, afternoon starts at 480
             yield return new WaitForSecondsRealtime(6f);
         }
         if (doStructures.Value) Try("structures", DumpStructures);
         if (doTranslations.Value) Try("translations", DumpTranslations);
-        if (doBuildings.Value) yield return CaptureBuildings();
-        if (doBackgrounds.Value) yield return CaptureLands();
+        // The game's clock only moves forward through a day's phases, so afternoon looks go first, then dusk, then night.
+        var list = looks.Value.Split(',').Select(l => l.Trim().ToLowerInvariant()).Where(l => l != "")
+            .OrderBy(l => l == "dusk" ? 1 : l == "night" ? 2 : 0).ToList();
+        if (list.Count == 0)
+        {
+            if (doBuildings.Value) yield return CaptureBuildings(outDir, null, false);
+            if (doBackgrounds.Value) yield return CaptureLands(outDir, true);
+        }
+        foreach (var look in list)
+        {
+            string dir = Path.Combine(outDir, look);
+            Directory.CreateDirectory(dir);
+            yield return SetLook(look);
+            Color32[] lut = null;
+            Try($"{look} lut", () => lut = GradingLut(Path.Combine(dir, "lut.png")));
+            if (doBuildings.Value) yield return CaptureBuildings(dir, lut, look == "winter" || look == "blizzard");
+            if (doBackgrounds.Value) yield return CaptureLands(dir, look == list[0]);
+        }
         Try("capture.json", () =>
         {
             int w = width.Value, h = Mathf.RoundToInt(w * (V1 - V0) / (U1 - U0));
@@ -198,12 +221,13 @@ public class PlannerCapture : BaseUnityPlugin
 
     // ---------- building renders ----------
 
-    IEnumerator CaptureBuildings()
+    // `lut`: the look's colour grading (null: none). `winter`: show the parts buildings only have in winter.
+    IEnumerator CaptureBuildings(string root, Color32[] lut, bool winter)
     {
         var list = FindObjectOfType<TypeAndPlacementObjects>();
         var region = PlacementRegion.Instance;
         if (!list || !region) { Logger.LogWarning("no build list or placement region in the scene"); yield break; }
-        string dir = Path.Combine(outDir, "buildings");
+        string dir = Path.Combine(root, "buildings");
         Directory.CreateDirectory(dir);
         var cam = GameCamera();
         // The game puts a building's prefab, unrotated, at the centre of its footprint's first cell.
@@ -232,7 +256,7 @@ public class PlannerCapture : BaseUnityPlugin
             try
             {
                 go = Instantiate(bh.Result, holder.transform, false); // inactive parent: none of its scripts run yet
-                StripToVisuals(go, Layer);
+                StripToVisuals(go, Layer, winter);
                 go.transform.SetParent(null, false);
                 go.transform.SetPositionAndRotation(anchor, Quaternion.identity);
             }
@@ -244,7 +268,7 @@ public class PlannerCapture : BaseUnityPlugin
             {
                 var black = Render(cam, Size, Size, OrthoSize, anchor, 1 << Layer, Color.black, post: false, alpha: true);
                 var white = Render(cam, Size, Size, OrthoSize, anchor, 1 << Layer, Color.white, post: false, alpha: true);
-                string row = SaveCutout(black, white, Path.Combine(dir, type + ".png"));
+                string row = SaveCutout(black, white, Path.Combine(dir, type + ".png"), lut);
                 Destroy(black);
                 Destroy(white);
                 if (row != null) meta.Add($"{Json(type)}:{row}");
@@ -272,8 +296,23 @@ public class PlannerCapture : BaseUnityPlugin
     // Gameplay scripts expect brains, save data and managers; Spine renderers are all a building needs to draw.
     // Also off: light sprites (they feed the lighting system, drawn alone they're white blobs), range
     // indicators and other UI, effects, and anything whose shader failed to load (magenta).
-    static void StripToVisuals(GameObject go, int layer)
+    static void StripToVisuals(GameObject go, int layer, bool winter)
     {
+        // Parts that come and go with the season (snow caps, icicles), set the way the game sets them
+        // (ActivateOnSeason.CheckState, WinterOnly), before their scripts are stripped. In winter the
+        // game shows a share of a structure's snow clumps that grows with severity; all of them here.
+        foreach (var a in go.GetComponentsInChildren<ActivateOnSeason>(true))
+        {
+            bool on = winter ? !a.DisableOnWinter : a.DisableOnWinter;
+            var mesh = a.GetComponent<MeshRenderer>();
+            var sprite = a.GetComponent<SpriteRenderer>();
+            if (a.useRenderer && (mesh || sprite)) { if (mesh) mesh.enabled = on; if (sprite) sprite.enabled = on; }
+            else a.gameObject.SetActive(on);
+            if (winter) foreach (Transform t in a.transform) t.gameObject.SetActive(true);
+        }
+        foreach (var w in go.GetComponentsInChildren<WinterOnly>(true))
+            foreach (var e in Traverse.Create(w).Field("elements").GetValue<List<GameObject>>() ?? new List<GameObject>())
+                if (e) e.SetActive(winter);
         for (int pass = 0; pass < 3; pass++) // components that others require only go once those are gone
             foreach (var mb in go.GetComponentsInChildren<MonoBehaviour>(true))
                 if (mb && !(mb.GetType().Namespace ?? "").StartsWith("Spine")) DestroyImmediate(mb);
@@ -291,9 +330,10 @@ public class PlannerCapture : BaseUnityPlugin
         foreach (var t in go.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = layer;
     }
 
-    // Exact cutout from renders over black and over white: alpha = 1 - (white - black), colour = black / alpha.
+    // Exact cutout from renders over black and over white: alpha = 1 - (white - black), colour = black / alpha,
+    // then through the look's colour grading if there is one.
     // Returns "[anchorX, anchorY, w, h]" with the anchor (render centre) measured from the crop's top-left.
-    static string SaveCutout(Texture2D black, Texture2D white, string path)
+    static string SaveCutout(Texture2D black, Texture2D white, string path, Color32[] lut = null)
     {
         int w = black.width, h = black.height;
         var b = black.GetPixels32();
@@ -305,7 +345,8 @@ public class PlannerCapture : BaseUnityPlugin
             int diff = (wt[i].r - b[i].r + wt[i].g - b[i].g + wt[i].b - b[i].b) / 3;
             int a = 255 - Mathf.Clamp(diff, 0, 255);
             if (a < 6) continue;
-            o[i] = new Color32((byte)Mathf.Min(255, b[i].r * 255 / a), (byte)Mathf.Min(255, b[i].g * 255 / a), (byte)Mathf.Min(255, b[i].b * 255 / a), (byte)a);
+            var c = new Color32((byte)Mathf.Min(255, b[i].r * 255 / a), (byte)Mathf.Min(255, b[i].g * 255 / a), (byte)Mathf.Min(255, b[i].b * 255 / a), (byte)a);
+            o[i] = lut == null ? c : Grade(lut, c);
             int x = i % w, y = i / w;
             if (x < x0) x0 = x;
             if (x > x1) x1 = x;
@@ -324,9 +365,166 @@ public class PlannerCapture : BaseUnityPlugin
         return $"[{w / 2f - x0:0.#},{y1 + 1 - h / 2f:0.#},{cw},{ch}]"; // Texture2D rows run bottom-up, PNG rows top-down
     }
 
+    // ---------- looks: time of day, season, weather, blood moon ----------
+
+    float? lastHalloween; // the save's own value, put back after the blood moon look
+
+    IEnumerator SetLook(string look)
+    {
+        bool winter = look == "winter" || look == "blizzard";
+        Try($"look {look}", () =>
+        {
+            if (winter != (SeasonsManager.CurrentSeason == SeasonsManager.Season.Winter))
+            {
+                SeasonsManager.ActivateSeasons();
+                SeasonsManager.CurrentSeason = winter ? SeasonsManager.Season.Winter : SeasonsManager.Season.Spring;
+                // what the game's own season change fires, so season-only scenery follows
+                (AccessTools.Field(typeof(SeasonsManager), "OnSeasonChanged").GetValue(null) as SeasonsManager.SeasonEvent)?.Invoke(SeasonsManager.CurrentSeason);
+            }
+            var weather = WeatherSystemController.Instance;
+            if (weather)
+            {
+                // the game's presets: heavy rain, a winter day's heavy snow, and the blizzard's extreme snow
+                if (look == "rain") weather.SetWeather(WeatherSystemController.WeatherType.Raining, WeatherSystemController.WeatherStrength.Heavy, 0f);
+                else if (look == "winter") weather.SetWeather(WeatherSystemController.WeatherType.Snowing, WeatherSystemController.WeatherStrength.Heavy, 0f);
+                else if (look == "blizzard") weather.SetWeather(WeatherSystemController.WeatherType.Snowing, WeatherSystemController.WeatherStrength.Extreme, 0f);
+                else weather.StopCurrentWeather(0f);
+            }
+            // the base switches the blood moon lighting off again unless the blood moon is really on
+            // (FollowerBrainStats.IsBloodMoon: a Halloween ritual less than 3 days ago)
+            var location = BaseLocationManager.Instance;
+            if (look == "bloodmoon")
+            {
+                lastHalloween ??= DataManager.Instance.LastHalloween;
+                DataManager.Instance.LastHalloween = TimeManager.TotalElapsedGameTime;
+                if (location) location.EnableBloodMoon();
+            }
+            else if (lastHalloween.HasValue)
+            {
+                DataManager.Instance.LastHalloween = lastHalloween.Value;
+                lastHalloween = null;
+                if (location) location.DisableBloodMoon();
+            }
+            TimeManager.CurrentGameTime = look == "dusk" ? 840f : look == "night" ? 1080f : 560f; // phase changes with the clock
+        });
+        yield return new WaitForSecondsRealtime(winter || look == "rain" ? 20f : 10f); // lighting and weather ease in
+        Logger.LogInfo($"look {look}: season {SeasonsManager.CurrentSeason}, weather {WeatherSystemController.Instance?.CurrentWeatherType}, phase {TimeManager.CurrentPhase}, snow {Shader.GetGlobalFloat("_Snow_Intensity"):0.##}");
+    }
+
+    // The look's colour grading (the game's Amplify Color LUTs and exposure) as a 32x32x32 table: an identity
+    // colour chart drawn on its own and rendered through the post-processing stack, with the effects that
+    // spread light around (bloom, blur) off. Lamps light their surroundings with a second LUT and clouds
+    // cast moving shadows, so the chart is small, far from the base's lights, with the cloud overlay off,
+    // and taken at five spots: each entry is the median. Saved as `path` too, blue slices 8 per row.
+    Color32[] GradingLut(string path)
+    {
+        const int N = 32, W = 8 * N, H = 4 * N, Layer = 31;
+        var chart = new Texture2D(W, H, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
+        var px = new Color32[W * H];
+        for (int b = 0; b < N; b++)
+            for (int g = 0; g < N; g++)
+                for (int r = 0; r < N; r++)
+                    px[((b / 8) * N + g) * W + (b % 8) * N + r] = new Color32((byte)(r * 255 / 31), (byte)(g * 255 / 31), (byte)(b * 255 / 31), 255);
+        chart.SetPixels32(px);
+        chart.Apply();
+        var go = new GameObject("PlannerCaptureChart") { layer = Layer };
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = Sprite.Create(chart, new Rect(0, 0, W, H), new Vector2(.5f, .5f), 100f); // 2.56 x 1.28 world units
+        sr.sharedMaterial = new Material(Shader.Find("Sprites/Default"));
+        var origin = PlacementRegion.Instance ? PlacementRegion.Instance.transform.position : Vector3.zero;
+        var overlay = ScreenSpaceOverlay.Instance ? ScreenSpaceOverlay.Instance.GetRenderer() : null;
+        bool overlayWas = overlay && overlay.enabled;
+        if (overlay) overlay.enabled = false;
+        var off = ScreenEffectsOff(bloom: true);
+        try
+        {
+            var cam = GameCamera();
+            var shots = new List<Color32[]>();
+            foreach (var spot in new[] { new Vector3(400, 400), new Vector3(-400, 400), new Vector3(400, -400), new Vector3(-400, -400), new Vector3(0, 600) })
+            {
+                var at = origin + spot;
+                go.transform.SetPositionAndRotation(at, Quaternion.Euler(-45f, 0f, 0f)); // facing the capture camera, texel = pixel
+                var shot = Render(cam, W, H, H / 200f, at, 1 << Layer, Color.black, post: true, alpha: false);
+                shots.Add(shot.GetPixels32());
+                Destroy(shot);
+            }
+            var graded = new Color32[px.Length];
+            int spread = 0;
+            for (int i = 0; i < px.Length; i++)
+            {
+                byte Mid(Func<Color32, byte> ch)
+                {
+                    var v = shots.Select(sh => ch(sh[i])).OrderBy(x => x).ToList();
+                    spread = Math.Max(spread, v[v.Count - 1] - v[0]);
+                    return v[v.Count / 2];
+                }
+                graded[i] = new Color32(Mid(c => c.r), Mid(c => c.g), Mid(c => c.b), 255);
+            }
+            var outTex = new Texture2D(W, H, TextureFormat.RGBA32, false);
+            outTex.SetPixels32(graded);
+            File.WriteAllBytes(path, outTex.EncodeToPNG());
+            Destroy(outTex);
+            // the building renders skip post-processing; anything still grading them would show up here
+            var plain = Render(cam, W, H, H / 200f, origin + new Vector3(0, 600), 1 << Layer, Color.black, post: false, alpha: false);
+            var raw = plain.GetPixels32();
+            Destroy(plain);
+            int drift = 0;
+            for (int i = 0; i < px.Length; i++) drift = Math.Max(drift, Math.Max(Math.Abs(raw[i].r - px[i].r), Math.Max(Math.Abs(raw[i].g - px[i].g), Math.Abs(raw[i].b - px[i].b))));
+            Logger.LogInfo($"{Path.GetFileName(Path.GetDirectoryName(path))} grading: spots differ by {spread} at most, chart without post-processing by {drift}");
+            var lut = new Color32[N * N * N];
+            for (int b = 0; b < N; b++)
+                for (int g = 0; g < N; g++)
+                    for (int r = 0; r < N; r++)
+                        lut[(b * N + g) * N + r] = graded[((b / 8) * N + g) * W + (b % 8) * N + r];
+            return lut;
+        }
+        finally
+        {
+            foreach (var fx in off) if (fx) fx.active = true;
+            if (overlay) overlay.enabled = overlayWas;
+            Destroy(go);
+            Destroy(chart);
+        }
+    }
+
+    // A colour through the grading table, trilinear between its 32 steps per channel; alpha unchanged.
+    static Color32 Grade(Color32[] lut, Color32 c)
+    {
+        const int N = 32;
+        float fr = c.r * (N - 1) / 255f, fg = c.g * (N - 1) / 255f, fb = c.b * (N - 1) / 255f;
+        int r0 = (int)fr, g0 = (int)fg, b0 = (int)fb;
+        int r1 = Math.Min(r0 + 1, N - 1), g1 = Math.Min(g0 + 1, N - 1), b1 = Math.Min(b0 + 1, N - 1);
+        float dr = fr - r0, dg = fg - g0, db = fb - b0;
+        float Ch(int k)
+        {
+            float At(int r, int g, int b) { var v = lut[(b * N + g) * N + r]; return k == 0 ? v.r : k == 1 ? v.g : v.b; }
+            float x00 = Mathf.Lerp(At(r0, g0, b0), At(r1, g0, b0), dr), x10 = Mathf.Lerp(At(r0, g1, b0), At(r1, g1, b0), dr);
+            float x01 = Mathf.Lerp(At(r0, g0, b1), At(r1, g0, b1), dr), x11 = Mathf.Lerp(At(r0, g1, b1), At(r1, g1, b1), dr);
+            return Mathf.Lerp(Mathf.Lerp(x00, x10, dg), Mathf.Lerp(x01, x11, dg), db);
+        }
+        return new Color32((byte)Mathf.RoundToInt(Ch(0)), (byte)Mathf.RoundToInt(Ch(1)), (byte)Mathf.RoundToInt(Ch(2)), c.a);
+    }
+
+    // Screen effects that make no sense on a map: focus blur (the camera is far from its usual focus
+    // distance), vignette, grain, fringing, motion blur; bloom too for colour charts. Returns what it
+    // switched off, to switch back on.
+    static List<PostProcessEffectSettings> ScreenEffectsOff(bool bloom = false)
+    {
+        var off = new List<PostProcessEffectSettings>();
+        foreach (var vol in FindObjectsOfType<PostProcessVolume>())
+        {
+            var profile = vol.HasInstantiatedProfile() ? vol.profile : vol.sharedProfile;
+            if (profile == null) continue;
+            foreach (var fx in profile.settings)
+                if (fx.active && (fx is DepthOfField || fx is Vignette || fx is Grain || fx is ChromaticAberration || fx is MotionBlur || fx is LensDistortion || (bloom && fx is Bloom)))
+                { fx.active = false; off.Add(fx); }
+        }
+        return off;
+    }
+
     // ---------- backgrounds and grid ----------
 
-    IEnumerator CaptureLands()
+    IEnumerator CaptureLands(string dir, bool withGrid)
     {
         var lands = DLCLandController.Instance;
         var region = PlacementRegion.Instance;
@@ -336,8 +534,8 @@ public class PlannerCapture : BaseUnityPlugin
             if (lands) { if (level < 0) lands.SetDefault(); else lands.DEBUG_ShowSlot(level); } // in memory only; saving is off
             yield return new WaitForSecondsRealtime(3f);
             yield return new WaitForEndOfFrame();
-            Try($"land{level + 1}", () => Shoot($"land{level + 1}", clean: true));
-            if (!region) continue;
+            Try($"land{level + 1}", () => Shoot(Path.Combine(dir, $"land{level + 1}.png"), clean: true));
+            if (!region || !withGrid) continue;
 
             var squares = new List<GameObject>();
             Try($"grid{level + 1}", () =>
@@ -362,13 +560,13 @@ public class PlannerCapture : BaseUnityPlugin
             });
             yield return new WaitForSecondsRealtime(1.5f);
             yield return new WaitForEndOfFrame();
-            Try($"grid{level + 1}.png", () => Shoot($"grid{level + 1}", clean: true, hideWorldUI: false)); // build tiles draw on a UI sorting layer
+            Try($"grid{level + 1}.png", () => Shoot(Path.Combine(dir, $"grid{level + 1}.png"), clean: true, hideWorldUI: false)); // build tiles draw on a UI sorting layer
             foreach (var sq in squares) Destroy(sq);
         }
-        Try("grid.json", () => File.WriteAllText(Path.Combine(outDir, "grid.json"), "[" + string.Join(",", grids) + "]"));
+        if (withGrid) Try("grid.json", () => File.WriteAllText(Path.Combine(dir, "grid.json"), "[" + string.Join(",", grids) + "]"));
     }
 
-    void Shoot(string name, bool clean, bool hideWorldUI = true)
+    void Shoot(string path, bool clean, bool hideWorldUI = true)
     {
         var hiddenRenderers = new List<Renderer>();
         var hiddenCanvases = new List<Canvas>();
@@ -390,17 +588,7 @@ public class PlannerCapture : BaseUnityPlugin
             foreach (var ps in FindObjectsOfType<ParticleSystemRenderer>()) if (ps.enabled) { ps.enabled = false; hiddenRenderers.Add(ps); } // fireflies, dust, weather
         }
 
-        // Screen effects that make no sense on a map: focus blur (the camera is far from its usual
-        // focus distance), vignette, grain, fringing, motion blur. Colour grading and bloom stay.
-        var switchedOff = new List<PostProcessEffectSettings>();
-        foreach (var vol in FindObjectsOfType<PostProcessVolume>())
-        {
-            var profile = vol.HasInstantiatedProfile() ? vol.profile : vol.sharedProfile;
-            if (profile == null) continue;
-            foreach (var fx in profile.settings)
-                if (fx.active && (fx is DepthOfField || fx is Vignette || fx is Grain || fx is ChromaticAberration || fx is MotionBlur || fx is LensDistortion))
-                { fx.active = false; switchedOff.Add(fx); }
-        }
+        var switchedOff = ScreenEffectsOff(); // colour grading and bloom stay
         try
         {
             var cam = GameCamera();
@@ -408,9 +596,9 @@ public class PlannerCapture : BaseUnityPlugin
             // centre of the box on the ground (z = 0): u = x, v = K * y
             var centre = new Vector3((U0 + U1) / 2f, (V0 + V1) / 2f / K, 0f);
             var tex = Render(cam, w, h, (V1 - V0) / 2f, centre, cam.cullingMask, Color.black, post: true, alpha: false);
-            File.WriteAllBytes(Path.Combine(outDir, name + ".png"), tex.EncodeToPNG());
+            File.WriteAllBytes(path, tex.EncodeToPNG());
             Destroy(tex);
-            Logger.LogInfo($"wrote {name}.png {w}x{h}, hid {hiddenRenderers.Count} renderers, switched off {switchedOff.Count} screen effects");
+            Logger.LogInfo($"wrote {path} {w}x{h}, hid {hiddenRenderers.Count} renderers, switched off {switchedOff.Count} screen effects");
         }
         finally
         {
