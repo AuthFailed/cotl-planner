@@ -13,6 +13,13 @@ building, drop it on the grid, share the layout as a link. Live at https://map.c
   with the game's weather tint and falling rain or snow on top
 - Buildings rendered by the game itself (shaders, Spine art, lighting), with exact
   footprints, standing on the grid back to front like in-game
+- Lamps, torches and furnaces light their surroundings as the game does: inside each one's
+  light the scene is graded with the game's second, lit colour grading
+- Fires, flags and other animated buildings play their idle loop (still with reduced motion
+  and in PNG exports)
+- Captured at the game art's own resolution (200 px per world unit) and served at 128, twice
+  the earlier detail; backdrops come in tiles at the detail the zoom needs. "Picture quality"
+  lowers the textures, the animations or both to ½ or ⅓ for slower devices
 - The game's build rules: one-per-base buildings (moving the existing one if you place
   another), upgrade levels picked on the map, and the Temple placed by default, movable but
   not removable
@@ -131,12 +138,38 @@ not drawn, and buildings without plain sprites fall back to the wiki icon. In-ga
 
 `public/data/looks/<look>/sprites.json` and its sheets hold every buildable structure as the game draws it: the capture
 plugin's Buildings job loads each building prefab through Addressables, strips its gameplay
-scripts (keeping Spine renderers and switching off light sprites, range indicators and
-effects), places it on open ground in the base, and renders it alone over black and over
-white to recover exact transparency. `tools/capture/pack_sprites.html` packs the results
-into the atlas; each sprite keeps its anchor, the centre of the footprint's first cell. The atlas
-has two sheets: `sprites` with the build menu's buildings and the Temple (what a first visit draws)
-and `sprites-2` with the upgrade levels, which the page fetches only once one is on screen.
+scripts (keeping Spine and the scripts that set up its lights, switching off range
+indicators and particles), places it on open ground in the base, and renders it alone over
+black and over white to recover exact transparency, at `Ppu` pixels per world unit (200, the
+art's own resolution: the plugin's Density job measures it). `tools/capture/pack_sprites.html` packs
+the results into the atlas; each sprite keeps its anchor, the centre of the footprint's first cell.
+The atlas has two sheets: `sprites` with the build menu's buildings and the Temple (what a first
+visit draws) and `sprites-2` with the upgrade levels, which the page fetches only once one is on screen.
+Every sheet also comes at ½ and ⅓ (`@2`, `@3`), with sizes and places in steps of 6 so the same
+coordinates, divided by 2 or 3, fit them exactly.
+
+- **Animation**: a building with an idle loop (Spine, an Animator, or a shader that moves it,
+  like flags in the wind) is rendered once per frame over exactly one loop of its longest part,
+  the game's clock stepped by `Time.captureDeltaTime` so all of it moves together. This game's
+  Spine only animates skeletons its camera shows, so the game's camera looks at the building
+  meanwhile. The atlas keeps the first frame; the packer cuts out the part that moves and puts
+  that part of every frame on a sheet of its own (`anim/<TYPE>`), which the page fetches once
+  that building is on the map. `sprites.json` `anim` says where it goes and how fast it plays.
+  The packer warns about loops that end standing still (the game's clock stopped mid-loop).
+- **Lamp light**: the game grades the screen with two LUTs and blends between them by a light
+  mask, which its lighting camera draws mid-frame from each light's decals and volumes (layer
+  20) against the camera's depth texture. The plugin draws that mask the same way for its own
+  frames (`LightMask`: a command buffer inside a near-orthographic perspective render, which
+  the decal shaders need). For each building that casts light it saves the mask it casts on
+  open ground (`lights/<TYPE>`, `mask:<TYPE>` in `lights.json`, alpha = how lit), and for looks whose
+  lit LUT differs (`lut-lit.png`) every sheet graded with it (`<sheet>-lit`, same layout). Its
+  additive light (halos, light shafts) is `glow:<TYPE>`, added on top. The planner draws the
+  scene again from the lit art, cuts it to the placed buildings' masks added up, and lays it
+  over: normal × (1 − light) + lit × light, as the game's shader does.
+
+The plugin switches off the game's performance mode (in memory) before loading the base: that
+option changes how the game draws lamp light and stops some animations. The game also opens
+menus on its own (tutorials, the pause menu) that stop its clock; the plugin closes them.
 
 ## Background art
 
@@ -146,8 +179,13 @@ followers, placed buildings and obstacles, and renders the base with the game's 
 camera, shaders and colour grading, looking down at 45° without perspective (the
 planner's projection). Focus blur, vignette and grain are switched off for the capture.
 For each land level (switched in memory with the game's own `DLCLandController`) it
-writes `landN.png`, the grid dump `grid.json`, and `gridN.png` with the game's build-mode
-tiles on every cell, plus `capture.json`, then quits.
+writes the backdrop as tiles, `landN/<col>_<row>.png` (4096 x 2048 at `Ppu`, each with a 4 px
+border of its neighbours' pixels so they join without seams), the grid dump `grid.json`, and
+`gridN.png` with the game's build-mode tiles on every cell, plus `capture.json`, then quits.
+Each tile is cut from the middle of a frame the size of the game's own view (about 29.5 x 16.6
+units), so screen-wide effects like bloom reach as far as in the game, and all of a backdrop's
+tiles are rendered within one game frame. The dappled-sunlight overlay is drawn in screen space
+and would repeat in every tile, so it stays off.
 
 To redo it: install BepInEx 5 in the game, build with
 `tools/capture/build.sh "<game>/Cult Of The Lamb_Data/Managed" "<game>/BepInEx/core"`
@@ -171,25 +209,32 @@ look's colour grading (Amplify Color LUTs and exposure, a post-processing pass t
 cutout can't go through) is measured by rendering an identity colour chart through it, saved as
 `lut.png`, and applied to each building render. Lamps grade their surroundings with a second
 LUT and clouds cast moving shadows, so the chart is drawn small, far from the base's lights,
-with the cloud overlay off, at five spots, and each entry is the median. The plugin also
+with the cloud overlay off, at five spots, and each entry is the median. The same chart with
+the light mask forced on gives the lit LUT (`lut-lit.png`); where it differs, the backdrops
+are also rendered all lit (`lit/landN.png`, for the planner to show through placed lamps). The plugin also
 supports `dusk`, but the base lights dusk exactly like day, so the planner leaves it out.
 
-The snow looks come back with a see-through vertical seam on maps with land upgrades;
-`tools/capture/fix_seam.html?files=winter/land1.png,...` (served like the packer) finds such
-seams and fills them from the ground beside them, only on the rows where the band is darker.
-Then:
-
-pack each look's buildings with `pack_sprites.html?look=<look>&data=<where public/data is served>`
-(it reads `game.json` and `base.json` to know what goes on the first sheet; `save()` in the console
-writes `<look>/sprites.png`, `sprites-2.png` and `sprites.json` into the capture), then:
+Snow shows trails (whatever walked through it) from two render textures the game fills around
+its camera and the player. Past their edge the snow samples the edge, so a footprint there runs
+on as a stripe across the backdrop, which the game's own camera never sees. The plugin sets both
+to black, their cleared state, so the backdrops show untrodden snow.
+Then, with the capture folder served by `tools/background/serve.py` copied into it (so `save()`
+writes into it) and `data/game.json` and `data/base.json` next to it, pack each look:
+`pack_sprites.html?look=<look>&scale=0.64` (the buildings: `save()` in the console writes
+`<look>/packed/sprites.png`, `sprites-2.png`, their `-lit` copies, `anim/<TYPE>.png`, all at ½ and
+⅓ too, and `sprites.json`), `&set=lights` (each building's light, `lights/<TYPE>.png`, and
+`lights.json`) and `&set=small` (`small/landN.png`, each backdrop 512 wide, drawn while its tiles
+load), then:
 
 ```bash
-tools/capture/looks_to_data.sh <capture dir>   # backdrops and atlases -> public/data/looks/<look>/, looks in background.json
+tools/capture/looks_to_data.sh <capture dir> 128   # -> public/data/looks/<look>/, looks and tiles in background.json
 ```
 
-It needs `cwebp` and `avifenc`, and writes every image twice, AVIF and WebP (the page asks for AVIF
-and falls back to WebP where the browser can't decode it), plus `background-N.small.webp`, 512 wide,
-which the page draws until the full backdrop has loaded. The game's weather tint (a colour it lays over
+It cuts the backdrops into square tiles of 2048 capture pixels (plus the border) at full detail, ½ and ⅓, and encodes
+every picture as AVIF; the ⅓ ones also as WebP, which browsers without AVIF get for everything. It
+needs `cwebp`, `dwebp` and `avifenc`. The site keeps everything in this repository and GitHub Pages
+allows 1 GB, so the capture's 200 px per unit is kept at 128 (`scale=0.64`, `128`): about 130 MB per
+look. Every new capture adds that much to the repository's history. The game's weather tint (a colour it lays over
 the screen) is listed in `background.json` and drawn by the planner, which also animates the
 falling rain and snow (left out of captures, where they'd freeze into dots).
 
@@ -221,7 +266,7 @@ node tools/test.mjs
 ## Not done yet
 
 - The DLC shrine room
-- Spine-animated building parts; 16 menu entries (mostly paths) still use wiki icons
+- 16 menu entries (mostly paths) still use wiki icons
 - Follower reach areas (farmer station, propaganda speakers)
 
 ## Legal
