@@ -675,7 +675,9 @@ public class PlannerCapture : BaseUnityPlugin
             if (soil)
             {
                 var plot = go.GetComponentInChildren<FarmPlot>(true);
-                Instantiate(soil, plot.DirtTransform ? plot.DirtTransform : plot.transform, false);
+                var dirt = Instantiate(soil, plot.DirtTransform ? plot.DirtTransform : plot.transform, false).transform;
+                dirt.localPosition = Vector3.zero; // as the game's ObjectPool.Spawn puts it
+                dirt.localRotation = Quaternion.identity;
             }
             StripScripts(go, winter);
             go.transform.SetParent(null, false); // the light scripts set their meshes up now
