@@ -57,7 +57,8 @@ for (const tab of game.menu) for (const s of tab.sections) for (const head of s.
     // higher levels only when there's something to draw for them
     if (T !== head && !atlas?.items[T] && !wikiOf[T]?.icon) continue;
     const t = game.types[T];
-    byType[T] ??= { type: T, w: t.w, h: t.h, once: !!t.once, fixed: !!t.fixed, icon: wikiOf[T]?.icon };
+    // the game also won't demolish the Weather Vane or the Rotburn Furnace, but a plan only keeps the Temple every base starts with
+    byType[T] ??= { type: T, w: t.w, h: t.h, once: !!t.once, fixed: !!t.fixed && head === "TEMPLE", icon: wikiOf[T]?.icon };
     tabOf[T] ??= tab;
   }
 // one building per chain, whatever its level, counts against the limit

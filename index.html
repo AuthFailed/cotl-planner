@@ -97,6 +97,8 @@
   /* menus drop down under the right island */
   .menu:popover-open, .view:popover-open { position: fixed; inset: 62px var(--gap) auto auto; margin: 0; padding: 6px; min-width: 240px; display: grid; gap: 2px; background: rgb(28 23 25 / .97); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-panel); box-shadow: var(--shadow); }
   :dir(rtl) :is(.menu, .view):popover-open { inset: 62px auto auto var(--gap); }
+  /* the layout stats sit in the same spot and would peek out from under an open menu */
+  body:has(:is(.menu, .view):popover-open) .stats { visibility: hidden; }
   :is(.menu, .view:popover-open) .menu-label { display: inline; }
   :is(.menu, .view:popover-open) :is(.icon-btn, .land) { height: 44px; justify-content: flex-start; padding: 0 12px; gap: 10px; color: var(--text); }
   :is(.menu, .view:popover-open) .land select { flex: 1; padding: 0; }
