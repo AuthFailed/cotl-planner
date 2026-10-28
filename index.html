@@ -198,6 +198,15 @@
   dialog dd { margin: 0; color: var(--muted); }
   .confirm p { margin: 0 0 16px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
   .confirm .buttons { display: flex; justify-content: flex-end; gap: 8px; }
+  .layout-name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+  .layouts { width: 400px; }
+  .layouts ul { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 2px; max-height: 50dvh; overflow-y: auto; }
+  .layouts li { display: flex; gap: 2px; }
+  .layouts li .name { flex: 1; min-width: 0; justify-content: flex-start; color: var(--text); }
+  .layouts li .name span { overflow: hidden; text-overflow: ellipsis; }
+  .layouts li .name[aria-current="true"] { background: var(--accent-soft); }
+  .layouts .note { font-size: 12.5px; color: var(--faint); }
+  .name-input { width: 100%; height: 38px; margin-bottom: 16px; padding: 0 12px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-ctl); }
   .saves dd { min-width: 0; }
   .saves code { font: 11.5px/1.5 "Geist Mono Variable", monospace; overflow-wrap: anywhere; user-select: all; }
   kbd { font-family: "Geist Mono Variable", monospace; font-size: 11.5px; padding: 2px 6px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 5px; background: var(--bg); white-space: nowrap; }
@@ -322,6 +331,7 @@
       </label>
     </div>
     <span class="sep desk"></span>
+    <button class="icon-btn" id="layouts" data-i18n-title="layouts"><i class="ph ph-folder-simple"></i><span class="label layout-name" id="layout-name"></span></button>
     <button class="icon-btn primary" id="share" data-i18n-title="shareTitle" data-i18n-label="share"><i class="ph ph-link"></i><span class="label" data-i18n="share">Share</span></button>
   </div>
 
@@ -388,6 +398,28 @@
   <form method="dialog" class="buttons">
     <button class="icon-btn secondary" value="cancel" data-i18n="cancel">Cancel</button>
     <button class="icon-btn primary" value="ok" id="confirm-ok" autofocus></button>
+  </form>
+</dialog>
+
+<dialog id="layouts-dialog" class="confirm layouts" aria-labelledby="layouts-title">
+  <h2 id="layouts-title" data-i18n="layouts"></h2>
+  <p id="layouts-empty" data-i18n="layoutsEmpty"></p>
+  <ul id="layouts-list"></ul>
+  <p class="note" data-i18n="layoutsNote"></p>
+  <form method="dialog" class="buttons">
+    <button class="icon-btn secondary" value="cancel" data-i18n="close"></button>
+    <button class="icon-btn primary" type="button" id="layouts-save"><i class="ph ph-floppy-disk"></i><span data-i18n="saveAs"></span></button>
+  </form>
+</dialog>
+
+<dialog id="name-dialog" class="confirm" aria-labelledby="name-title">
+  <h2 id="name-title"></h2>
+  <form method="dialog">
+    <input id="name-input" class="name-input" required maxlength="60" autocomplete="off" data-i18n-label="layoutName">
+    <div class="buttons">
+      <button class="icon-btn secondary" type="button" id="name-cancel" data-i18n="cancel"></button>
+      <button class="icon-btn primary" value="ok" data-i18n="save"></button>
+    </div>
   </form>
 </dialog>
 

@@ -62,6 +62,9 @@
 .ph.ph-cloud-sun:before {
   content: "\e540";
 }
+.ph.ph-copy:before {
+  content: "\e1ca";
+}
 .ph.ph-corners-out:before {
   content: "\e1d0";
 }
@@ -83,11 +86,17 @@
 .ph.ph-eye:before {
   content: "\e220";
 }
+.ph.ph-floppy-disk:before {
+  content: "\e248";
+}
 .ph.ph-flower-tulip:before {
   content: "\eacc";
 }
 .ph.ph-folder-open:before {
   content: "\e256";
+}
+.ph.ph-folder-simple:before {
+  content: "\e25a";
 }
 .ph.ph-hand-pointing:before {
   content: "\e29a";
@@ -121,6 +130,9 @@
 }
 .ph.ph-mountains:before {
   content: "\e7ae";
+}
+.ph.ph-pencil-simple:before {
+  content: "\e3b4";
 }
 .ph.ph-plus:before {
   content: "\e3d4";
@@ -221,6 +233,9 @@
 .ph-fill.ph-cloud-sun:before {
   content: "\e540";
 }
+.ph-fill.ph-copy:before {
+  content: "\e1ca";
+}
 .ph-fill.ph-corners-out:before {
   content: "\e1d0";
 }
@@ -242,11 +257,17 @@
 .ph-fill.ph-eye:before {
   content: "\e220";
 }
+.ph-fill.ph-floppy-disk:before {
+  content: "\e248";
+}
 .ph-fill.ph-flower-tulip:before {
   content: "\eacc";
 }
 .ph-fill.ph-folder-open:before {
   content: "\e256";
+}
+.ph-fill.ph-folder-simple:before {
+  content: "\e25a";
 }
 .ph-fill.ph-hand-pointing:before {
   content: "\e29a";
@@ -280,6 +301,9 @@
 }
 .ph-fill.ph-mountains:before {
   content: "\e7ae";
+}
+.ph-fill.ph-pencil-simple:before {
+  content: "\e3b4";
 }
 .ph-fill.ph-plus:before {
   content: "\e3d4";
