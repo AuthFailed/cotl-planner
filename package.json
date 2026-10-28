@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && VITE_DATA=$(git rev-parse --short HEAD:public/data) vite build",
     "preview": "vite preview",
     "test": "node tools/test.mjs",
     "check": "tsc --noEmit"

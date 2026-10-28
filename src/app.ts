@@ -28,7 +28,10 @@ type Gesture =
 // Every id the script touches exists in index.html; the type parameter says what kind of element it is.
 const $ = <E extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as E;
 const canvas = $<HTMLCanvasElement>("map"), ctx = canvas.getContext("2d")!;
-const load = <T>(u: string): Promise<T | null> => fetch(u).then(r => (r.ok ? r.json() : null)).catch(() => null);
+// Data URLs carry the data's version (git's hash of public/data, set by the build), so after a deploy the
+// page never mixes new files with ones the browser cached from the last one (Pages caches for 10 minutes).
+const DATA_VERSION = import.meta.env.VITE_DATA ? `?v=${import.meta.env.VITE_DATA}` : "";
+const load = <T>(u: string): Promise<T | null> => fetch(u + DATA_VERSION).then(r => (r.ok ? r.json() : null)).catch(() => null);
 const phone = matchMedia("(max-width: 767px)");
 
 const [base, game, bg, atlas, wiki, langs, en] = await Promise.all([
@@ -123,7 +126,7 @@ type Scene = {
 };
 const scenes = new Map<string, Scene>();
 const ready = (img?: HTMLImageElement | null) => !!img?.complete && !!img.naturalWidth;
-const picture = (path: string) => Object.assign(new Image(), { onload: requestDraw, src: `${path}.${avif ? "avif" : "webp"}` });
+const picture = (path: string) => Object.assign(new Image(), { onload: requestDraw, src: `${path}.${avif ? "avif" : "webp"}${DATA_VERSION}` });
 function scene(name: string): Scene {
   let sc = scenes.get(name);
   if (!sc) {
@@ -150,7 +153,7 @@ function smallBackdrop(name: string, level: number) {
   if (!bg) return null;
   const sc = scene(name), path = `data/looks/${name}/${bg.images[Math.min(level, bg.images.length - 1)]}`;
   let img = sc.small.get(path);
-  if (!img) sc.small.set(path, img = Object.assign(new Image(), { onload: requestDraw, src: `${path}.small.webp` }));
+  if (!img) sc.small.set(path, img = Object.assign(new Image(), { onload: requestDraw, src: `${path}.small.webp${DATA_VERSION}` }));
   return ready(img) ? img : null;
 }
 // A building's render in the look on screen (as inside lamp light with `lit`), or the day one while
@@ -242,11 +245,11 @@ function anchored(b: Brush, c: CellXY): Placed {
 function thumb(T: string, size = 44): HTMLElement {
   const a = atlas?.items[T];
   if (a) {
-    const image = sheet(scene("day"), a[6] ?? 0);
+    const image = sheet(scene("day"), a[6] ?? 0), d = detail(quality.textures); // the sheet at 1/d of full size
     const px = Math.round(size * Math.min(2, devicePixelRatio || 1));
     const c = el("canvas", { className: "thumb", width: px, height: px });
     const paint = () => {
-      const [x, y, w, h] = a, k = Math.min(px / w, px / h, px / 40);
+      const [x, y, w, h] = scaled(a, d), k = Math.min(px / w, px / h, (px / 40) * d);
       c.getContext("2d")!.drawImage(image, x, y, w, h, (px - w * k) / 2, (px - h * k) / 2, w * k, h * k);
     };
     if (ready(image)) paint(); else image.addEventListener("load", paint, { once: true });
