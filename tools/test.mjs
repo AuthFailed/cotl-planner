@@ -1,7 +1,7 @@
 // Self-check for src/core.ts: node tools/test.mjs
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
-import { fits, itemAt, encode, decode, cellsFor, reach, cellsBetween } from "../src/core.ts";
+import { fits, itemAt, encode, decode, cellsFor, reach, cellsBetween, flipGroup, withinLimits } from "../src/core.ts";
 import { readSave } from "../src/save.ts";
 
 const byName = { "Farm Plot": { w: 1, h: 1 }, "Long: Thing": { w: 3, h: 1 } };
@@ -24,6 +24,13 @@ assert.deepEqual(line.at(-1), { x: 3, y: -2 }, "ends where the pointer is");
 assert.ok(line.every((c, i) => Math.abs(c.x - (line[i - 1] ?? { x: 0 }).x) + Math.abs(c.y - (line[i - 1] ?? { y: 0 }).y) === 1), "each cell shares a side with the last");
 assert.deepEqual(cellsBetween({ x: 1, y: 1 }, { x: 1, y: 1 }), [], "no move, no cells");
 assert.deepEqual(reach({ x: 0, y: 0 }, { size: 3, at: 0.6 }), { x: 0, y: 0, n: 3 }, "off-centre range");
+const flipped = flipGroup([{ name: "Long: Thing", x: 2, y: 2, r: 0 }, { name: "Farm Plot", x: 5, y: 3, r: 0 }]);
+assert.deepEqual(flipped, [{ name: "Long: Thing", x: 2, y: 2, r: 1 }, { name: "Farm Plot", x: 3, y: 5, r: 1 }], "group flips across its diagonal");
+assert.ok(flipped.every(p => fits(p, flipped.filter(q => q !== p), byName, cells)), "a flipped group doesn't overlap itself");
+assert.deepEqual(flipGroup(flipGroup(flipped)), flipped, "flipping twice is a no-op");
+const once = T => (T === "Long: Thing" ? 1 : Infinity);
+assert.deepEqual(withinLimits([{ name: "Long: Thing", x: 0, y: 0, r: 0 }, { name: "Farm Plot", x: 0, y: 1, r: 0 }], placed, T => T, once).map(p => p.name), ["Farm Plot"], "a one-per-base building already placed is left out");
+assert.equal(withinLimits([{ name: "Long: Thing", x: 0, y: 0, r: 0 }, { name: "Long: Thing", x: 0, y: 1, r: 0 }], [], T => T, once).length, 1, "and only one of two pasted");
 
 const layout = [...placed, { name: "Farm Plot", x: -1, y: 0, r: 0 }, { name: "Farm Plot", x: 1, y: -2, r: 0 }];
 assert.deepEqual(decode("#" + encode(layout), byName), { placed: layout, land: null }, "hash round-trip");
@@ -90,6 +97,16 @@ for (const { code } of json("public/data/i18n/index.json")) {
   assert.deepEqual(Object.keys(d.ui).sort(), Object.keys(en.ui).sort(), `${code}: every planner string`);
   assert.ok(Object.entries(d.ui).every(([k, s]) => vars(s) === vars(en.ui[k])), `${code}: same {placeholders} as English`);
   assert.ok(Object.values(d.desc).every(s => !/[<>]/.test(s)), `${code}: descriptions are plain text`);
+}
+// starter templates: every building known and on bought ground, nothing overlapping, a name and text
+const templates = json("public/data/templates.json");
+assert.ok(templates.length >= 3, "at least three templates");
+for (const tp of templates) {
+  const { placed, land } = decode(tp.hash, game.types), { cells } = cellsFor(base, land ?? 0);
+  assert.equal(placed.length, tp.hash.split("|").filter(g => g.includes(":")).flatMap(g => g.split(":")[1].split(",")).length, `${tp.id}: every building known`);
+  assert.ok(placed.every((p, i) => fits(p, placed.slice(0, i), game.types, cells)), `${tp.id}: every building fits`);
+  const key = `tpl${tp.id[0].toUpperCase()}${tp.id.slice(1)}`;
+  assert.ok(en.ui[key] && en.ui[`${key}Text`], `${tp.id}: has a name and description`);
 }
 // every look has its art (every backdrop tile and sheet at full, ½ and ⅓ in AVIF, the ⅓ ones also in
 // WebP for browsers without AVIF, and the small backdrops), and a name in the page's strings

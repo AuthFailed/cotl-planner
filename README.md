@@ -30,6 +30,7 @@ building, drop it on the grid, share the layout as a link. Live at https://map.c
   interface text from `tools/i18n/ui.json`
 - Works on phones: the building list is a bottom sheet, one finger places or pans, two
   fingers pinch to zoom
+- Box selection (Shift-drag, or long-press on a phone) to move, flip, delete, copy and stamp groups of buildings
 - Overlap and buildable-ground checks, rotate, move, delete; while you hold a building, every cell
   it fits on is tinted, and the stats show how many cells are still free; a measure tool (M) shows
   how many cells across a space is
@@ -38,6 +39,9 @@ building, drop it on the grid, share the layout as a link. Live at https://map.c
   its own colour with a legend of names and sizes
 - The whole layout lives in the URL — "Copy link" is your save file
 - Named layouts kept in the browser (open, rename, duplicate, delete); the open one saves as you go
+- Starter templates to begin from (compact farm, decoration showcase, winter-ready base), each one
+  undoable step; they are share hashes in `public/data/templates.json`, named in `tools/i18n/ui.json`
+  (`tpl<Id>`, `tpl<Id>Text`), and the test checks every building still fits
 - Import your real base from the game's save file (⋯ menu → Import save): buildings with their
   levels and flips, and the land you've bought; the file is read in the browser, never uploaded
 - Export to PNG
@@ -75,6 +79,8 @@ issue the HTTPS certificate).
 | Move | drag a placed building, or click it and choose Move |
 | Delete | right-click a placed building, or select it and choose Delete |
 | Flip | `R` or the Flip button (the game mirrors buildings) |
+| Select several | `Shift`-drag a box, `Shift`-click to add or remove one; on a touch screen, long-press the ground and drag. Drag, flip (`R`) or delete (`Del`) them together, each as one undo step |
+| Copy and stamp | `Ctrl+C`, then `Ctrl+V` and click to stamp the group at the pointer (again for more), or Copy on the selection; it only goes down where all of it fits, without one-per-base buildings the base already has |
 | Zoom | scroll or pinch; `F` fits the base |
 | Ranges | hold, hover or select a building; `A` shows every building's range |
 | Cancel | `Esc`, or the × next to the building you're holding |
