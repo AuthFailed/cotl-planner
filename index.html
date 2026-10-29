@@ -172,7 +172,7 @@
   .hint i { font-size: 26px; color: var(--accent); }
   .hint b { display: block; margin: 6px 0 4px; font-weight: 600; }
   .hint p { margin: 0; color: var(--muted); font-size: 13px; text-wrap: balance; }
-  .selection { width: max-content; max-width: 330px; padding: 12px; display: grid; gap: 8px; translate: -50% -100%; z-index: 5; }
+  .selection { width: max-content; max-width: 330px; min-width: min-content; /* long action labels (ru, nl) widen the card instead of spilling out */ padding: 12px; display: grid; gap: 8px; translate: -50% -100%; z-index: 5; }
   .selection[hidden] { display: none; }
   .selection.below { translate: -50% 0; }
   .selection b { font-weight: 600; }
@@ -246,7 +246,8 @@
     .inspector { inset-inline: var(--gap); top: 62px; width: auto; }
     .dock { bottom: calc(var(--gap) + 16px); }
     .inspector:not(.holding) { display: none; }
-    .selection { inset-inline: var(--gap); bottom: calc(var(--gap) + 70px); top: auto; width: auto; max-width: none; translate: none; }
+    .selection { inset-inline: var(--gap); bottom: calc(var(--gap) + 70px); top: auto; width: auto; max-width: none; min-width: 0; translate: none; }
+    .selection .actions { flex-wrap: wrap; }
     .toast { top: 62px; bottom: auto; }
     .toast[hidden] { translate: -50% -8px; }
   }
